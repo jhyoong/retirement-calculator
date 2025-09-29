@@ -64,13 +64,241 @@ main {
   gap: 2rem;
 }
 
-#calculator-form,
-#results-display,
-#import-export-controls {
+/* Section Styles */
+.form-section,
+.results-section,
+.controls-section {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 1.5rem;
+  text-align: left;
+}
+
+.form-section h2,
+.results-section h2,
+.controls-section h2 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  color: #646cff;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #646cff;
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
+}
+
+.form-group input:invalid {
+  border-color: #ff6b6b;
+}
+
+.error-message {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #ff6b6b;
+  min-height: 1.2em;
+}
+
+.form-actions {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.btn-large {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Results Styles */
+.results-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.result-item.highlight {
+  background: rgba(100, 108, 255, 0.1);
+  border: 1px solid rgba(100, 108, 255, 0.2);
+}
+
+.result-label {
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.result-value {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.result-item.highlight .result-value {
+  color: #646cff;
+  font-size: 1.25rem;
+}
+
+/* Controls Styles */
+.controls-group {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.export-controls,
+.import-controls,
+.clear-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background-color: #646cff;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #535bf2;
+}
+
+.btn-secondary {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.btn-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.btn-danger {
+  background-color: #ff6b6b;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #ff5252;
+}
+
+.help-text {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+  line-height: 1.3;
+}
+
+.status-message {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  text-align: center;
+  min-height: 1.2em;
+}
+
+.status-message.success {
+  background-color: rgba(76, 175, 80, 0.1);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
+.status-message.error {
+  background-color: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+.status-message.warning {
+  background-color: rgba(255, 193, 7, 0.1);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  color: #ffc107;
+}
+
+/* Footer Styles */
+footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+  }
+  
+  header h1 {
+    font-size: 2rem;
+  }
+  
+  .form-section,
+  .results-section,
+  .controls-section {
+    padding: 1rem;
+  }
+  
+  .controls-group {
+    gap: 1rem;
+  }
+  
+  .result-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
 }
 
 @media (prefers-color-scheme: light) {
@@ -90,10 +318,57 @@ main {
     color: #666;
   }
   
-  #calculator-form,
-  #results-display,
-  #import-export-controls {
+  .form-section,
+  .results-section,
+  .controls-section {
     background: rgba(0, 0, 0, 0.02);
     border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  
+  .form-section h2,
+  .results-section h2,
+  .controls-section h2 {
+    color: #213547;
+  }
+  
+  .form-group label {
+    color: #213547;
+  }
+  
+  .form-group input {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    color: #213547;
+  }
+  
+  .result-item {
+    background: rgba(0, 0, 0, 0.03);
+  }
+  
+  .result-label {
+    color: #666;
+  }
+  
+  .result-value {
+    color: #213547;
+  }
+  
+  .btn-secondary {
+    background-color: rgba(0, 0, 0, 0.05);
+    color: #213547;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+  }
+  
+  .btn-secondary:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  .help-text {
+    color: #666;
+  }
+  
+  footer {
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    color: #666;
   }
 }
