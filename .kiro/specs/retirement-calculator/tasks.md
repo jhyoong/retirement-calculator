@@ -6,13 +6,13 @@
   - Configure build settings for static deployment to Cloudflare Pages
   - _Requirements: 6.3_
 
-- [ ] 2. Implement core data models and interfaces
+- [x] 2. Implement core data models and interfaces
   - Create TypeScript interfaces for RetirementData, CalculationResult, and ExportData
   - Implement validation functions for all data fields
   - Write unit tests for data model validation
   - _Requirements: 1.4, 5.2_
 
-- [ ] 3. Build calculation engine module
+- [x] 3. Build calculation engine module
   - Implement compound interest calculation functions
   - Create monthly retirement income calculation logic
   - Add input validation and error handling for edge cases
