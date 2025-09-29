@@ -2,7 +2,7 @@
 // This file will export all service classes
 
 export { CalculationEngine } from './CalculationEngine';
+export { DataManager } from './DataManager';
 
 // Placeholder exports - will be implemented in future tasks
-// export { DataManager } from './DataManager';
 // export { ImportExportManager } from './ImportExportManager';
