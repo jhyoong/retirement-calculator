@@ -23,7 +23,7 @@
   - Add real-time preview of total monthly income from all sources
   - _Requirements: 1.1, 1.6, 1.8_
 
-- [ ] 4. Update calculation engine for multiple income sources
+- [x] 4. Update calculation engine for multiple income sources
   - Modify CalculationEngine to work with IncomeManager for total contribution calculations
   - Implement time-based income calculations (start/end dates, contribution percentages)
   - Add support for annual increases and varying contribution rates
@@ -69,7 +69,7 @@
 
 - [ ] 10. Update calculation engine for monthly projections
   - Modify CalculationEngine to generate MonthlyProjection arrays
-  - Implement efficient algorithms for calculating 600+ months of data
+  - Implemewnt efficient algorithms for calculating 600+ months of data
   - Add inflation adjustments to all monetary calculations
   - Write performance tests to ensure calculations complete within reasonable time
   - _Requirements: 6.3, 6.4, 6.5_
