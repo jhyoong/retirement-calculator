@@ -212,6 +212,14 @@ export class UIController {
       }
     });
 
+    // Validate income sources
+    const incomeValidation = this.incomeManager.validateAllSources();
+    if (!incomeValidation.isValid) {
+      // Show income source validation errors
+      this.showCalculationStatus(`Income source errors: ${incomeValidation.errors.join(', ')}`, 'error');
+      isValid = false;
+    }
+
     return isValid;
   }
 
@@ -248,7 +256,10 @@ export class UIController {
   /**
    * Handle income sources change
    */
-  private handleIncomeSourcesChange(_sources: IncomeSource[]): void {
+  private handleIncomeSourcesChange(sources: IncomeSource[]): void {
+    // Update the income manager with the new sources
+    this.incomeManager.setIncomeSources(sources);
+    
     // Update the income summary with current age
     const currentAge = this.getInputValue('current-age');
     if (!isNaN(currentAge) && currentAge > 0) {
@@ -505,9 +516,21 @@ export class UIController {
     this.setInputValue('inflation-rate', (data.inflationRate || 0.025) * 100); // Convert to percentage
     this.setInputValue('monthly-spending', data.monthlyRetirementSpending || 0);
     
-    // Load income sources
+    // Load income sources into both the manager and UI
     if (data.incomeSources && data.incomeSources.length > 0) {
+      // Set sources in the income manager
+      const validation = this.incomeManager.setIncomeSources(data.incomeSources);
+      if (!validation.isValid) {
+        console.warn('Invalid income sources loaded:', validation.errors);
+        this.notificationService.showWarning('Some income sources could not be loaded due to validation errors');
+      }
+      
+      // Set sources in the UI
       this.incomeSourceUI.setIncomeSources(data.incomeSources);
+    } else {
+      // Clear income sources if none exist
+      this.incomeManager.clearAllSources();
+      this.incomeSourceUI.setIncomeSources([]);
     }
   }
 
@@ -621,6 +644,10 @@ export class UIController {
         form.reset();
       }
       
+      // Clear income sources
+      this.incomeManager.clearAllSources();
+      this.incomeSourceUI.setIncomeSources([]);
+      
       // Clear all error messages
       this.clearAllErrors();
       
@@ -675,5 +702,19 @@ export class UIController {
    */
   public getTabManager(): TabManager {
     return this.tabManager;
+  }
+
+  /**
+   * Get the income manager instance
+   */
+  public getIncomeManager(): IncomeManager {
+    return this.incomeManager;
+  }
+
+  /**
+   * Get the income source UI instance
+   */
+  public getIncomeSourceUI(): IncomeSourceUI {
+    return this.incomeSourceUI;
   }
 }

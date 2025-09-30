@@ -5,31 +5,49 @@ import { UIController } from './UIController';
 const mockDOM = () => {
   document.body.innerHTML = `
     <div id="app">
-      <form id="retirement-form">
-        <input type="number" id="current-age" name="currentAge" required />
-        <div id="current-age-error" class="error-message"></div>
-        
-        <input type="number" id="retirement-age" name="retirementAge" required />
-        <div id="retirement-age-error" class="error-message"></div>
-        
-        <input type="number" id="current-savings" name="currentSavings" required />
-        <div id="current-savings-error" class="error-message"></div>
-        
-        <input type="number" id="monthly-contribution" name="monthlyContribution" required />
-        <div id="monthly-contribution-error" class="error-message"></div>
-        
-        <input type="number" id="expected-return" name="expectedAnnualReturn" required />
-        <div id="expected-return-error" class="error-message"></div>
-        
-        <button type="button" id="calculate-btn">Calculate</button>
-      </form>
+      <div id="tabs">
+        <button class="tab-button active" data-tab="income">Income</button>
+        <button class="tab-button" data-tab="results">Results</button>
+      </div>
       
-      <div id="results-content">
-        <span id="years-to-retirement">--</span>
-        <span id="total-savings">$--</span>
-        <span id="monthly-income">$--</span>
-        <span id="total-contributions">$--</span>
-        <span id="interest-earned">$--</span>
+      <div id="income-tab" class="tab-content active">
+        <div id="income-sources-container"></div>
+        <div id="income-summary"></div>
+      </div>
+      
+      <div id="results-tab" class="tab-content">
+        <form id="retirement-form">
+          <input type="number" id="current-age" name="currentAge" required />
+          <div id="current-age-error" class="error-message"></div>
+          
+          <input type="number" id="retirement-age" name="retirementAge" required />
+          <div id="retirement-age-error" class="error-message"></div>
+          
+          <input type="number" id="current-savings" name="currentSavings" required />
+          <div id="current-savings-error" class="error-message"></div>
+          
+          <input type="number" id="monthly-contribution" name="monthlyContribution" />
+          <div id="monthly-contribution-error" class="error-message"></div>
+          
+          <input type="number" id="expected-return" name="expectedAnnualReturn" required />
+          <div id="expected-return-error" class="error-message"></div>
+          
+          <input type="number" id="inflation-rate" name="inflationRate" />
+          <div id="inflation-rate-error" class="error-message"></div>
+          
+          <input type="number" id="monthly-spending" name="monthlyRetirementSpending" />
+          <div id="monthly-spending-error" class="error-message"></div>
+          
+          <button type="button" id="calculate-btn">Calculate</button>
+        </form>
+        
+        <div id="results-content">
+          <span id="years-to-retirement">--</span>
+          <span id="total-savings">$--</span>
+          <span id="monthly-income">$--</span>
+          <span id="total-contributions">$--</span>
+          <span id="interest-earned">$--</span>
+        </div>
       </div>
       
       <div id="calculation-status" class="status-message"></div>
@@ -40,6 +58,8 @@ const mockDOM = () => {
       <button id="import-btn">Import</button>
       <input type="file" id="import-file" />
       <button id="clear-btn">Clear</button>
+      
+      <div id="notifications"></div>
     </div>
   `;
 };
@@ -295,6 +315,141 @@ describe('UIController', () => {
         expect(mockStorage.setItem).toHaveBeenCalledTimes(1);
         done();
       }, 350); // Wait slightly longer than debounce delay
+    });
+  });
+
+  describe('Income Source Management', () => {
+    it('should provide access to income manager', () => {
+      const incomeManager = uiController.getIncomeManager();
+      expect(incomeManager).toBeDefined();
+      expect(typeof incomeManager.addIncomeSource).toBe('function');
+    });
+
+    it('should provide access to income source UI', () => {
+      const incomeSourceUI = uiController.getIncomeSourceUI();
+      expect(incomeSourceUI).toBeDefined();
+    });
+
+    it('should handle income source changes and trigger recalculation', () => {
+      const incomeManager = uiController.getIncomeManager();
+      
+      // Add an income source
+      const result = incomeManager.addIncomeSource({
+        name: 'Test Job',
+        type: 'regular_job',
+        amount: 5000,
+        frequency: 'monthly',
+        contributionPercentage: 0.15
+      });
+      
+      expect(result.isValid).toBe(true);
+      expect(incomeManager.getAllIncomeSources()).toHaveLength(1);
+    });
+
+    it('should validate income sources and reject invalid ones', () => {
+      const incomeManager = uiController.getIncomeManager();
+      
+      // Try to set invalid income sources
+      const invalidSource = {
+        id: 'test-invalid',
+        name: 'Invalid Job',
+        type: 'regular_job' as const,
+        amount: -1000, // Invalid negative amount
+        frequency: 'monthly' as const
+      };
+      
+      // This should fail validation and not set the sources
+      const validation = incomeManager.setIncomeSources([invalidSource]);
+      
+      expect(validation.isValid).toBe(false);
+      expect(validation.errors.length).toBeGreaterThan(0);
+      expect(validation.errors.some(error => error.includes('positive number'))).toBe(true);
+      
+      // Verify that no sources were actually set
+      expect(incomeManager.getAllIncomeSources()).toHaveLength(0);
+    });
+
+    it('should clear income sources when clearing all data', () => {
+      mockConfirm.mockReturnValue(true);
+      const incomeManager = uiController.getIncomeManager();
+      
+      // Add an income source
+      incomeManager.addIncomeSource({
+        name: 'Test Job',
+        type: 'regular_job',
+        amount: 5000,
+        frequency: 'monthly'
+      });
+      
+      expect(incomeManager.getAllIncomeSources()).toHaveLength(1);
+      
+      // Clear all data
+      const clearBtn = document.getElementById('clear-btn') as HTMLButtonElement;
+      clearBtn.click();
+      
+      // Check that income sources are cleared
+      expect(incomeManager.getAllIncomeSources()).toHaveLength(0);
+    });
+
+    it('should save and load income sources through complete workflow', () => {
+      const incomeManager = uiController.getIncomeManager();
+      
+      // Add income sources
+      incomeManager.addIncomeSource({
+        name: 'Primary Job',
+        type: 'regular_job',
+        amount: 6000,
+        frequency: 'monthly',
+        contributionPercentage: 0.15,
+        annualIncrease: 0.03
+      });
+      
+      incomeManager.addIncomeSource({
+        name: 'Side Business',
+        type: 'rental',
+        amount: 1200,
+        frequency: 'monthly',
+        contributionPercentage: 0.20
+      });
+      
+      // Fill in form data
+      (document.getElementById('current-age') as HTMLInputElement).value = '30';
+      (document.getElementById('retirement-age') as HTMLInputElement).value = '65';
+      (document.getElementById('current-savings') as HTMLInputElement).value = '50000';
+      (document.getElementById('expected-return') as HTMLInputElement).value = '7';
+      (document.getElementById('inflation-rate') as HTMLInputElement).value = '3';
+      (document.getElementById('monthly-spending') as HTMLInputElement).value = '4000';
+      
+      // Trigger calculation to save data
+      const calculateBtn = document.getElementById('calculate-btn') as HTMLButtonElement;
+      calculateBtn.click();
+      
+      // Verify data was saved
+      expect(mockStorage.setItem).toHaveBeenCalled();
+      
+      // Verify the saved data includes income sources
+      const savedDataCall = (mockStorage.setItem as any).mock.calls.find(
+        (call: any[]) => call[0] === 'retirement-calculator-data'
+      );
+      expect(savedDataCall).toBeDefined();
+      
+      const savedData = JSON.parse(savedDataCall[1]);
+      expect(savedData.incomeSources).toHaveLength(2);
+      expect(savedData.incomeSources[0].name).toBe('Primary Job');
+      expect(savedData.incomeSources[1].name).toBe('Side Business');
+      
+      // Clear current data
+      incomeManager.clearAllSources();
+      expect(incomeManager.getAllIncomeSources()).toHaveLength(0);
+      
+      // Create new UIController to simulate app restart and data loading
+      const newUIController = new UIController();
+      const newIncomeManager = newUIController.getIncomeManager();
+      
+      // Verify income sources were loaded
+      expect(newIncomeManager.getAllIncomeSources()).toHaveLength(2);
+      expect(newIncomeManager.getAllIncomeSources()[0].name).toBe('Primary Job');
+      expect(newIncomeManager.getAllIncomeSources()[1].name).toBe('Side Business');
     });
   });
 });

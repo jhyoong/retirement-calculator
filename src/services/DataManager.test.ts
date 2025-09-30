@@ -395,4 +395,35 @@ describe('DataManager', () => {
       expect(loadedData!.expenses[0].startDate).toBeInstanceOf(Date);
       expect(loadedData!.expenses[0].endDate).toBeInstanceOf(Date);
     });
+
+    it('should maintain backward compatibility with UIController integration', () => {
+      // Simulate legacy data in localStorage
+      const legacyData = {
+        currentAge: 28,
+        retirementAge: 62,
+        currentSavings: 25000,
+        monthlyContribution: 800,
+        expectedAnnualReturn: 0.08,
+        lastUpdated: '2024-01-01T00:00:00.000Z'
+      };
+
+      mockLocalStorage['retirement-calculator-data'] = JSON.stringify(legacyData);
+
+      // Load and verify migration
+      const loadedData = dataManager.loadData();
+
+      expect(loadedData).toBeTruthy();
+      expect(loadedData!.currentAge).toBe(28);
+      expect(loadedData!.retirementAge).toBe(62);
+      expect(loadedData!.currentSavings).toBe(25000);
+      expect(loadedData!.expectedAnnualReturn).toBe(0.08);
+      expect(loadedData!.inflationRate).toBe(0.03); // Default value
+      expect(loadedData!.monthlyRetirementSpending).toBe(4000); // Default value
+      expect(loadedData!.incomeSources).toHaveLength(1);
+      expect(loadedData!.incomeSources[0].id).toBe('legacy-contribution');
+      expect(loadedData!.incomeSources[0].amount).toBe(800);
+      expect(loadedData!.incomeSources[0].contributionPercentage).toBe(1.0);
+      expect(loadedData!.expenses).toHaveLength(0);
+      expect(loadedData!.monthlyContribution).toBe(800); // Preserved for compatibility
+    });
   });});
