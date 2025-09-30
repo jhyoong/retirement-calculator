@@ -69,7 +69,7 @@
 
 - [ ] 10. Update calculation engine for monthly projections
   - Modify CalculationEngine to generate MonthlyProjection arrays
-  - Implemewnt efficient algorithms for calculating 600+ months of data
+  - Implement efficient algorithms for calculating 600+ months of data
   - Add inflation adjustments to all monetary calculations
   - Write performance tests to ensure calculations complete within reasonable time
   - _Requirements: 6.3, 6.4, 6.5_

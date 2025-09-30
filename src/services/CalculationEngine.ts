@@ -1,4 +1,4 @@
-import type { RetirementData, CalculationResult, ValidationResult } from '../types';
+import type { RetirementData, CalculationResult, ValidationResult, IncomeSource } from '../types';
 import { IncomeManager } from './IncomeManager.js';
 
 /**

@@ -20,8 +20,8 @@ export class IncomeManager {
       id: generateUniqueId()
     };
 
-    // Validate the income source (ID is already generated, so require it)
-    const validation = validateIncomeSource(newSource, true);
+    // Validate the income source (don't require ID validation since we just generated it)
+    const validation = validateIncomeSource(newSource, false);
     if (!validation.isValid) {
       return validation;
     }
