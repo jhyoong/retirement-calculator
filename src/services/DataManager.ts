@@ -15,6 +15,10 @@ export class DataManager {
    * @throws Error if localStorage is not available or save fails
    */
   saveData(data: RetirementData): void {
+    if (!this.isLocalStorageAvailable()) {
+      throw new Error('localStorage not available');
+    }
+
     try {
       // Update the lastUpdated timestamp
       const dataToSave: RetirementData = {

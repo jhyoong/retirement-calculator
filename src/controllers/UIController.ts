@@ -1,5 +1,5 @@
 import type { RetirementData, CalculationResult } from '../types';
-import { CalculationEngine, DataManager, ImportExportManager } from '../services';
+import { CalculationEngine, DataManager, ImportExportManager, NotificationService } from '../services';
 
 /**
  * UIController coordinates between UI components and business logic
@@ -9,6 +9,7 @@ export class UIController {
   private calculationEngine: CalculationEngine;
   private dataManager: DataManager;
   private importExportManager: ImportExportManager;
+  private notificationService: NotificationService;
   private debounceTimer: number | null = null;
   private readonly debounceDelay = 300; // 300ms debounce delay
 
@@ -16,8 +17,10 @@ export class UIController {
     this.calculationEngine = new CalculationEngine();
     this.dataManager = new DataManager();
     this.importExportManager = new ImportExportManager();
+    this.notificationService = new NotificationService();
     
     this.initializeEventHandlers();
+    this.checkBrowserCompatibility();
     this.loadSavedData();
   }
 
@@ -324,6 +327,7 @@ export class UIController {
       const result = this.calculationEngine.calculateRetirement(formData);
       this.displayResults(result);
       this.showCalculationStatus('Calculation completed successfully', 'success');
+      this.notificationService.showOperationFeedback('calculate', true);
       this.updateLastUpdatedTimestamp();
       
       // Auto-save the data
@@ -331,6 +335,7 @@ export class UIController {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Calculation failed';
       this.showCalculationStatus(errorMessage, 'error');
+      this.notificationService.showOperationFeedback('calculate', false, errorMessage);
     } finally {
       this.removeButtonLoading(calculateBtn);
     }
@@ -409,10 +414,28 @@ export class UIController {
       try {
         this.dataManager.saveData(formData);
       } catch (error) {
-        // Silently fail auto-save, don't interrupt user experience
+        // Silently fail auto-save, but log for debugging
         console.warn('Auto-save failed:', error);
+        
+        // Show notification only if localStorage is completely unavailable
+        if (error instanceof Error && error.message.includes('localStorage not available')) {
+          // Only show this notification once per session
+          if (!this.hasShownStorageWarning) {
+            this.notificationService.showStorageWarning();
+            this.hasShownStorageWarning = true;
+          }
+        }
       }
     }
+  }
+
+  private hasShownStorageWarning: boolean = false;
+
+  /**
+   * Check browser compatibility and show warnings if needed
+   */
+  private checkBrowserCompatibility(): void {
+    this.notificationService.showBrowserCompatibilityWarnings();
   }
 
   /**
@@ -427,9 +450,13 @@ export class UIController {
         
         // Perform initial calculation if data is complete
         this.performRealTimeCalculation();
+        
+        // Show success notification for data restoration
+        this.notificationService.showInfo('Previous data restored from browser storage');
       }
     } catch (error) {
       console.warn('Failed to load saved data:', error);
+      this.notificationService.showWarning('Could not restore previous data from browser storage');
     }
   }
 
@@ -476,19 +503,26 @@ export class UIController {
       // Populate form with imported data
       this.populateForm(importedData);
       
-      // Save imported data
-      this.dataManager.saveData(importedData);
+      // Save imported data (with error handling)
+      try {
+        this.dataManager.saveData(importedData);
+      } catch (saveError) {
+        console.warn('Failed to save imported data:', saveError);
+        // Continue with import even if save fails
+      }
       
       // Perform calculation with imported data
       this.performRealTimeCalculation();
       
       this.showActionStatus('Data imported successfully', 'success');
+      this.notificationService.showOperationFeedback('import', true);
       
       // Clear the file input
       target.value = '';
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Import failed';
       this.showActionStatus(`Import failed: ${errorMessage}`, 'error');
+      this.notificationService.showOperationFeedback('import', false, errorMessage);
       
       // Clear the file input
       target.value = '';
@@ -518,9 +552,11 @@ export class UIController {
     try {
       this.importExportManager.exportData(formData);
       this.showActionStatus('Data exported successfully', 'success');
+      this.notificationService.showOperationFeedback('export', true);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Export failed';
       this.showActionStatus(`Export failed: ${errorMessage}`, 'error');
+      this.notificationService.showOperationFeedback('export', false, errorMessage);
     } finally {
       this.removeButtonLoading(exportBtn);
     }
@@ -565,9 +601,11 @@ export class UIController {
       }
       
       this.showActionStatus('All data has been cleared successfully', 'success');
+      this.notificationService.showOperationFeedback('clear', true);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Clear operation failed';
       this.showActionStatus(`Failed to clear data: ${errorMessage}`, 'error');
+      this.notificationService.showOperationFeedback('clear', false, errorMessage);
     }
   }
 

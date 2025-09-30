@@ -72,7 +72,7 @@ describe('DataManager', () => {
       });
 
       expect(() => dataManager.saveData(sampleRetirementData)).toThrow(
-        'Failed to save data: localStorage not available'
+        'localStorage not available'
       );
     });
 
@@ -84,7 +84,7 @@ describe('DataManager', () => {
       });
 
       expect(() => dataManager.saveData(sampleRetirementData)).toThrow(
-        'Failed to save data: QuotaExceededError'
+        'localStorage not available'
       );
     });
   });

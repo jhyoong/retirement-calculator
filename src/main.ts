@@ -190,6 +190,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     <footer>
       <p>Last updated: <span id="last-updated">Never</span></p>
     </footer>
+    
+    <!-- Global notification system -->
+    <div id="notification-container" class="notification-container" aria-live="assertive" role="alert"></div>
   </div>
 `
 

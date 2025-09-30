@@ -15,31 +15,87 @@ export class ImportExportManager {
    */
   exportData(data: RetirementData): void {
     try {
+      // Validate data before export
+      if (!data) {
+        throw new Error('No data to export');
+      }
+
+      // Check if browser supports required APIs
+      if (!window.Blob) {
+        throw new Error('File download is not supported in this browser');
+      }
+
+      if (!window.URL || !window.URL.createObjectURL) {
+        throw new Error('File download is not supported in this browser');
+      }
+
       const exportData: ExportData = {
         version: ImportExportManager.APP_VERSION,
         exportDate: new Date(),
         userData: data
       };
 
-      const jsonString = JSON.stringify(exportData, null, 2);
-      const blob = new Blob([jsonString], { type: 'application/json' });
-      
-      // Create download link
-      const url = URL.createObjectURL(blob);
+      // Validate that the data can be serialized
+      let jsonString: string;
+      try {
+        jsonString = JSON.stringify(exportData, null, 2);
+      } catch (serializeError) {
+        throw new Error('Failed to serialize data for export');
+      }
+
+      // Check if the serialized data is reasonable
+      if (!jsonString || jsonString.length < 10) {
+        throw new Error('Export data appears to be invalid');
+      }
+
+      // Create blob with error handling
+      let blob: Blob;
+      try {
+        blob = new Blob([jsonString], { type: 'application/json' });
+      } catch (blobError) {
+        throw new Error('Failed to create download file');
+      }
+
+      // Create download link with error handling
+      let url: string;
+      try {
+        url = URL.createObjectURL(blob);
+      } catch (urlError) {
+        throw new Error('Failed to create download link');
+      }
+
       const link = document.createElement('a');
       link.href = url;
       link.download = this.generateExportFilename();
       
-      // Trigger download
+      // Add link to document temporarily
+      if (link.style) {
+        link.style.display = 'none';
+      }
       document.body.appendChild(link);
-      link.click();
       
-      // Cleanup
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      // Trigger download
+      try {
+        link.click();
+      } catch (clickError) {
+        throw new Error('Failed to trigger file download');
+      }
+      
+      // Cleanup with timeout to ensure download starts
+      setTimeout(() => {
+        try {
+          if (link.parentNode) {
+            document.body.removeChild(link);
+          }
+          URL.revokeObjectURL(url);
+        } catch (cleanupError) {
+          console.warn('Failed to cleanup download resources:', cleanupError);
+        }
+      }, 100);
+      
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Failed to export data: ${error.message}`);
+        throw error;
       }
       throw new Error('Failed to export data: Unknown error');
     }
@@ -53,6 +109,11 @@ export class ImportExportManager {
    */
   async importData(file: File): Promise<RetirementData> {
     try {
+      // Validate file exists
+      if (!file) {
+        throw new Error('No file selected for import.');
+      }
+
       // Validate file type
       if (!file.type.includes('json') && !file.name.endsWith('.json')) {
         throw new Error('Invalid file type. Please select a JSON file.');
@@ -64,15 +125,28 @@ export class ImportExportManager {
         throw new Error('File is too large. Maximum size is 1MB.');
       }
 
+      // Check for empty file
+      if (file.size === 0) {
+        throw new Error('File is empty. Please select a valid data file.');
+      }
+
       // Read file content
       const fileContent = await this.readFileAsText(file);
       
+      // Check for empty content
+      if (!fileContent.trim()) {
+        throw new Error('File content is empty. Please select a valid data file.');
+      }
+
       // Parse JSON
       let parsedData: any;
       try {
         parsedData = JSON.parse(fileContent);
       } catch (parseError) {
-        throw new Error('Invalid JSON format. Please check the file content.');
+        if (parseError instanceof SyntaxError) {
+          throw new Error('Invalid JSON format. The file appears to be corrupted or not a valid JSON file.');
+        }
+        throw new Error('Failed to parse file content. Please check the file format.');
       }
 
       // Validate import data structure
@@ -86,10 +160,21 @@ export class ImportExportManager {
         throw new Error('Invalid retirement data. Please check the data values in the file.');
       }
 
-      // Convert date strings back to Date objects
+      // Convert date strings back to Date objects and validate
+      let lastUpdated: Date;
+      try {
+        lastUpdated = new Date(userData.lastUpdated);
+        if (isNaN(lastUpdated.getTime())) {
+          throw new Error('Invalid date');
+        }
+      } catch (dateError) {
+        // Use current date if lastUpdated is invalid
+        lastUpdated = new Date();
+      }
+
       return {
         ...userData,
-        lastUpdated: new Date(userData.lastUpdated)
+        lastUpdated
       };
     } catch (error) {
       if (error instanceof Error) {
