@@ -1,4 +1,5 @@
 import type { RetirementData, CalculationResult, ValidationResult } from '../types';
+import { IncomeManager } from './IncomeManager.js';
 
 /**
  * CalculationEngine handles all retirement calculation logic
@@ -116,10 +117,18 @@ export class CalculationEngine {
       errors.push('Current savings cannot be negative');
     }
 
-    if (!isFinite(data.monthlyContribution) || isNaN(data.monthlyContribution)) {
-      errors.push('Monthly contribution must be a valid number');
-    } else if (data.monthlyContribution < 0) {
-      errors.push('Monthly contribution cannot be negative');
+    // Validate monthly retirement spending
+    if (!isFinite(data.monthlyRetirementSpending) || isNaN(data.monthlyRetirementSpending)) {
+      errors.push('Monthly retirement spending must be a valid number');
+    } else if (data.monthlyRetirementSpending < 0) {
+      errors.push('Monthly retirement spending cannot be negative');
+    }
+
+    // Validate inflation rate
+    if (!isFinite(data.inflationRate) || isNaN(data.inflationRate)) {
+      errors.push('Inflation rate must be a valid number');
+    } else if (data.inflationRate < 0 || data.inflationRate > 0.15) {
+      errors.push('Inflation rate must be between 0% and 15%');
     }
 
     if (!isFinite(data.expectedAnnualReturn) || isNaN(data.expectedAnnualReturn)) {
@@ -133,12 +142,18 @@ export class CalculationEngine {
       errors.push('Current savings amount is too large for accurate calculation');
     }
 
-    if (isFinite(data.monthlyContribution) && data.monthlyContribution > Number.MAX_SAFE_INTEGER / 1000) {
-      errors.push('Monthly contribution amount is too large for accurate calculation');
+    // Validate income sources if present
+    if (data.incomeSources && Array.isArray(data.incomeSources)) {
+      const incomeManager = new IncomeManager();
+      const incomeValidation = incomeManager.setIncomeSources(data.incomeSources);
+      if (!incomeValidation.isValid) {
+        errors.push(...incomeValidation.errors);
+      }
     }
 
     // Check for unrealistic scenarios
-    if (isFinite(data.monthlyContribution) && data.monthlyContribution > 50000) {
+    // Legacy monthly contribution validation (for backward compatibility)
+    if (data.monthlyContribution !== undefined && isFinite(data.monthlyContribution) && data.monthlyContribution > 50000) {
       errors.push('Monthly contribution seems unrealistically high (over $50,000)');
     }
 
@@ -180,29 +195,51 @@ export class CalculationEngine {
 
     const yearsToRetirement = data.retirementAge - data.currentAge;
     
+    // Calculate monthly contributions from income sources
+    let monthlyContribution = 0;
+    if (data.incomeSources && data.incomeSources.length > 0) {
+      const incomeManager = new IncomeManager();
+      incomeManager.setIncomeSources(data.incomeSources);
+      monthlyContribution = incomeManager.calculateMonthlyContributions(new Date(), data.currentAge);
+    } else if (data.monthlyContribution !== undefined) {
+      // Backward compatibility with legacy data
+      monthlyContribution = data.monthlyContribution;
+    }
+    
     // Calculate total savings at retirement
     const totalSavings = this.calculateFutureValue(
       data.currentSavings,
-      data.monthlyContribution,
+      monthlyContribution,
       data.expectedAnnualReturn,
       yearsToRetirement
     );
 
-    // Calculate monthly retirement income
-    const monthlyRetirementIncome = this.calculateMonthlyIncome(totalSavings);
+    // Calculate monthly retirement income (4% rule or based on spending needs)
+    const monthlyRetirementIncome = data.monthlyRetirementSpending || this.calculateMonthlyIncome(totalSavings);
 
     // Calculate total contributions made
-    const totalContributions = data.monthlyContribution * yearsToRetirement * 12;
+    const totalContributions = monthlyContribution * yearsToRetirement * 12;
 
     // Calculate interest earned
     const interestEarned = totalSavings - data.currentSavings - totalContributions;
+
+    // Calculate net monthly income from all sources
+    let netMonthlyIncome = 0;
+    if (data.incomeSources && data.incomeSources.length > 0) {
+      const incomeManager = new IncomeManager();
+      incomeManager.setIncomeSources(data.incomeSources);
+      netMonthlyIncome = incomeManager.calculateMonthlyIncome(new Date(), data.currentAge);
+    }
 
     return {
       totalSavings: Math.round(totalSavings * 100) / 100, // Round to 2 decimal places
       monthlyRetirementIncome: Math.round(monthlyRetirementIncome * 100) / 100,
       yearsToRetirement,
       totalContributions: Math.round(totalContributions * 100) / 100,
-      interestEarned: Math.round(interestEarned * 100) / 100
+      interestEarned: Math.round(interestEarned * 100) / 100,
+      monthlyProjections: [], // Will be implemented in Phase 2
+      yearlyProjections: [], // Will be implemented in Phase 2
+      netMonthlyIncome: Math.round(netMonthlyIncome * 100) / 100
     };
   }
 }

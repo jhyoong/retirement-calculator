@@ -123,6 +123,10 @@ describe('CalculationEngine', () => {
       currentSavings: 50000,
       monthlyContribution: 1000,
       expectedAnnualReturn: 0.07,
+      inflationRate: 0.025,
+      monthlyRetirementSpending: 4000,
+      incomeSources: [],
+      expenses: [],
       lastUpdated: new Date()
     };
 
@@ -167,11 +171,11 @@ describe('CalculationEngine', () => {
       expect(result.errors).toContain('Current savings cannot be negative');
     });
 
-    it('should reject negative monthly contribution', () => {
-      const invalidData = { ...validData, monthlyContribution: -500 };
+    it('should reject negative monthly retirement spending', () => {
+      const invalidData = { ...validData, monthlyRetirementSpending: -500 };
       const result = engine.validateInputs(invalidData);
       expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('Monthly contribution cannot be negative');
+      expect(result.errors).toContain('Monthly retirement spending cannot be negative');
     });
 
     it('should reject negative expected return', () => {
@@ -209,6 +213,10 @@ describe('CalculationEngine', () => {
         currentSavings: -1000,
         monthlyContribution: -500,
         expectedAnnualReturn: -0.05,
+        inflationRate: -0.01,
+        monthlyRetirementSpending: -1000,
+        incomeSources: [],
+        expenses: [],
         lastUpdated: new Date()
       };
       
@@ -225,6 +233,10 @@ describe('CalculationEngine', () => {
       currentSavings: 10000,
       monthlyContribution: 500,
       expectedAnnualReturn: 0.07,
+      inflationRate: 0.025,
+      monthlyRetirementSpending: 3000,
+      incomeSources: [],
+      expenses: [],
       lastUpdated: new Date()
     };
 

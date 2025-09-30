@@ -20,8 +20,8 @@ export class IncomeManager {
       id: generateUniqueId()
     };
 
-    // Validate the income source
-    const validation = validateIncomeSource(newSource);
+    // Validate the income source (ID is already generated, so require it)
+    const validation = validateIncomeSource(newSource, true);
     if (!validation.isValid) {
       return validation;
     }
@@ -66,7 +66,7 @@ export class IncomeManager {
     }
 
     const updatedSource = { ...this.incomeSources[sourceIndex], ...updates };
-    const validation = validateIncomeSource(updatedSource);
+    const validation = validateIncomeSource(updatedSource, true);
     if (!validation.isValid) {
       return validation;
     }
@@ -139,7 +139,7 @@ export class IncomeManager {
    * @param currentAge - The current age for age-based calculations
    * @returns Monthly income amount for this source
    */
-  private calculateSourceMonthlyIncome(source: IncomeSource, currentDate: Date, currentAge: number): number {
+  private calculateSourceMonthlyIncome(source: IncomeSource, currentDate: Date, _currentAge: number): number {
     // Check if income source is active at the current date
     if (!this.isSourceActiveAtDate(source, currentDate)) {
       return 0;

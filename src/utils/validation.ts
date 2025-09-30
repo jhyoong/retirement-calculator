@@ -106,13 +106,14 @@ export function validateRetirementData(data: Partial<RetirementData>): Validatio
 /**
  * Validates an income source
  * @param source - The income source to validate
+ * @param requireId - Whether to require an ID (false for new sources being created)
  * @returns ValidationResult with isValid flag and error messages
  */
-export function validateIncomeSource(source: Partial<IncomeSource>): ValidationResult {
+export function validateIncomeSource(source: Partial<IncomeSource>, requireId: boolean = true): ValidationResult {
   const errors: string[] = [];
 
-  // Validate ID
-  if (!source.id || typeof source.id !== 'string' || source.id.trim() === '') {
+  // Validate ID (only if required - not needed for new sources)
+  if (requireId && (!source.id || typeof source.id !== 'string' || source.id.trim() === '')) {
     errors.push('Income source ID is required and must be a non-empty string');
   }
 

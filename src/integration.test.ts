@@ -2,46 +2,86 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { UIController } from './controllers/UIController';
 import type { RetirementData } from './types';
 
-// Mock DOM elements for testing
+// Mock DOM elements for testing with new tabbed structure
 function createMockDOM() {
   document.body.innerHTML = `
     <div id="app">
-      <form id="retirement-form">
-        <input type="number" id="current-age" name="currentAge" />
-        <div id="current-age-error" class="error-message"></div>
-        
-        <input type="number" id="retirement-age" name="retirementAge" />
-        <div id="retirement-age-error" class="error-message"></div>
-        
-        <input type="number" id="current-savings" name="currentSavings" />
-        <div id="current-savings-error" class="error-message"></div>
-        
-        <input type="number" id="monthly-contribution" name="monthlyContribution" />
-        <div id="monthly-contribution-error" class="error-message"></div>
-        
-        <input type="number" id="expected-return" name="expectedAnnualReturn" />
-        <div id="expected-return-error" class="error-message"></div>
-        
-        <button type="button" id="calculate-btn">Calculate</button>
-      </form>
-      
-      <div id="results-content">
-        <span id="years-to-retirement">--</span>
-        <span id="total-savings">$--</span>
-        <span id="monthly-income">$--</span>
-        <span id="total-contributions">$--</span>
-        <span id="interest-earned">$--</span>
+      <!-- Tab Navigation -->
+      <nav class="tab-navigation" role="tablist">
+        <button class="tab-button active" id="income-tab-btn" role="tab" data-tab="income">Income Sources</button>
+        <button class="tab-button" id="basic-tab-btn" role="tab" data-tab="basic">Basic Info</button>
+        <button class="tab-button" id="results-tab-btn" role="tab" data-tab="results">Results</button>
+      </nav>
+
+      <!-- Tab Content -->
+      <div class="tab-content">
+        <!-- Income Sources Tab -->
+        <section id="income-tab" class="tab-panel active" role="tabpanel">
+          <div id="income-summary">
+            <span id="total-monthly-income">$0</span>
+            <span id="monthly-contributions">$0</span>
+            <span id="active-sources-count">0</span>
+          </div>
+          <form id="add-income-form">
+            <input type="text" id="income-name" name="name" />
+            <select id="income-type" name="type"></select>
+            <input type="number" id="income-amount" name="amount" />
+            <select id="income-frequency" name="frequency"></select>
+            <div id="dynamic-income-fields"></div>
+          </form>
+          <div id="income-sources-list"></div>
+        </section>
+
+        <!-- Basic Information Tab -->
+        <section id="basic-tab" class="tab-panel" role="tabpanel">
+          <form id="retirement-form">
+            <input type="number" id="current-age" name="currentAge" />
+            <div id="current-age-error" class="error-message"></div>
+            
+            <input type="number" id="retirement-age" name="retirementAge" />
+            <div id="retirement-age-error" class="error-message"></div>
+            
+            <input type="number" id="current-savings" name="currentSavings" />
+            <div id="current-savings-error" class="error-message"></div>
+            
+            <input type="number" id="expected-return" name="expectedAnnualReturn" />
+            <div id="expected-return-error" class="error-message"></div>
+            
+            <input type="number" id="inflation-rate" name="inflationRate" value="2.5" />
+            <div id="inflation-rate-error" class="error-message"></div>
+            
+            <input type="number" id="monthly-spending" name="monthlyRetirementSpending" />
+            <div id="monthly-spending-error" class="error-message"></div>
+            
+            <button type="button" id="calculate-btn">Calculate</button>
+          </form>
+        </section>
+
+        <!-- Results Tab -->
+        <section id="results-tab" class="tab-panel" role="tabpanel">
+          <div id="results-content">
+            <span id="years-to-retirement">--</span>
+            <span id="total-savings">$--</span>
+            <span id="monthly-income">$--</span>
+            <span id="total-contributions">$--</span>
+            <span id="interest-earned">$--</span>
+          </div>
+          
+          <div id="calculation-status" class="status-message"></div>
+          
+          <!-- Data Management Controls -->
+          <div class="data-management-section">
+            <button type="button" id="export-btn">Export</button>
+            <button type="button" id="import-btn">Import</button>
+            <input type="file" id="import-file" style="display: none;" />
+            <button type="button" id="clear-btn">Clear</button>
+            <div id="action-status" class="status-message"></div>
+          </div>
+        </section>
       </div>
       
-      <div id="calculation-status" class="status-message"></div>
-      <div id="action-status" class="status-message"></div>
-      
-      <button type="button" id="export-btn">Export</button>
-      <button type="button" id="import-btn">Import</button>
-      <input type="file" id="import-file" style="display: none;" />
-      <button type="button" id="clear-btn">Clear</button>
-      
       <span id="last-updated">Never</span>
+      <div id="notification-container"></div>
     </div>
   `;
 }
@@ -96,6 +136,9 @@ describe('Integration Tests - Complete Workflows', () => {
     it('should handle complete workflow from input to calculation to export and back to import', async () => {
       // Initialize controller
       controller = new UIController();
+      
+      // Wait for UI initialization
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Step 1: Input valid retirement data
       const testData = {
@@ -103,21 +146,36 @@ describe('Integration Tests - Complete Workflows', () => {
         retirementAge: 65,
         currentSavings: 50000,
         monthlyContribution: 1000,
-        expectedAnnualReturn: 7
+        expectedAnnualReturn: 7,
+        monthlyRetirementSpending: 4000
       };
+
+      // Switch to Basic Info tab to fill form inputs
+      const basicTabBtn = document.getElementById('basic-tab-btn') as HTMLButtonElement;
+      basicTabBtn.click();
+      
+      // Wait for tab switch
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Fill form inputs
       (document.getElementById('current-age') as HTMLInputElement).value = testData.currentAge.toString();
       (document.getElementById('retirement-age') as HTMLInputElement).value = testData.retirementAge.toString();
       (document.getElementById('current-savings') as HTMLInputElement).value = testData.currentSavings.toString();
-      (document.getElementById('monthly-contribution') as HTMLInputElement).value = testData.monthlyContribution.toString();
       (document.getElementById('expected-return') as HTMLInputElement).value = testData.expectedAnnualReturn.toString();
+      (document.getElementById('monthly-spending') as HTMLInputElement).value = testData.monthlyRetirementSpending.toString();
 
       // Step 2: Trigger calculation
       const calculateBtn = document.getElementById('calculate-btn') as HTMLButtonElement;
       calculateBtn.click();
 
       // Wait for any async operations
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Switch to Results tab to verify calculation results
+      const resultsTabBtn = document.getElementById('results-tab-btn') as HTMLButtonElement;
+      resultsTabBtn.click();
+      
+      // Wait for tab switch
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Verify calculation results are displayed
@@ -206,6 +264,9 @@ describe('Integration Tests - Complete Workflows', () => {
     it('should save data automatically and restore it on page reload', async () => {
       // Initialize controller
       controller = new UIController();
+      
+      // Wait for UI initialization
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // Input data
       const testData = {
@@ -213,15 +274,23 @@ describe('Integration Tests - Complete Workflows', () => {
         retirementAge: 60,
         currentSavings: 25000,
         monthlyContribution: 800,
-        expectedAnnualReturn: 6
+        expectedAnnualReturn: 6,
+        monthlyRetirementSpending: 3500
       };
+
+      // Switch to Basic Info tab to fill form
+      const basicTabBtn = document.getElementById('basic-tab-btn') as HTMLButtonElement;
+      basicTabBtn.click();
+      
+      // Wait for tab switch
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Fill form
       (document.getElementById('current-age') as HTMLInputElement).value = testData.currentAge.toString();
       (document.getElementById('retirement-age') as HTMLInputElement).value = testData.retirementAge.toString();
       (document.getElementById('current-savings') as HTMLInputElement).value = testData.currentSavings.toString();
-      (document.getElementById('monthly-contribution') as HTMLInputElement).value = testData.monthlyContribution.toString();
       (document.getElementById('expected-return') as HTMLInputElement).value = testData.expectedAnnualReturn.toString();
+      (document.getElementById('monthly-spending') as HTMLInputElement).value = testData.monthlyRetirementSpending.toString();
 
       // Trigger input change to save data
       const currentAgeInput = document.getElementById('current-age') as HTMLInputElement;
@@ -240,15 +309,24 @@ describe('Integration Tests - Complete Workflows', () => {
       // Wait for data loading
       await new Promise(resolve => setTimeout(resolve, 50));
 
+      // Switch to Basic Info tab to check the restored data
+      const basicTabBtn2 = document.getElementById('basic-tab-btn') as HTMLButtonElement;
+      basicTabBtn2.click();
+      
+      // Wait for tab switch
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       // Verify data was restored
       expect((document.getElementById('current-age') as HTMLInputElement).value).toBe(testData.currentAge.toString());
       expect((document.getElementById('retirement-age') as HTMLInputElement).value).toBe(testData.retirementAge.toString());
       expect((document.getElementById('current-savings') as HTMLInputElement).value).toBe(testData.currentSavings.toString());
-      expect((document.getElementById('monthly-contribution') as HTMLInputElement).value).toBe(testData.monthlyContribution.toString());
       expect((document.getElementById('expected-return') as HTMLInputElement).value).toBe(testData.expectedAnnualReturn.toString());
+      
+      // Note: monthly-contribution field no longer exists in the new UI structure
+      // Income sources are now managed through the Income tab
     });
 
-    it('should handle localStorage unavailability gracefully', () => {
+    it('should handle localStorage unavailability gracefully', async () => {
       // Mock localStorage to throw errors
       Object.defineProperty(window, 'localStorage', {
         value: {
@@ -266,11 +344,16 @@ describe('Integration Tests - Complete Workflows', () => {
       }).not.toThrow();
 
       // Should still allow calculations without persistence
+      // Switch to Basic Info tab first
+      const basicTabBtn = document.getElementById('basic-tab-btn') as HTMLButtonElement;
+      basicTabBtn.click();
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
       (document.getElementById('current-age') as HTMLInputElement).value = '30';
       (document.getElementById('retirement-age') as HTMLInputElement).value = '65';
       (document.getElementById('current-savings') as HTMLInputElement).value = '50000';
-      (document.getElementById('monthly-contribution') as HTMLInputElement).value = '1000';
       (document.getElementById('expected-return') as HTMLInputElement).value = '7';
+      (document.getElementById('monthly-spending') as HTMLInputElement).value = '4000';
 
       const calculateBtn = document.getElementById('calculate-btn') as HTMLButtonElement;
       expect(() => calculateBtn.click()).not.toThrow();
@@ -280,26 +363,44 @@ describe('Integration Tests - Complete Workflows', () => {
   describe('Import/Export Round-trip Functionality', () => {
     it('should maintain data integrity through export and import cycle', async () => {
       controller = new UIController();
+      
+      // Wait for UI initialization
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       const originalData = {
         currentAge: 35,
         retirementAge: 67,
         currentSavings: 75000,
         monthlyContribution: 1500,
-        expectedAnnualReturn: 8.5
+        expectedAnnualReturn: 8.5,
+        monthlyRetirementSpending: 5000
       };
+
+      // Switch to Basic Info tab to set original data
+      const basicTabBtn = document.getElementById('basic-tab-btn') as HTMLButtonElement;
+      basicTabBtn.click();
+      
+      // Wait for tab switch
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Set original data
       (document.getElementById('current-age') as HTMLInputElement).value = originalData.currentAge.toString();
       (document.getElementById('retirement-age') as HTMLInputElement).value = originalData.retirementAge.toString();
       (document.getElementById('current-savings') as HTMLInputElement).value = originalData.currentSavings.toString();
-      (document.getElementById('monthly-contribution') as HTMLInputElement).value = originalData.monthlyContribution.toString();
       (document.getElementById('expected-return') as HTMLInputElement).value = originalData.expectedAnnualReturn.toString();
+      (document.getElementById('monthly-spending') as HTMLInputElement).value = originalData.monthlyRetirementSpending.toString();
 
       // Calculate to get results
       const calculateBtn = document.getElementById('calculate-btn') as HTMLButtonElement;
       calculateBtn.click();
 
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Switch to Results tab to capture results
+      const resultsTabBtn = document.getElementById('results-tab-btn') as HTMLButtonElement;
+      resultsTabBtn.click();
+      
+      // Wait for tab switch
       await new Promise(resolve => setTimeout(resolve, 50));
 
       // Store original results
@@ -330,6 +431,10 @@ describe('Integration Tests - Complete Workflows', () => {
           currentSavings: originalData.currentSavings,
           monthlyContribution: originalData.monthlyContribution,
           expectedAnnualReturn: originalData.expectedAnnualReturn / 100,
+          inflationRate: 0.025,
+          monthlyRetirementSpending: originalData.monthlyRetirementSpending,
+          incomeSources: [],
+          expenses: [],
           lastUpdated: new Date().toISOString()
         }
       };
@@ -361,12 +466,25 @@ describe('Integration Tests - Complete Workflows', () => {
 
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      // Switch to Basic Info tab to verify data integrity
+      const basicTabBtn3 = document.getElementById('basic-tab-btn') as HTMLButtonElement;
+      basicTabBtn3.click();
+      
+      // Wait for tab switch
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       // Verify data integrity
       expect((document.getElementById('current-age') as HTMLInputElement).value).toBe(originalData.currentAge.toString());
       expect((document.getElementById('retirement-age') as HTMLInputElement).value).toBe(originalData.retirementAge.toString());
       expect((document.getElementById('current-savings') as HTMLInputElement).value).toBe(originalData.currentSavings.toString());
-      expect((document.getElementById('monthly-contribution') as HTMLInputElement).value).toBe(originalData.monthlyContribution.toString());
       expect((document.getElementById('expected-return') as HTMLInputElement).value).toBe(originalData.expectedAnnualReturn.toString());
+      
+      // Switch back to Results tab to verify calculations
+      const resultsTabBtn2 = document.getElementById('results-tab-btn') as HTMLButtonElement;
+      resultsTabBtn2.click();
+      
+      // Wait for tab switch
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Verify calculations are restored
       expect((document.getElementById('total-savings') as HTMLElement).textContent).toBe(originalTotalSavings);
@@ -413,20 +531,37 @@ describe('Integration Tests - Complete Workflows', () => {
   describe('Real-time Calculation Updates', () => {
     it('should update calculations automatically when inputs change', async () => {
       controller = new UIController();
+      
+      // Wait for UI initialization
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Switch to Basic Info tab to fill in form data
+      const basicTabBtn = document.getElementById('basic-tab-btn') as HTMLButtonElement;
+      basicTabBtn.click();
+      
+      // Wait for tab switch
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Fill initial data
       (document.getElementById('current-age') as HTMLInputElement).value = '30';
       (document.getElementById('retirement-age') as HTMLInputElement).value = '65';
       (document.getElementById('current-savings') as HTMLInputElement).value = '50000';
-      (document.getElementById('monthly-contribution') as HTMLInputElement).value = '1000';
       (document.getElementById('expected-return') as HTMLInputElement).value = '7';
+      (document.getElementById('monthly-spending') as HTMLInputElement).value = '4000';
 
       // Trigger input change
-      const monthlyContributionInput = document.getElementById('monthly-contribution') as HTMLInputElement;
-      monthlyContributionInput.dispatchEvent(new Event('input'));
+      const currentSavingsInput = document.getElementById('current-savings') as HTMLInputElement;
+      currentSavingsInput.dispatchEvent(new Event('input'));
 
       // Wait for debounced calculation
       await new Promise(resolve => setTimeout(resolve, 350));
+
+      // Switch to Results tab to check calculations
+      const resultsTabBtn = document.getElementById('results-tab-btn') as HTMLButtonElement;
+      resultsTabBtn.click();
+      
+      // Wait for tab switch
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Verify results are calculated
       const totalSavingsElement = document.getElementById('total-savings') as HTMLElement;
@@ -435,13 +570,21 @@ describe('Integration Tests - Complete Workflows', () => {
       // Store the original calculation result
       const originalTotalSavings = totalSavingsElement.textContent;
 
+      // Switch back to Basic Info tab to change input
+      basicTabBtn.click();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       // Change input to a significantly different value and verify recalculation
-      monthlyContributionInput.value = '500'; // Reduce contribution significantly
-      monthlyContributionInput.dispatchEvent(new Event('input'));
+      currentSavingsInput.value = '25000'; // Reduce savings significantly
+      currentSavingsInput.dispatchEvent(new Event('input'));
 
       await new Promise(resolve => setTimeout(resolve, 350));
 
-      // Results should be different (lower with less contribution)
+      // Switch back to Results tab to check updated calculations
+      resultsTabBtn.click();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
+      // Results should be different (lower with less savings)
       const newTotalSavings = totalSavingsElement.textContent;
       expect(newTotalSavings).not.toBe('$--');
       expect(newTotalSavings).not.toBe(originalTotalSavings);
@@ -457,12 +600,20 @@ describe('Integration Tests - Complete Workflows', () => {
     it('should prevent calculation with invalid data and show appropriate errors', async () => {
       controller = new UIController();
 
+      // Wait for UI initialization
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Switch to Basic Info tab first
+      const basicTabBtn = document.getElementById('basic-tab-btn') as HTMLButtonElement;
+      basicTabBtn.click();
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       // Set invalid data (retirement age less than current age)
       (document.getElementById('current-age') as HTMLInputElement).value = '65';
       (document.getElementById('retirement-age') as HTMLInputElement).value = '60';
       (document.getElementById('current-savings') as HTMLInputElement).value = '50000';
-      (document.getElementById('monthly-contribution') as HTMLInputElement).value = '1000';
       (document.getElementById('expected-return') as HTMLInputElement).value = '7';
+      (document.getElementById('monthly-spending') as HTMLInputElement).value = '4000';
 
       // Try to calculate
       const calculateBtn = document.getElementById('calculate-btn') as HTMLButtonElement;
