@@ -2,21 +2,24 @@
 
 ## Introduction
 
-A simple retirement calculator web application that helps users plan for retirement by calculating projected savings and retirement income. The application will be hosted on Cloudflare Pages as a static site, using only client-side browser storage for data persistence. Users can import and export their data for backup and portability. The calculator is designed with a modular structure to support future feature expansions.
+An advanced retirement calculator web application that helps users plan for retirement with sophisticated income modeling, detailed monthly projections, and comprehensive expense management. The application supports multiple income sources, provides visual charts and detailed breakdowns of retirement fund growth and withdrawal phases, and handles various types of expenses including loans and recurring costs. The application will be hosted on Cloudflare Pages as a static site, using only client-side browser storage for data persistence. Users can import and export their data for backup and portability. The calculator is designed with a modular structure to support incremental deployment and future feature expansions.
 
 ## Requirements
 
 ### Requirement 1
 
-**User Story:** As a user planning for retirement, I want to input my current financial information and retirement goals, so that I can see projected retirement savings and income.
+**User Story:** As a user planning for retirement, I want to input multiple income sources with different characteristics, so that I can get accurate projections based on my diverse income streams.
 
 #### Acceptance Criteria
 
-1. WHEN a user opens the application THEN the system SHALL display input fields for current age, retirement age, current savings, monthly contribution, and expected annual return
-2. WHEN a user enters valid financial data THEN the system SHALL calculate and display projected retirement savings
-3. WHEN a user enters valid financial data THEN the system SHALL calculate and display projected monthly retirement income
-4. IF any required field is empty or invalid THEN the system SHALL display appropriate validation messages
-5. WHEN calculation parameters change THEN the system SHALL automatically recalculate results in real-time
+1. WHEN a user opens the application THEN the system SHALL display options to add multiple income sources
+2. WHEN a user adds an income source THEN the system SHALL allow selection of income type (regular job, fixed-period contract, one-time investment, rental income, etc.)
+3. WHEN a user selects regular job income THEN the system SHALL provide fields for monthly salary, annual increases, and contribution percentage
+4. WHEN a user selects fixed-period income THEN the system SHALL provide fields for amount, start date, end date, and frequency
+5. WHEN a user selects one-time investment THEN the system SHALL provide fields for amount, date, and expected return rate
+6. WHEN a user enters valid income data THEN the system SHALL calculate total projected contributions from all sources
+7. IF any income source field is invalid THEN the system SHALL display specific validation messages for that source
+8. WHEN income parameters change THEN the system SHALL automatically recalculate projections in real-time
 
 ### Requirement 2
 
@@ -64,6 +67,47 @@ A simple retirement calculator web application that helps users plan for retirem
 4. WHEN adding new calculation features THEN the system SHALL not require changes to existing calculation modules
 
 ### Requirement 6
+
+**User Story:** As a user, I want to see detailed monthly projections with visual charts, so that I can understand how my retirement fund grows and how it will be depleted during retirement.
+
+#### Acceptance Criteria
+
+1. WHEN calculations are complete THEN the system SHALL display a chart showing yearly retirement fund growth until retirement age
+2. WHEN calculations are complete THEN the system SHALL display a chart showing yearly fund depletion during retirement based on estimated monthly spending
+3. WHEN displaying charts THEN the system SHALL include inflation adjustments in the projections
+4. WHEN a user requests detailed view THEN the system SHALL provide a table with monthly breakdowns of contributions, growth, and balances
+5. WHEN displaying monthly data THEN the system SHALL show month-by-month calculations for the entire projection period
+6. WHEN retirement phase begins THEN the system SHALL clearly show the transition from accumulation to withdrawal phase
+7. WHEN charts are displayed THEN the system SHALL allow toggling between chart and table views
+
+### Requirement 7
+
+**User Story:** As a user, I want to input various types of expenses including loans and recurring costs, so that I can get accurate net contribution calculations.
+
+#### Acceptance Criteria
+
+1. WHEN a user accesses expense management THEN the system SHALL provide a separate tab or section for expense input
+2. WHEN a user adds an expense THEN the system SHALL allow selection of expense type (regular monthly, fixed-period loan, annual, one-time, etc.)
+3. WHEN a user adds a regular expense THEN the system SHALL provide fields for monthly amount, inflation adjustment, and duration
+4. WHEN a user adds a loan expense THEN the system SHALL provide fields for principal, interest rate, term, and payment frequency
+5. WHEN a user adds expenses THEN the system SHALL calculate net available income for retirement contributions
+6. WHEN expenses are defined THEN the system SHALL subtract total expenses from gross income before calculating retirement contributions
+7. WHEN expense parameters change THEN the system SHALL automatically recalculate net contributions and projections
+8. IF expense data is invalid THEN the system SHALL display specific validation messages for each expense type
+
+### Requirement 8
+
+**User Story:** As a developer, I want to deploy enhancements in phases, so that I can gradually roll out new features while maintaining application stability.
+
+#### Acceptance Criteria
+
+1. WHEN implementing enhancements THEN the system SHALL support incremental feature deployment
+2. WHEN a phase is incomplete THEN the system SHALL continue to function with existing features
+3. WHEN new features are added THEN the system SHALL maintain backward compatibility with existing data
+4. WHEN deploying phases THEN the system SHALL provide clear user feedback about available features
+5. WHEN features are disabled or incomplete THEN the system SHALL gracefully hide or disable related UI elements
+
+### Requirement 9
 
 **User Story:** As a user, I want the application to work reliably in my web browser without requiring server connectivity, so that I can use it anywhere.
 
