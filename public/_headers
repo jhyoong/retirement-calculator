@@ -1,0 +1,28 @@
+# Cloudflare Pages headers for optimization
+
+# Cache static assets for 1 year
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Cache service worker for 1 day
+/sw.js
+  Cache-Control: public, max-age=86400
+
+# Cache manifest for 1 week
+/manifest.json
+  Cache-Control: public, max-age=604800
+
+# Security headers for all pages
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+# Main HTML file - cache for 1 hour
+/
+  Cache-Control: public, max-age=3600
+  
+/index.html
+  Cache-Control: public, max-age=3600

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:prod": "npm run type-check && npm run test:run && vite build",
     "preview": "vite preview",
+    "verify-deployment": "node scripts/verify-deployment.js",
     "type-check": "tsc --noEmit",
     "lint": "tsc --noEmit",
     "test": "vitest",
