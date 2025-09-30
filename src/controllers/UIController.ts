@@ -467,7 +467,9 @@ export class UIController {
     this.setInputValue('current-age', data.currentAge);
     this.setInputValue('retirement-age', data.retirementAge);
     this.setInputValue('current-savings', data.currentSavings);
-    this.setInputValue('monthly-contribution', data.monthlyContribution);
+    // Handle legacy monthlyContribution field for backward compatibility
+    const monthlyContribution = data.monthlyContribution || 0;
+    this.setInputValue('monthly-contribution', monthlyContribution);
     this.setInputValue('expected-return', data.expectedAnnualReturn * 100); // Convert to percentage
   }
 

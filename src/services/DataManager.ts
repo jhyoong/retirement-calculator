@@ -1,4 +1,5 @@
 import type { RetirementData } from '../types';
+import { migrateLegacyRetirementData, needsMigration } from '../utils/validation.js';
 
 /**
  * DataManager handles data persistence using browser localStorage
@@ -54,6 +55,20 @@ export class DataManager {
 
       const parsedData = JSON.parse(serializedData);
       
+      // Check if data needs migration from legacy format
+      if (needsMigration(parsedData)) {
+        console.log('Migrating legacy data to new format');
+        const migratedData = migrateLegacyRetirementData(parsedData);
+        
+        // Save the migrated data
+        this.saveData(migratedData);
+        
+        return {
+          ...migratedData,
+          lastUpdated: new Date(migratedData.lastUpdated)
+        };
+      }
+      
       // Validate the loaded data structure
       if (!this.isValidRetirementData(parsedData)) {
         console.warn('Invalid data structure found in localStorage, clearing data');
@@ -62,10 +77,9 @@ export class DataManager {
       }
 
       // Convert lastUpdated string back to Date object
-      return {
-        ...parsedData,
-        lastUpdated: new Date(parsedData.lastUpdated)
-      };
+      // Also convert date strings in income sources and expenses
+      const processedData = this.processLoadedData(parsedData);
+      return processedData;
     } catch (error) {
       console.error('Failed to load data from localStorage:', error);
       return null;
@@ -136,6 +150,30 @@ export class DataManager {
   }
 
   /**
+   * Process loaded data to convert date strings back to Date objects
+   * @param data Raw data loaded from localStorage
+   * @returns Processed RetirementData with proper Date objects
+   */
+  private processLoadedData(data: any): RetirementData {
+    const processedData: RetirementData = {
+      ...data,
+      lastUpdated: new Date(data.lastUpdated),
+      incomeSources: data.incomeSources?.map((source: any) => ({
+        ...source,
+        startDate: source.startDate ? new Date(source.startDate) : undefined,
+        endDate: source.endDate ? new Date(source.endDate) : undefined
+      })) || [],
+      expenses: data.expenses?.map((expense: any) => ({
+        ...expense,
+        startDate: expense.startDate ? new Date(expense.startDate) : undefined,
+        endDate: expense.endDate ? new Date(expense.endDate) : undefined
+      })) || []
+    };
+
+    return processedData;
+  }
+
+  /**
    * Validate that the loaded data has the correct structure
    * @param data Data to validate
    * @returns true if data is valid RetirementData, false otherwise
@@ -147,9 +185,13 @@ export class DataManager {
       typeof data.currentAge === 'number' &&
       typeof data.retirementAge === 'number' &&
       typeof data.currentSavings === 'number' &&
-      typeof data.monthlyContribution === 'number' &&
       typeof data.expectedAnnualReturn === 'number' &&
-      (data.lastUpdated instanceof Date || typeof data.lastUpdated === 'string')
+      (data.lastUpdated instanceof Date || typeof data.lastUpdated === 'string') &&
+      // New required fields
+      (data.inflationRate === undefined || typeof data.inflationRate === 'number') &&
+      (data.monthlyRetirementSpending === undefined || typeof data.monthlyRetirementSpending === 'number') &&
+      Array.isArray(data.incomeSources) &&
+      Array.isArray(data.expenses)
     );
   }
 }

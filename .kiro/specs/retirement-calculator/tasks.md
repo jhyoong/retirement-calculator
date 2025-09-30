@@ -2,7 +2,7 @@
 
 ## Phase 1: Enhanced Income Modeling
 
-- [ ] 1. Update core data models for multiple income sources
+- [x] 1. Update core data models for multiple income sources
   - Extend TypeScript interfaces to support IncomeSource and updated RetirementData models
   - Implement validation functions for different income source types
   - Create migration logic for existing simple income data to new structure
