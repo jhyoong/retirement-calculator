@@ -96,12 +96,14 @@ export class UIController {
     const errorElement = document.getElementById(`${input.id}-error`) as HTMLElement;
     if (!errorElement) return true;
 
-    // Clear previous error
+    // Clear previous error and styling
     errorElement.textContent = '';
+    input.classList.remove('error', 'success');
 
     // Check if field is required and empty
     if (input.required && !input.value.trim()) {
       this.showFieldError(input.id, 'This field is required');
+      input.classList.add('error');
       return false;
     }
 
@@ -113,6 +115,7 @@ export class UIController {
     const value = parseFloat(input.value);
     if (isNaN(value)) {
       this.showFieldError(input.id, 'Please enter a valid number');
+      input.classList.add('error');
       return false;
     }
 
@@ -121,6 +124,7 @@ export class UIController {
       case 'currentAge':
         if (value < 18 || value > 100) {
           this.showFieldError(input.id, 'Age must be between 18 and 100');
+          input.classList.add('error');
           return false;
         }
         break;
@@ -128,6 +132,7 @@ export class UIController {
       case 'retirementAge':
         if (value < 18 || value > 100) {
           this.showFieldError(input.id, 'Retirement age must be between 18 and 100');
+          input.classList.add('error');
           return false;
         }
         // Check if retirement age is greater than current age
@@ -136,6 +141,7 @@ export class UIController {
           const currentAge = parseFloat(currentAgeInput.value);
           if (!isNaN(currentAge) && value <= currentAge) {
             this.showFieldError(input.id, 'Retirement age must be greater than current age');
+            input.classList.add('error');
             return false;
           }
         }
@@ -145,15 +151,18 @@ export class UIController {
       case 'monthlyContribution':
         if (value < 0) {
           this.showFieldError(input.id, 'Amount cannot be negative');
+          input.classList.add('error');
           return false;
         }
         // Warn about unrealistic values
         if (input.name === 'monthlyContribution' && value > 50000) {
           this.showFieldError(input.id, 'Monthly contribution seems unrealistically high');
+          input.classList.add('error');
           return false;
         }
         if (input.name === 'currentSavings' && value > 100000000) {
           this.showFieldError(input.id, 'Current savings seems unrealistically high');
+          input.classList.add('error');
           return false;
         }
         break;
@@ -161,11 +170,14 @@ export class UIController {
       case 'expectedAnnualReturn':
         if (value < 0 || value > 20) {
           this.showFieldError(input.id, 'Return must be between 0% and 20%');
+          input.classList.add('error');
           return false;
         }
         break;
     }
 
+    // If we get here, validation passed
+    input.classList.add('success');
     return true;
   }
 
@@ -280,6 +292,7 @@ export class UIController {
    */
   private handleCalculation(): void {
     const statusElement = document.getElementById('calculation-status') as HTMLElement;
+    const calculateBtn = document.getElementById('calculate-btn') as HTMLButtonElement;
     
     // Clear previous status
     if (statusElement) {
@@ -287,15 +300,23 @@ export class UIController {
       statusElement.className = 'status-message';
     }
 
+    // Add loading state to button
+    if (calculateBtn) {
+      calculateBtn.classList.add('loading');
+      calculateBtn.disabled = true;
+    }
+
     // Validate all fields first
     if (!this.validateAllFields()) {
       this.showCalculationStatus('Please correct the errors above', 'error');
+      this.removeButtonLoading(calculateBtn);
       return;
     }
 
     const formData = this.getFormData();
     if (!formData) {
       this.showCalculationStatus('Please fill in all fields with valid numbers', 'error');
+      this.removeButtonLoading(calculateBtn);
       return;
     }
 
@@ -310,6 +331,8 @@ export class UIController {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Calculation failed';
       this.showCalculationStatus(errorMessage, 'error');
+    } finally {
+      this.removeButtonLoading(calculateBtn);
     }
   }
 
@@ -437,8 +460,15 @@ export class UIController {
   private async handleFileImport(event: Event): Promise<void> {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
+    const importBtn = document.getElementById('import-btn') as HTMLButtonElement;
     
     if (!file) return;
+
+    // Add loading state
+    if (importBtn) {
+      importBtn.classList.add('loading');
+      importBtn.disabled = true;
+    }
 
     try {
       const importedData = await this.importExportManager.importData(file);
@@ -462,6 +492,8 @@ export class UIController {
       
       // Clear the file input
       target.value = '';
+    } finally {
+      this.removeButtonLoading(importBtn);
     }
   }
 
@@ -470,10 +502,17 @@ export class UIController {
    */
   private handleDataExport(): void {
     const formData = this.getFormData();
+    const exportBtn = document.getElementById('export-btn') as HTMLButtonElement;
     
     if (!formData) {
       this.showActionStatus('Please fill in all fields before exporting', 'warning');
       return;
+    }
+
+    // Add loading state
+    if (exportBtn) {
+      exportBtn.classList.add('loading');
+      exportBtn.disabled = true;
     }
 
     try {
@@ -482,6 +521,8 @@ export class UIController {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Export failed';
       this.showActionStatus(`Export failed: ${errorMessage}`, 'error');
+    } finally {
+      this.removeButtonLoading(exportBtn);
     }
   }
 
@@ -539,5 +580,15 @@ export class UIController {
     this.updateElementText('monthly-income', '$--');
     this.updateElementText('total-contributions', '$--');
     this.updateElementText('interest-earned', '$--');
+  }
+
+  /**
+   * Remove loading state from button
+   */
+  private removeButtonLoading(button: HTMLButtonElement | null): void {
+    if (button) {
+      button.classList.remove('loading');
+      button.disabled = false;
+    }
   }
 }
