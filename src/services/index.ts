@@ -5,3 +5,4 @@ export { CalculationEngine } from './CalculationEngine';
 export { DataManager } from './DataManager';
 export { ImportExportManager } from './ImportExportManager';
 export { NotificationService } from './NotificationService';
+export { IncomeManager } from './IncomeManager';

@@ -1,4 +1,5 @@
-import type { RetirementData, CalculationResult, ValidationResult } from '../types';
+import type { RetirementData, CalculationResult, ValidationResult, IncomeSource } from '../types';
+import { IncomeManager } from './IncomeManager.js';
 
 /**
  * CalculationEngine handles all retirement calculation logic
@@ -92,6 +93,47 @@ export class CalculationEngine {
   }
 
   /**
+   * Calculate monthly loan payment using standard loan formula
+   * Formula: PMT = P * [r(1+r)^n] / [(1+r)^n - 1]
+   * Where: P = principal, r = monthly rate, n = number of payments
+   */
+  calculateLoanPayment(principal: number, annualRate: number, termYears: number): number {
+    if (principal <= 0) throw new Error('Principal must be positive');
+    if (annualRate < 0 || annualRate > 0.5) throw new Error('Annual rate must be between 0% and 50%');
+    if (termYears <= 0 || termYears > 50) throw new Error('Term must be between 1 and 50 years');
+    
+    // Handle zero interest rate case
+    if (annualRate === 0) {
+      return principal / (termYears * 12);
+    }
+    
+    const monthlyRate = annualRate / 12;
+    const numberOfPayments = termYears * 12;
+    
+    const numerator = monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments);
+    const denominator = Math.pow(1 + monthlyRate, numberOfPayments) - 1;
+    
+    const monthlyPayment = principal * (numerator / denominator);
+    
+    if (!isFinite(monthlyPayment)) {
+      throw new Error('Loan calculation resulted in an invalid number');
+    }
+    
+    return Math.round(monthlyPayment * 100) / 100;
+  }
+
+  /**
+   * Apply inflation adjustment to a monetary amount over a number of years
+   */
+  applyInflation(amount: number, inflationRate: number, years: number): number {
+    if (amount < 0) throw new Error('Amount cannot be negative');
+    if (inflationRate < 0 || inflationRate > 0.15) throw new Error('Inflation rate must be between 0% and 15%');
+    if (years < 0) throw new Error('Years cannot be negative');
+    
+    return amount * Math.pow(1 + inflationRate, years);
+  }
+
+  /**
    * Validate all input data for retirement calculations
    */
   validateInputs(data: RetirementData): ValidationResult {
@@ -116,10 +158,18 @@ export class CalculationEngine {
       errors.push('Current savings cannot be negative');
     }
 
-    if (!isFinite(data.monthlyContribution) || isNaN(data.monthlyContribution)) {
-      errors.push('Monthly contribution must be a valid number');
-    } else if (data.monthlyContribution < 0) {
-      errors.push('Monthly contribution cannot be negative');
+    // Validate monthly retirement spending
+    if (!isFinite(data.monthlyRetirementSpending) || isNaN(data.monthlyRetirementSpending)) {
+      errors.push('Monthly retirement spending must be a valid number');
+    } else if (data.monthlyRetirementSpending < 0) {
+      errors.push('Monthly retirement spending cannot be negative');
+    }
+
+    // Validate inflation rate
+    if (!isFinite(data.inflationRate) || isNaN(data.inflationRate)) {
+      errors.push('Inflation rate must be a valid number');
+    } else if (data.inflationRate < 0 || data.inflationRate > 0.15) {
+      errors.push('Inflation rate must be between 0% and 15%');
     }
 
     if (!isFinite(data.expectedAnnualReturn) || isNaN(data.expectedAnnualReturn)) {
@@ -133,12 +183,18 @@ export class CalculationEngine {
       errors.push('Current savings amount is too large for accurate calculation');
     }
 
-    if (isFinite(data.monthlyContribution) && data.monthlyContribution > Number.MAX_SAFE_INTEGER / 1000) {
-      errors.push('Monthly contribution amount is too large for accurate calculation');
+    // Validate income sources if present
+    if (data.incomeSources && Array.isArray(data.incomeSources)) {
+      const incomeManager = new IncomeManager();
+      const incomeValidation = incomeManager.setIncomeSources(data.incomeSources);
+      if (!incomeValidation.isValid) {
+        errors.push(...incomeValidation.errors);
+      }
     }
 
     // Check for unrealistic scenarios
-    if (isFinite(data.monthlyContribution) && data.monthlyContribution > 50000) {
+    // Legacy monthly contribution validation (for backward compatibility)
+    if (data.monthlyContribution !== undefined && isFinite(data.monthlyContribution) && data.monthlyContribution > 50000) {
       errors.push('Monthly contribution seems unrealistically high (over $50,000)');
     }
 
@@ -169,6 +225,97 @@ export class CalculationEngine {
   }
 
   /**
+   * Calculate future value with time-based income sources that have varying contributions
+   * This method accounts for income sources that start/end at different times and have annual increases
+   */
+  calculateFutureValueWithTimeBasedIncome(
+    data: RetirementData
+  ): { totalSavings: number; totalContributions: number; interestEarned: number } {
+    const yearsToRetirement = data.retirementAge - data.currentAge;
+    const monthsToRetirement = yearsToRetirement * 12;
+    
+    let balance = data.currentSavings;
+    let totalContributions = 0;
+    
+    const incomeManager = new IncomeManager();
+    if (data.incomeSources && data.incomeSources.length > 0) {
+      incomeManager.setIncomeSources(data.incomeSources);
+    }
+    
+    const currentDate = new Date();
+    const monthlyRate = data.expectedAnnualReturn / 12;
+    
+    // Calculate month by month to account for time-based income changes
+    for (let month = 0; month < monthsToRetirement; month++) {
+      // Calculate the date for this month
+      const projectionDate = new Date(currentDate);
+      projectionDate.setMonth(projectionDate.getMonth() + month);
+      
+      // Calculate age at this point in time
+      const ageAtProjection = data.currentAge + (month / 12);
+      
+      // Get monthly contribution for this specific month
+      let monthlyContribution = 0;
+      if (data.incomeSources && data.incomeSources.length > 0) {
+        monthlyContribution = incomeManager.calculateMonthlyContributions(projectionDate, ageAtProjection);
+      } else if (data.monthlyContribution !== undefined) {
+        // Backward compatibility with legacy data
+        monthlyContribution = data.monthlyContribution;
+      }
+      
+      // Apply monthly interest to current balance
+      balance = balance * (1 + monthlyRate);
+      
+      // Add monthly contribution
+      balance += monthlyContribution;
+      totalContributions += monthlyContribution;
+    }
+    
+    const interestEarned = balance - data.currentSavings - totalContributions;
+    
+    return {
+      totalSavings: balance,
+      totalContributions,
+      interestEarned
+    };
+  }
+
+  /**
+   * Calculate average monthly contribution over the retirement period
+   * This is used for simpler calculations when time-based precision isn't needed
+   */
+  calculateAverageMonthlyContribution(data: RetirementData): number {
+    if (!data.incomeSources || data.incomeSources.length === 0) {
+      return data.monthlyContribution || 0;
+    }
+    
+    const yearsToRetirement = data.retirementAge - data.currentAge;
+    const monthsToRetirement = yearsToRetirement * 12;
+    
+    const incomeManager = new IncomeManager();
+    incomeManager.setIncomeSources(data.incomeSources);
+    
+    const currentDate = new Date();
+    let totalContributions = 0;
+    
+    // Sample contributions at regular intervals to get an average
+    const samplePoints = Math.min(monthsToRetirement, 120); // Sample up to 10 years worth of months
+    const interval = monthsToRetirement / samplePoints;
+    
+    for (let i = 0; i < samplePoints; i++) {
+      const month = Math.floor(i * interval);
+      const projectionDate = new Date(currentDate);
+      projectionDate.setMonth(projectionDate.getMonth() + month);
+      
+      const ageAtProjection = data.currentAge + (month / 12);
+      const monthlyContribution = incomeManager.calculateMonthlyContributions(projectionDate, ageAtProjection);
+      totalContributions += monthlyContribution;
+    }
+    
+    return totalContributions / samplePoints;
+  }
+
+  /**
    * Perform complete retirement calculation
    */
   calculateRetirement(data: RetirementData): CalculationResult {
@@ -180,29 +327,65 @@ export class CalculationEngine {
 
     const yearsToRetirement = data.retirementAge - data.currentAge;
     
-    // Calculate total savings at retirement
-    const totalSavings = this.calculateFutureValue(
-      data.currentSavings,
-      data.monthlyContribution,
-      data.expectedAnnualReturn,
-      yearsToRetirement
-    );
+    // Use time-based calculation for more accurate results with multiple income sources
+    let totalSavings: number;
+    let totalContributions: number;
+    let interestEarned: number;
+    
+    const hasTimeBased = data.incomeSources && data.incomeSources.length > 0 && this.hasTimeBasedIncome(data.incomeSources);
+    
+    if (hasTimeBased) {
+      // Use precise month-by-month calculation for time-based income
+      const timeBasedResult = this.calculateFutureValueWithTimeBasedIncome(data);
+      totalSavings = timeBasedResult.totalSavings;
+      totalContributions = timeBasedResult.totalContributions;
+      interestEarned = timeBasedResult.interestEarned;
+    } else {
+      // Use simpler calculation for constant contributions
+      const monthlyContribution = this.calculateAverageMonthlyContribution(data);
+      totalSavings = this.calculateFutureValue(
+        data.currentSavings,
+        monthlyContribution,
+        data.expectedAnnualReturn,
+        yearsToRetirement
+      );
+      totalContributions = monthlyContribution * yearsToRetirement * 12;
+      interestEarned = totalSavings - data.currentSavings - totalContributions;
+    }
 
-    // Calculate monthly retirement income
-    const monthlyRetirementIncome = this.calculateMonthlyIncome(totalSavings);
+    // Calculate monthly retirement income (4% rule or based on spending needs)
+    const monthlyRetirementIncome = data.monthlyRetirementSpending || this.calculateMonthlyIncome(totalSavings);
 
-    // Calculate total contributions made
-    const totalContributions = data.monthlyContribution * yearsToRetirement * 12;
-
-    // Calculate interest earned
-    const interestEarned = totalSavings - data.currentSavings - totalContributions;
+    // Calculate net monthly income from all sources (current income, not retirement income)
+    let netMonthlyIncome = 0;
+    if (data.incomeSources && data.incomeSources.length > 0) {
+      const incomeManager = new IncomeManager();
+      incomeManager.setIncomeSources(data.incomeSources);
+      netMonthlyIncome = incomeManager.calculateMonthlyIncome(new Date(), data.currentAge);
+    }
 
     return {
       totalSavings: Math.round(totalSavings * 100) / 100, // Round to 2 decimal places
       monthlyRetirementIncome: Math.round(monthlyRetirementIncome * 100) / 100,
       yearsToRetirement,
       totalContributions: Math.round(totalContributions * 100) / 100,
-      interestEarned: Math.round(interestEarned * 100) / 100
+      interestEarned: Math.round(interestEarned * 100) / 100,
+      monthlyProjections: [], // Will be implemented in Phase 2
+      yearlyProjections: [], // Will be implemented in Phase 2
+      netMonthlyIncome: Math.round(netMonthlyIncome * 100) / 100
     };
+  }
+
+  /**
+   * Check if income sources have time-based characteristics that require month-by-month calculation
+   */
+  private hasTimeBasedIncome(incomeSources: IncomeSource[]): boolean {
+    return incomeSources.some(source => 
+      source.startDate || 
+      source.endDate || 
+      source.annualIncrease || 
+      source.type === 'fixed_period' || 
+      source.type === 'one_time'
+    );
   }
 }

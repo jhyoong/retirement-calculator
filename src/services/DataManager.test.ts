@@ -10,8 +10,11 @@ describe('DataManager', () => {
     currentAge: 30,
     retirementAge: 65,
     currentSavings: 50000,
-    monthlyContribution: 1000,
     expectedAnnualReturn: 0.07,
+    inflationRate: 0.03,
+    monthlyRetirementSpending: 4000,
+    incomeSources: [],
+    expenses: [],
     lastUpdated: new Date('2024-01-01T00:00:00.000Z')
   };
 
@@ -101,7 +104,10 @@ describe('DataManager', () => {
       expect(loadedData!.currentAge).toBe(30);
       expect(loadedData!.retirementAge).toBe(65);
       expect(loadedData!.currentSavings).toBe(50000);
-      expect(loadedData!.monthlyContribution).toBe(1000);
+      expect(loadedData!.inflationRate).toBe(0.03);
+      expect(loadedData!.monthlyRetirementSpending).toBe(4000);
+      expect(Array.isArray(loadedData!.incomeSources)).toBe(true);
+      expect(Array.isArray(loadedData!.expenses)).toBe(true);
       expect(loadedData!.expectedAnnualReturn).toBe(0.07);
       expect(loadedData!.lastUpdated).toBeInstanceOf(Date);
     });
@@ -243,7 +249,10 @@ describe('DataManager', () => {
       expect(loadedData!.currentAge).toBe(sampleRetirementData.currentAge);
       expect(loadedData!.retirementAge).toBe(sampleRetirementData.retirementAge);
       expect(loadedData!.currentSavings).toBe(sampleRetirementData.currentSavings);
-      expect(loadedData!.monthlyContribution).toBe(sampleRetirementData.monthlyContribution);
+      expect(loadedData!.inflationRate).toBe(sampleRetirementData.inflationRate);
+      expect(loadedData!.monthlyRetirementSpending).toBe(sampleRetirementData.monthlyRetirementSpending);
+      expect(loadedData!.incomeSources).toEqual(sampleRetirementData.incomeSources);
+      expect(loadedData!.expenses).toEqual(sampleRetirementData.expenses);
       expect(loadedData!.expectedAnnualReturn).toBe(sampleRetirementData.expectedAnnualReturn);
       expect(loadedData!.lastUpdated).toBeInstanceOf(Date);
     });
@@ -259,4 +268,162 @@ describe('DataManager', () => {
       expect(loadedData!.currentAge).toBe(30);
     });
   });
-});
+
+  describe('data migration', () => {
+    it('should migrate legacy data with monthlyContribution', () => {
+      const legacyData = {
+        currentAge: 30,
+        retirementAge: 65,
+        currentSavings: 50000,
+        monthlyContribution: 1000,
+        expectedAnnualReturn: 0.07,
+        lastUpdated: '2024-01-01T00:00:00.000Z'
+      };
+
+      mockLocalStorage['retirement-calculator-data'] = JSON.stringify(legacyData);
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const loadedData = dataManager.loadData();
+
+      expect(loadedData).toBeTruthy();
+      expect(loadedData!.currentAge).toBe(30);
+      expect(loadedData!.retirementAge).toBe(65);
+      expect(loadedData!.currentSavings).toBe(50000);
+      expect(loadedData!.expectedAnnualReturn).toBe(0.07);
+      expect(loadedData!.inflationRate).toBe(0.03);
+      expect(loadedData!.monthlyRetirementSpending).toBe(4000);
+      expect(loadedData!.incomeSources).toHaveLength(1);
+      expect(loadedData!.incomeSources[0].id).toBe('legacy-contribution');
+      expect(loadedData!.incomeSources[0].amount).toBe(1000);
+      expect(loadedData!.expenses).toHaveLength(0);
+    });
+
+    it('should migrate legacy data without monthlyContribution', () => {
+      const legacyData = {
+        currentAge: 25,
+        retirementAge: 60,
+        currentSavings: 0,
+        monthlyContribution: 0,
+        expectedAnnualReturn: 0.08,
+        lastUpdated: '2024-01-01T00:00:00.000Z'
+      };
+
+      mockLocalStorage['retirement-calculator-data'] = JSON.stringify(legacyData);
+      vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const loadedData = dataManager.loadData();
+
+      expect(loadedData).toBeTruthy();
+      expect(loadedData!.incomeSources).toHaveLength(0);
+      expect(loadedData!.expenses).toHaveLength(0);
+    });
+
+    it('should not migrate data that already has incomeSources', () => {
+      const newData = {
+        currentAge: 30,
+        retirementAge: 65,
+        currentSavings: 50000,
+        monthlyContribution: 1000, // This should be ignored
+        expectedAnnualReturn: 0.07,
+        inflationRate: 0.03,
+        monthlyRetirementSpending: 4000,
+        incomeSources: [
+          {
+            id: 'existing-source',
+            name: 'Existing Job',
+            type: 'regular_job',
+            amount: 5000,
+            frequency: 'monthly',
+            contributionPercentage: 0.15
+          }
+        ],
+        expenses: [],
+        lastUpdated: '2024-01-01T00:00:00.000Z'
+      };
+
+      mockLocalStorage['retirement-calculator-data'] = JSON.stringify(newData);
+
+      const loadedData = dataManager.loadData();
+
+      expect(loadedData).toBeTruthy();
+      expect(loadedData!.incomeSources).toHaveLength(1);
+      expect(loadedData!.incomeSources[0].id).toBe('existing-source');
+    });
+
+    it('should handle date conversion in income sources and expenses', () => {
+      const dataWithDates = {
+        currentAge: 30,
+        retirementAge: 65,
+        currentSavings: 50000,
+        expectedAnnualReturn: 0.07,
+        inflationRate: 0.03,
+        monthlyRetirementSpending: 4000,
+        incomeSources: [
+          {
+            id: 'contract-job',
+            name: 'Contract Job',
+            type: 'fixed_period',
+            amount: 6000,
+            frequency: 'monthly',
+            startDate: '2024-01-01T00:00:00.000Z',
+            endDate: '2024-12-31T00:00:00.000Z',
+            contributionPercentage: 0.20
+          }
+        ],
+        expenses: [
+          {
+            id: 'temp-expense',
+            name: 'Temporary Expense',
+            type: 'regular',
+            amount: 500,
+            frequency: 'monthly',
+            inflationAdjusted: true,
+            startDate: '2024-06-01T00:00:00.000Z',
+            endDate: '2024-12-31T00:00:00.000Z'
+          }
+        ],
+        lastUpdated: '2024-01-01T00:00:00.000Z'
+      };
+
+      mockLocalStorage['retirement-calculator-data'] = JSON.stringify(dataWithDates);
+
+      const loadedData = dataManager.loadData();
+
+      expect(loadedData).toBeTruthy();
+      expect(loadedData!.incomeSources[0].startDate).toBeInstanceOf(Date);
+      expect(loadedData!.incomeSources[0].endDate).toBeInstanceOf(Date);
+      expect(loadedData!.expenses[0].startDate).toBeInstanceOf(Date);
+      expect(loadedData!.expenses[0].endDate).toBeInstanceOf(Date);
+    });
+
+    it('should maintain backward compatibility with UIController integration', () => {
+      // Simulate legacy data in localStorage
+      const legacyData = {
+        currentAge: 28,
+        retirementAge: 62,
+        currentSavings: 25000,
+        monthlyContribution: 800,
+        expectedAnnualReturn: 0.08,
+        lastUpdated: '2024-01-01T00:00:00.000Z'
+      };
+
+      mockLocalStorage['retirement-calculator-data'] = JSON.stringify(legacyData);
+
+      // Load and verify migration
+      const loadedData = dataManager.loadData();
+
+      expect(loadedData).toBeTruthy();
+      expect(loadedData!.currentAge).toBe(28);
+      expect(loadedData!.retirementAge).toBe(62);
+      expect(loadedData!.currentSavings).toBe(25000);
+      expect(loadedData!.expectedAnnualReturn).toBe(0.08);
+      expect(loadedData!.inflationRate).toBe(0.03); // Default value
+      expect(loadedData!.monthlyRetirementSpending).toBe(4000); // Default value
+      expect(loadedData!.incomeSources).toHaveLength(1);
+      expect(loadedData!.incomeSources[0].id).toBe('legacy-contribution');
+      expect(loadedData!.incomeSources[0].amount).toBe(800);
+      expect(loadedData!.incomeSources[0].contributionPercentage).toBe(1.0);
+      expect(loadedData!.expenses).toHaveLength(0);
+      expect(loadedData!.monthlyContribution).toBe(800); // Preserved for compatibility
+    });
+  });});

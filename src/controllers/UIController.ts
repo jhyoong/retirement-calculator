@@ -1,5 +1,6 @@
-import type { RetirementData, CalculationResult } from '../types';
-import { CalculationEngine, DataManager, ImportExportManager, NotificationService } from '../services';
+import type { RetirementData, CalculationResult, IncomeSource } from '../types';
+import { CalculationEngine, DataManager, ImportExportManager, NotificationService, IncomeManager } from '../services';
+import { IncomeSourceUI, TabManager } from '../components';
 
 /**
  * UIController coordinates between UI components and business logic
@@ -10,6 +11,9 @@ export class UIController {
   private dataManager: DataManager;
   private importExportManager: ImportExportManager;
   private notificationService: NotificationService;
+  private incomeManager: IncomeManager;
+  private incomeSourceUI: IncomeSourceUI;
+  private tabManager: TabManager;
   private debounceTimer: number | null = null;
   private readonly debounceDelay = 300; // 300ms debounce delay
 
@@ -18,6 +22,14 @@ export class UIController {
     this.dataManager = new DataManager();
     this.importExportManager = new ImportExportManager();
     this.notificationService = new NotificationService();
+    this.incomeManager = new IncomeManager();
+    
+    // Initialize UI components
+    this.tabManager = new TabManager(); // Manages tab navigation automatically
+    this.incomeSourceUI = new IncomeSourceUI(
+      this.incomeManager, 
+      (sources) => this.handleIncomeSourcesChange(sources)
+    );
     
     this.initializeEventHandlers();
     this.checkBrowserCompatibility();
@@ -200,6 +212,14 @@ export class UIController {
       }
     });
 
+    // Validate income sources
+    const incomeValidation = this.incomeManager.validateAllSources();
+    if (!incomeValidation.isValid) {
+      // Show income source validation errors
+      this.showCalculationStatus(`Income source errors: ${incomeValidation.errors.join(', ')}`, 'error');
+      isValid = false;
+    }
+
     return isValid;
   }
 
@@ -234,27 +254,52 @@ export class UIController {
   }
 
   /**
+   * Handle income sources change
+   */
+  private handleIncomeSourcesChange(sources: IncomeSource[]): void {
+    // Update the income manager with the new sources
+    this.incomeManager.setIncomeSources(sources);
+    
+    // Update the income summary with current age
+    const currentAge = this.getInputValue('current-age');
+    if (!isNaN(currentAge) && currentAge > 0) {
+      this.incomeSourceUI.updateSummaryWithAge(currentAge);
+    }
+    
+    // Trigger recalculation if we have complete data
+    this.performRealTimeCalculation();
+    this.autoSaveData();
+  }
+
+  /**
    * Get current form data
    */
   private getFormData(): RetirementData | null {
     const currentAge = this.getInputValue('current-age');
     const retirementAge = this.getInputValue('retirement-age');
     const currentSavings = this.getInputValue('current-savings');
-    const monthlyContribution = this.getInputValue('monthly-contribution');
     const expectedAnnualReturn = this.getInputValue('expected-return');
+    const inflationRate = this.getInputValue('inflation-rate') || 2.5;
+    const monthlyRetirementSpending = this.getInputValue('monthly-spending');
 
-    // Check if all values are valid numbers
+    // Check if all required values are valid numbers
     if (isNaN(currentAge) || isNaN(retirementAge) || isNaN(currentSavings) || 
-        isNaN(monthlyContribution) || isNaN(expectedAnnualReturn)) {
+        isNaN(expectedAnnualReturn) || isNaN(monthlyRetirementSpending)) {
       return null;
     }
+
+    // Get income sources from the income manager
+    const incomeSources = this.incomeManager.getAllIncomeSources();
 
     return {
       currentAge,
       retirementAge,
       currentSavings,
-      monthlyContribution,
       expectedAnnualReturn: expectedAnnualReturn / 100, // Convert percentage to decimal
+      inflationRate: inflationRate / 100, // Convert percentage to decimal
+      monthlyRetirementSpending,
+      incomeSources,
+      expenses: [], // Will be implemented in Phase 3
       lastUpdated: new Date()
     };
   }
@@ -467,8 +512,26 @@ export class UIController {
     this.setInputValue('current-age', data.currentAge);
     this.setInputValue('retirement-age', data.retirementAge);
     this.setInputValue('current-savings', data.currentSavings);
-    this.setInputValue('monthly-contribution', data.monthlyContribution);
     this.setInputValue('expected-return', data.expectedAnnualReturn * 100); // Convert to percentage
+    this.setInputValue('inflation-rate', (data.inflationRate || 0.025) * 100); // Convert to percentage
+    this.setInputValue('monthly-spending', data.monthlyRetirementSpending || 0);
+    
+    // Load income sources into both the manager and UI
+    if (data.incomeSources && data.incomeSources.length > 0) {
+      // Set sources in the income manager
+      const validation = this.incomeManager.setIncomeSources(data.incomeSources);
+      if (!validation.isValid) {
+        console.warn('Invalid income sources loaded:', validation.errors);
+        this.notificationService.showWarning('Some income sources could not be loaded due to validation errors');
+      }
+      
+      // Set sources in the UI
+      this.incomeSourceUI.setIncomeSources(data.incomeSources);
+    } else {
+      // Clear income sources if none exist
+      this.incomeManager.clearAllSources();
+      this.incomeSourceUI.setIncomeSources([]);
+    }
   }
 
   /**
@@ -581,6 +644,10 @@ export class UIController {
         form.reset();
       }
       
+      // Clear income sources
+      this.incomeManager.clearAllSources();
+      this.incomeSourceUI.setIncomeSources([]);
+      
       // Clear all error messages
       this.clearAllErrors();
       
@@ -628,5 +695,26 @@ export class UIController {
       button.classList.remove('loading');
       button.disabled = false;
     }
+  }
+
+  /**
+   * Get the tab manager instance
+   */
+  public getTabManager(): TabManager {
+    return this.tabManager;
+  }
+
+  /**
+   * Get the income manager instance
+   */
+  public getIncomeManager(): IncomeManager {
+    return this.incomeManager;
+  }
+
+  /**
+   * Get the income source UI instance
+   */
+  public getIncomeSourceUI(): IncomeSourceUI {
+    return this.incomeSourceUI;
   }
 }
