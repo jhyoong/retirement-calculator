@@ -38,12 +38,13 @@
           <IncomeSourceForm v-show="activeTab === 'income'" />
           <OneOffReturnForm v-show="activeTab === 'oneoff'" />
           <ResultsDisplay v-show="activeTab === 'results'" />
+          <VisualizationsTab v-show="activeTab === 'visualizations'" />
           <ImportExport v-show="activeTab === 'data'" />
         </div>
       </main>
 
       <footer class="mt-12 text-center text-sm text-gray-500">
-        <p>Phase 2: Varied Income Features</p>
+        <p>Phase 3: Monthly Breakdowns with Charts and Tables</p>
       </footer>
     </div>
   </div>
@@ -55,6 +56,7 @@ import RetirementForm from '@/components/RetirementForm.vue'
 import IncomeSourceForm from '@/components/IncomeSourceForm.vue'
 import OneOffReturnForm from '@/components/OneOffReturnForm.vue'
 import ResultsDisplay from '@/components/ResultsDisplay.vue'
+import VisualizationsTab from '@/components/VisualizationsTab.vue'
 import ImportExport from '@/components/ImportExport.vue'
 
 const tabs = [
@@ -62,6 +64,7 @@ const tabs = [
   { id: 'income', label: 'Income Sources' },
   { id: 'oneoff', label: 'One-Off Returns' },
   { id: 'results', label: 'Results' },
+  { id: 'visualizations', label: 'Visualizations' },
   { id: 'data', label: 'Import/Export' }
 ]
 

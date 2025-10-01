@@ -58,3 +58,16 @@ export interface OneOffReturn {
   amount: number;
   description: string;
 }
+
+// Phase 3 Type Definitions
+
+export interface MonthlyDataPoint {
+  monthIndex: number; // 0-based index from start
+  year: number;
+  month: number; // 1-12
+  age: number;
+  income: number; // Income received this month
+  contributions: number; // Total contributions up to this month
+  portfolioValue: number; // Portfolio value at end of month
+  growth: number; // Growth this month (investment returns)
+}
