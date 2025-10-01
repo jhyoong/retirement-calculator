@@ -1,125 +1,190 @@
 # Retirement Calculator
 
-A simple retirement calculator web application that helps users plan for retirement by calculating projected savings and retirement income. Built as a static site for deployment on Cloudflare Pages.
+A Vue 3 + TypeScript retirement calculator with import/export functionality.
 
 ## Features
 
-- Calculate projected retirement savings using compound interest
-- Calculate estimated monthly retirement income
-- Automatic data persistence using browser localStorage
-- Import/Export functionality for data backup and portability
-- Responsive design for mobile and desktop
-- Works entirely offline (client-side only)
+- Calculate future retirement value with compound interest
+- Real-time input validation
+- Inflation-adjusted projections
+- Export/Import data as JSON
+- Mobile-responsive design
 
 ## Development
 
 ### Prerequisites
 
-- Node.js (version 18 or higher)
+- Node.js 18+
 - npm
 
-### Getting Started
+### Setup
 
-1. Install dependencies:
 ```bash
 npm install
 ```
 
-2. Start the development server:
-```bash
-npm run dev
-```
-
-3. Open your browser and navigate to `http://localhost:5173`
-
 ### Available Scripts
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run build:prod` - Production build with tests and type checking
-- `npm run preview` - Preview production build locally
-- `npm run verify-deployment` - Verify build meets deployment requirements
-- `npm run type-check` - Run TypeScript type checking
-- `npm run lint` - Run TypeScript linting
-- `npm run test` - Run tests in watch mode
-- `npm run test:run` - Run tests once
+```bash
+# Start development server
+npm run dev
 
-### Project Structure
+# Build for production
+npm run build
 
-```
-src/
-├── components/     # UI components
-├── services/       # Business logic services
-├── types/          # TypeScript type definitions
-├── utils/          # Utility functions
-├── main.ts         # Application entry point
-└── style.css       # Global styles
+# Preview production build
+npm run preview
+
+# Run tests
+npm test
+
+# Run tests once
+npm run test:run
+
+# Type check
+npm run type-check
+
+# Verify deployment readiness
+npm run verify-deployment
 ```
 
 ## Deployment
 
-This project is optimized for deployment on Cloudflare Pages as a static site with offline functionality.
+### Cloudflare Pages
 
-### Production Features
+1. **Connect Repository**
+   - Go to Cloudflare Pages dashboard
+   - Click "Create a project"
+   - Connect your GitHub repository
 
-- **SEO Optimized**: Complete meta tags, Open Graph, and Twitter Card support
-- **PWA Ready**: Web app manifest and service worker for offline functionality
-- **Performance Optimized**: Asset bundling, minification, and caching headers
-- **Static Site**: No server dependencies, works entirely client-side
-- **Offline Support**: Service worker caches assets for offline usage
+2. **Build Configuration**
+   ```yaml
+   Build command: npm run build
+   Build output directory: dist
+   Root directory: (leave empty)
+   Environment variables: NODE_VERSION = 18
+   ```
 
-### Build Configuration
+3. **Build Settings**
+   - Framework preset: Vite
+   - Node version: 18 or higher
 
-The project uses Vite with the following optimizations:
-- Relative asset paths for static hosting
-- Content-based file hashing for optimal caching
-- Minified JavaScript and CSS
-- Optimized chunk splitting
-- Cloudflare Pages headers for performance
+### GitHub Actions (Optional CI/CD)
 
-### Deployment Steps
+Create `.github/workflows/deploy.yml`:
 
-1. **Production Build**:
-```bash
-npm run build:prod
+```yaml
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run type-check
+      - run: npm run test:run
+      - run: npm run build
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=retirement-calculator
 ```
-This runs type checking, tests, and builds the optimized production bundle.
 
-2. **Verify Deployment**:
+**Required GitHub Secrets:**
+- `CLOUDFLARE_API_TOKEN`: Your Cloudflare API token
+- `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
+
+### Alternative Deployment Options
+
+**Vercel:**
 ```bash
-npm run verify-deployment
+npm i -g vercel
+vercel
 ```
-This ensures all required files are present and properly configured.
 
-3. **Deploy to Cloudflare Pages**:
-   - Upload the `dist/` directory contents
-   - Set build command: `npm run build`
-   - Set build output directory: `dist`
-   - No additional configuration needed
+**Netlify:**
+```bash
+npm i -g netlify-cli
+netlify deploy --prod
+```
 
-### Cloudflare Pages Configuration
+## Project Structure
 
-The project includes:
-- `_headers` file for optimal caching and security headers
-- Service worker for offline functionality
-- Web app manifest for PWA features
-- All assets use relative paths for proper static hosting
+```
+src/
+├── components/          # Vue components
+│   ├── InputField.vue
+│   ├── RetirementForm.vue
+│   ├── ResultsDisplay.vue
+│   └── ImportExport.vue
+├── stores/             # Pinia stores
+│   └── retirement.ts
+├── utils/              # Utility functions
+│   ├── calculations.ts
+│   ├── calculations.test.ts
+│   └── importExport.ts
+├── types/              # TypeScript types
+│   └── index.ts
+├── App.vue             # Root component
+├── main.ts             # Entry point
+└── style.css           # Global styles
+```
 
-### Offline Functionality
+## Data Format
 
-The application works completely offline after the first visit:
-- Service worker caches all static assets
-- localStorage persists user data across sessions
-- All calculations happen client-side
-- Import/export works without internet connection
+Export/Import uses this JSON schema:
 
-## Browser Compatibility
+```json
+{
+  "version": "1.0.0",
+  "exportDate": "2025-10-01T12:00:00.000Z",
+  "user": {
+    "currentAge": 30,
+    "retirementAge": 65,
+    "currentSavings": 50000,
+    "monthlyContribution": 1000,
+    "expectedReturnRate": 0.07,
+    "inflationRate": 0.03
+  }
+}
+```
 
-- Chrome (latest)
-- Firefox (latest)
-- Safari (latest)
-- Edge (latest)
+## Phase 1 Complete
 
-## License
+This is the Phase 1 MVP implementation with:
+- ✅ Basic retirement calculator
+- ✅ 6 input fields with validation
+- ✅ Real-time calculations
+- ✅ Future value projection
+- ✅ Inflation adjustment
+- ✅ Import/Export JSON
+- ✅ Mobile-responsive UI
+- ✅ Comprehensive tests (26 passing)
 
-This project is private and not licensed for public use.
+See `detailed_roadmap.md` for future phases.
