@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Testing
 - `npm test` - Run tests in watch mode
 - `npm run test:run` - Run tests once
-- Run a single test file: `npm test -- src/services/CalculationEngine.test.ts`
+- Run a single test file: `npm test -- src/utils/calculations.test.ts`
 
 ### Type Checking & Linting
 - `npm run type-check` - Run TypeScript type checking without emitting files
@@ -24,132 +24,148 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Architecture Overview
 
-### Application Structure
-This is a TypeScript-based retirement calculator built with Vite and vanilla TypeScript (no framework). The application uses a service-oriented architecture with clear separation of concerns:
+### Stack & Framework
+This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. The application uses:
+- **Vue 3** with Composition API (`<script setup>`)
+- **Pinia** for state management (NOT Vuex)
+- **Tailwind CSS** for styling
+- **Vitest** for testing
+- **TypeScript** in strict mode
 
-**Entry Point**: `src/main.ts` - Initializes UIController and renders HTML structure inline
+### Application Structure
+
+**Entry Point**: `src/main.ts` - Creates Vue app, initializes Pinia, mounts to DOM
 
 **Layers**:
-- **Controllers**: Coordinate between UI and services (UIController is the main coordinator)
-- **Services**: Business logic and data management (CalculationEngine, DataManager, IncomeManager, etc.)
-- **Components**: UI-specific logic (IncomeSourceUI, TabManager, ResultsUI)
-- **Types**: TypeScript type definitions centralized in `src/types/index.ts`
-- **Utils**: Shared utilities (validation, migration helpers)
+- **Components**: Vue SFC components for UI (`.vue` files)
+- **Stores**: Pinia stores for state management (`src/stores/`)
+- **Utils**: Business logic and utilities (`src/utils/`)
+- **Types**: TypeScript type definitions (`src/types/index.ts`)
 
-### Key Services
+### State Management (Pinia Stores)
 
-**CalculationEngine** (`src/services/CalculationEngine.ts`):
-- Performs all retirement calculations using compound interest formulas
-- Validates input data comprehensively
-- Supports both simple (constant contribution) and time-based calculations (varying income over time)
-- Key methods:
-  - `calculateFutureValue()` - Standard compound interest with monthly contributions
-  - `calculateFutureValueWithTimeBasedIncome()` - Month-by-month calculation for variable income
-  - `calculateRetirement()` - Main calculation entry point
-  - `validateInputs()` - Comprehensive input validation
+**Retirement Store** (`src/stores/retirement.ts`):
+- Main store for basic retirement calculation inputs
+- Manages: currentAge, retirementAge, currentSavings, monthlyContribution, expectedReturnRate, inflationRate
+- Computed properties: `userData`, `validation`, `results`
+- Integrates with IncomeStore for Phase 2 features
+- Actions: update methods, loadData, resetToDefaults
 
-**DataManager** (`src/services/DataManager.ts`):
-- Handles localStorage persistence
-- Automatically migrates legacy data formats
-- Validates data structure on load
-- Converts date strings to Date objects when loading
+**Income Store** (`src/stores/income.ts`):
+- Phase 2 addition for varied income sources
+- Manages: `incomeSources` array, `oneOffReturns` array
+- Computed: `totalMonthlyIncome` (normalizes all frequencies to monthly)
+- Helpers: `convertToMonthly()` - converts daily/weekly/yearly/custom frequencies to monthly amounts
+- Actions: add/remove/update methods for both income sources and one-off returns
 
-**IncomeManager** (`src/services/IncomeManager.ts`):
-- Manages multiple income sources with different characteristics
-- Supports income types: regular_job, fixed_period, one_time, rental, investment
-- Calculates time-based contributions accounting for:
-  - Start/end dates
-  - Annual increases
-  - Contribution percentages
-  - One-time payments
+### Calculation Logic (`src/utils/calculations.ts`)
 
-**ImportExportManager** (`src/services/ImportExportManager.ts`):
-- Handles data export to JSON with versioning
-- Validates imported data structure and version compatibility
-- Creates downloadable JSON files for backup
+**Core Functions**:
+- `calculateFutureValue()` - Standard compound interest formula: FV = PV(1+r)^n + PMT × [((1+r)^n - 1) / r]
+- `calculateFutureValueWithIncomeSources()` - Month-by-month calculation for variable income streams
+- `calculateRetirement()` - Main entry point, auto-detects which calculation method to use
+- `validateInputs()` - Comprehensive validation for all input types
 
-**NotificationService** (`src/services/NotificationService.ts`):
-- Global notification system for user feedback
-- Supports success, error, info, and warning notifications
-- Auto-dismisses after timeout
+**Calculation Behavior**:
+- If `incomeSources` exist: uses time-based month-by-month calculation
+- Otherwise: falls back to legacy constant `monthlyContribution` formula
+- Handles edge cases: zero interest rate, date validation, frequency conversions
+- All monetary values rounded to 2 decimal places
 
-### UI Components
+### Vue Components
 
-**UIController** (`src/controllers/UIController.ts`):
-- Main coordinator for the entire application
-- Initializes all services and components
-- Handles form validation and error display
-- Implements debounced real-time calculations (300ms delay)
-- Auto-saves data to localStorage
-- Manages import/export flows
+**App.vue**:
+- Root component with tab navigation
+- 5 tabs: Basic Info, Income Sources, One-Off Returns, Results, Import/Export
+- Uses `v-show` for tab content (all rendered, visibility toggled)
 
-**IncomeSourceUI** (`src/components/IncomeSourceUI.ts`):
-- Manages income source form and list display
-- Dynamic form fields based on income type selection
-- Real-time summary calculations
-- Callback pattern to notify parent of changes
+**RetirementForm.vue**:
+- Basic inputs: ages, savings, contribution, rates
+- Binds to retirement store using Pinia
 
-**TabManager** (`src/components/TabManager.ts`):
-- Manages tab navigation between Income Sources, Basic Info, and Results
-- Uses ARIA attributes for accessibility
+**IncomeSourceForm.vue** & **OneOffReturnForm.vue**:
+- Phase 2 components for varied income
+- Manage income store arrays
 
-**ResultsUI** (`src/components/ResultsUI.ts`):
-- Displays calculation results with formatted currency
-- Updates UI based on CalculationResult
+**ResultsDisplay.vue**:
+- Displays calculated results from store
+- Shows: future value, total contributions, investment growth, inflation-adjusted value
 
-### Data Flow
-1. User interacts with UI (form inputs, income sources)
-2. UIController captures events with debounced handlers
-3. Data flows to IncomeManager and CalculationEngine services
-4. Results flow back through UIController to UI components
-5. DataManager auto-saves to localStorage
-6. NotificationService provides user feedback
+**ImportExport.vue**:
+- Export data to JSON with versioning
+- Import with validation and migration support
 
-### TypeScript Configuration
-- Strict mode enabled with comprehensive linting rules
-- Target: ES2022, Module: ESNext
-- Bundler module resolution (Vite)
-- Test files excluded from compilation
+### Data Versioning & Migration
 
-### Data Persistence
-All user data is stored in browser localStorage with automatic migration from legacy formats. The system supports:
-- Import/Export for data backup and portability
-- Version tracking for data compatibility
-- Automatic data validation on load
+**Current Version**: 2.0.0
 
-### Testing Strategy
-- Unit tests for all services (using Vitest)
-- Integration tests for data flow (`src/integration.test.ts`)
-- Performance tests for calculation engine
-- Tests use `.test.ts` suffix and are excluded from production builds
+**Version History**:
+- v1.0.0: Basic calculator with `monthlyContribution` only
+- v2.0.0: Added `incomeSources` and `oneOffReturns` support
 
-### Deployment Target
-Static site deployment to Cloudflare Pages with:
-- PWA support via service worker
-- Offline functionality
-- SEO optimization
-- Performance headers configured
+**Migration** (`src/utils/migration.ts`):
+- `migrateV1ToV2()` - Auto-migrates old format to new
+- `convertMonthlyContributionToIncomeSource()` - Optional conversion of legacy field
+- `monthlyContribution` field maintained for backward compatibility
+
+**Import/Export** (`src/utils/importExport.ts`):
+- `exportData()` - Creates versioned RetirementData object
+- `validateImportedData()` - Validates structure for both v1 and v2
+- `parseImportedFile()` - Reads and validates JSON files
+
+### Type System (`src/types/index.ts`)
+
+**Core Types**:
+- `UserData` - All user inputs (Phase 1 + Phase 2 fields)
+- `RetirementData` - Export format with version and exportDate
+- `CalculationResult` - Calculation outputs
+- `ValidationResult` & `ValidationError` - Validation system
+
+**Phase 2 Types**:
+- `IncomeStream` - Recurring income with start/end dates
+- `OneOffReturn` - One-time future payments
+- `IncomeType`: 'salary' | 'rental' | 'dividend' | 'business' | 'custom'
+- `IncomeFrequency`: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'
+
+### Date Handling
+- All dates use YYYY-MM format strings (e.g., "2025-10")
+- Date validation via regex: `/^\d{4}-\d{2}$/`
+- Month calculations relative to current year/month baseline
+- End dates are optional (undefined = ongoing income)
 
 ## Development Notes
 
-### When Adding New Features
-- Add types first in `src/types/index.ts`
-- Implement service logic with comprehensive validation and error handling
-- Add unit tests for new service methods
-- Update UIController to integrate new functionality
-- Update relevant UI components
-- Test import/export compatibility if data model changes
+### Adding New Features
+1. Update types in `src/types/index.ts`
+2. Add store logic if needed (Pinia store with Composition API)
+3. Implement calculations in `src/utils/calculations.ts` with validation
+4. Create/update Vue components using `<script setup>` syntax
+5. Add unit tests (`.test.ts` files)
+6. Update migration logic if data model changes
 
 ### Data Model Changes
-If changing RetirementData or related types:
-- Update migration logic in `src/utils/validation.ts`
-- Test backward compatibility with legacy data
-- Update ImportExportManager version handling if needed
-- Add migration tests
+- Update `RetirementData` or `UserData` types
+- Update validation in `validateImportedData()`
+- Add migration function in `migration.ts`
+- Update version number in `importExport.ts`
+- Test import/export compatibility
 
-### Calculation Logic
-- Always validate inputs before calculations
-- Handle edge cases (zero interest, negative values, overflow)
-- Round monetary values to 2 decimal places
-- Use month-by-month calculations for time-based income sources
-- Legacy monthlyContribution field maintained for backward compatibility
+### Vue Component Guidelines
+- Use Composition API with `<script setup lang="ts">`
+- Access stores via `useRetirementStore()` or `useIncomeStore()`
+- Bind inputs to store refs directly (Pinia handles reactivity)
+- Use computed properties from stores for derived values
+- Tailwind CSS for all styling
+
+### Testing
+- Unit tests for all utils and stores
+- Tests use Vitest with JSDOM environment
+- Test files excluded from build via tsconfig.json
+- Integration test: `src/phase2-integration.test.ts`
+
+### TypeScript Configuration
+- Strict mode enabled with all linting flags
+- Target: ES2022, Module: ESNext
+- Bundler module resolution
+- Path alias: `@/*` maps to `src/*`
+- `.test.ts` files excluded from compilation
