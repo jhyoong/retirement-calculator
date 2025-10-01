@@ -1,6 +1,6 @@
 import type { RetirementData, UserData } from '@/types'
 
-const CURRENT_VERSION = '1.0.0'
+const CURRENT_VERSION = '2.0.0'
 
 /**
  * Export retirement data to JSON
@@ -33,6 +33,7 @@ export function downloadJSON(data: RetirementData, filename = 'retirement-data.j
 
 /**
  * Validate imported data structure
+ * Supports both v1.0.0 and v2.0.0 formats
  */
 export function validateImportedData(data: unknown): data is RetirementData {
   if (typeof data !== 'object' || data === null) {
@@ -48,13 +49,40 @@ export function validateImportedData(data: unknown): data is RetirementData {
 
   const user = obj.user as Record<string, unknown>
 
-  // Validate user data fields
+  // Validate core user data fields (required in all versions)
   if (typeof user.currentAge !== 'number') return false
   if (typeof user.retirementAge !== 'number') return false
   if (typeof user.currentSavings !== 'number') return false
   if (typeof user.monthlyContribution !== 'number') return false
   if (typeof user.expectedReturnRate !== 'number') return false
   if (typeof user.inflationRate !== 'number') return false
+
+  // Phase 2: Validate income sources if present (optional)
+  if (user.incomeSources !== undefined) {
+    if (!Array.isArray(user.incomeSources)) return false
+    // Basic validation of income source structure
+    for (const source of user.incomeSources) {
+      if (typeof source !== 'object' || source === null) return false
+      const s = source as Record<string, unknown>
+      if (typeof s.id !== 'string') return false
+      if (typeof s.name !== 'string') return false
+      if (typeof s.amount !== 'number') return false
+      if (typeof s.startDate !== 'string') return false
+    }
+  }
+
+  // Phase 2: Validate one-off returns if present (optional)
+  if (user.oneOffReturns !== undefined) {
+    if (!Array.isArray(user.oneOffReturns)) return false
+    for (const oneOff of user.oneOffReturns) {
+      if (typeof oneOff !== 'object' || oneOff === null) return false
+      const o = oneOff as Record<string, unknown>
+      if (typeof o.id !== 'string') return false
+      if (typeof o.date !== 'string') return false
+      if (typeof o.amount !== 'number') return false
+      if (typeof o.description !== 'string') return false
+    }
+  }
 
   return true
 }
