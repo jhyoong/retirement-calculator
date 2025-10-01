@@ -1,0 +1,91 @@
+import type { RetirementData, UserData } from '@/types'
+
+const CURRENT_VERSION = '1.0.0'
+
+/**
+ * Export retirement data to JSON
+ */
+export function exportData(userData: UserData): RetirementData {
+  return {
+    version: CURRENT_VERSION,
+    exportDate: new Date().toISOString(),
+    user: userData
+  }
+}
+
+/**
+ * Download JSON data as a file
+ */
+export function downloadJSON(data: RetirementData, filename = 'retirement-data.json'): void {
+  const jsonString = JSON.stringify(data, null, 2)
+  const blob = new Blob([jsonString], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * Validate imported data structure
+ */
+export function validateImportedData(data: unknown): data is RetirementData {
+  if (typeof data !== 'object' || data === null) {
+    return false
+  }
+
+  const obj = data as Record<string, unknown>
+
+  // Check required fields
+  if (typeof obj.version !== 'string') return false
+  if (typeof obj.exportDate !== 'string') return false
+  if (typeof obj.user !== 'object' || obj.user === null) return false
+
+  const user = obj.user as Record<string, unknown>
+
+  // Validate user data fields
+  if (typeof user.currentAge !== 'number') return false
+  if (typeof user.retirementAge !== 'number') return false
+  if (typeof user.currentSavings !== 'number') return false
+  if (typeof user.monthlyContribution !== 'number') return false
+  if (typeof user.expectedReturnRate !== 'number') return false
+  if (typeof user.inflationRate !== 'number') return false
+
+  return true
+}
+
+/**
+ * Parse and validate imported JSON file
+ */
+export async function parseImportedFile(file: File): Promise<RetirementData> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string
+        const data = JSON.parse(text)
+
+        if (!validateImportedData(data)) {
+          reject(new Error('Invalid data format. Please check the file and try again.'))
+          return
+        }
+
+        resolve(data)
+      } catch (error) {
+        reject(new Error('Failed to parse JSON file. Please ensure it is a valid JSON file.'))
+      }
+    }
+
+    reader.onerror = () => {
+      reject(new Error('Failed to read file'))
+    }
+
+    reader.readAsText(file)
+  })
+}
