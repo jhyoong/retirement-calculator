@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { UserData, CalculationResult, ValidationResult } from '@/types'
 import { calculateRetirement, validateInputs } from '@/utils/calculations'
+import { useIncomeStore } from './income'
 
 export const useRetirementStore = defineStore('retirement', () => {
   // State with sensible defaults
@@ -13,14 +14,21 @@ export const useRetirementStore = defineStore('retirement', () => {
   const inflationRate = ref(0.03) // 3%
 
   // Computed: get user data object
-  const userData = computed((): UserData => ({
-    currentAge: currentAge.value,
-    retirementAge: retirementAge.value,
-    currentSavings: currentSavings.value,
-    monthlyContribution: monthlyContribution.value,
-    expectedReturnRate: expectedReturnRate.value,
-    inflationRate: inflationRate.value
-  }))
+  const userData = computed((): UserData => {
+    const incomeStore = useIncomeStore()
+
+    return {
+      currentAge: currentAge.value,
+      retirementAge: retirementAge.value,
+      currentSavings: currentSavings.value,
+      monthlyContribution: monthlyContribution.value,
+      expectedReturnRate: expectedReturnRate.value,
+      inflationRate: inflationRate.value,
+      // Phase 2: Include income sources if they exist
+      incomeSources: incomeStore.incomeSources.length > 0 ? incomeStore.incomeSources : undefined,
+      oneOffReturns: incomeStore.oneOffReturns.length > 0 ? incomeStore.oneOffReturns : undefined
+    }
+  })
 
   // Computed: validation result
   const validation = computed((): ValidationResult => {
@@ -72,6 +80,18 @@ export const useRetirementStore = defineStore('retirement', () => {
     monthlyContribution.value = data.monthlyContribution
     expectedReturnRate.value = data.expectedReturnRate
     inflationRate.value = data.inflationRate
+
+    // Phase 2: Load income sources and one-off returns
+    const incomeStore = useIncomeStore()
+    if (data.incomeSources && data.oneOffReturns) {
+      incomeStore.loadData(data.incomeSources, data.oneOffReturns)
+    } else if (data.incomeSources) {
+      incomeStore.loadData(data.incomeSources, [])
+    } else if (data.oneOffReturns) {
+      incomeStore.loadData([], data.oneOffReturns)
+    } else {
+      incomeStore.resetToDefaults()
+    }
   }
 
   function resetToDefaults() {
@@ -81,6 +101,10 @@ export const useRetirementStore = defineStore('retirement', () => {
     monthlyContribution.value = 1000
     expectedReturnRate.value = 0.07
     inflationRate.value = 0.03
+
+    // Phase 2: Reset income data
+    const incomeStore = useIncomeStore()
+    incomeStore.resetToDefaults()
   }
 
   return {

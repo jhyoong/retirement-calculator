@@ -32,15 +32,6 @@
         />
 
         <InputField
-          id="monthlyContribution"
-          label="Monthly Contribution"
-          v-model="store.monthlyContribution"
-          step="100"
-          :error="getError('monthlyContribution')"
-          helpText="Amount saved per month"
-        />
-
-        <InputField
           id="expectedReturnRate"
           label="Expected Return Rate (%)"
           v-model="returnRatePercent"
@@ -61,6 +52,12 @@
           :error="getError('inflationRate')"
           helpText="Expected annual inflation"
         />
+      </div>
+
+      <div class="mt-4 p-3 bg-blue-50 rounded-md text-sm text-blue-900">
+        <p>
+          <strong>Note:</strong> To add income and contributions, use the "Income Sources" tab.
+        </p>
       </div>
     </form>
   </div>
