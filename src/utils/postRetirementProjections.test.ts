@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { generatePostRetirementProjections, calculateInitialMonthlyExpenses } from './postRetirementProjections'
-import type { UserData, RetirementExpense, WithdrawalConfig } from '@/types'
+import type { UserData, RetirementExpense } from '@/types'
 
 describe('postRetirementProjections', () => {
   const baseUserData: UserData = {
@@ -22,17 +22,11 @@ describe('postRetirementProjections', () => {
     }
   ]
 
-  const fixedWithdrawal: WithdrawalConfig = {
-    strategy: 'fixed',
-    fixedAmount: 4000
-  }
-
   describe('Basic projection generation', () => {
     it('should generate projections from retirement to max age', () => {
       const data: UserData = {
         ...baseUserData,
-        expenses: basicExpenses,
-        withdrawalConfig: fixedWithdrawal
+        expenses: basicExpenses
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -54,11 +48,15 @@ describe('postRetirementProjections', () => {
         ...baseUserData,
         currentSavings: 100000, // Small portfolio
         expectedReturnRate: 0, // No growth
-        expenses: basicExpenses,
-        withdrawalConfig: {
-          strategy: 'fixed',
-          fixedAmount: 5000 // High withdrawal
-        }
+        expenses: [
+          {
+            id: '1',
+            name: 'High Expenses',
+            category: 'living',
+            monthlyAmount: 5000, // High expenses
+            inflationRate: 0.03
+          }
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -72,8 +70,7 @@ describe('postRetirementProjections', () => {
     it('should handle zero expenses edge case', () => {
       const data: UserData = {
         ...baseUserData,
-        expenses: [],
-        withdrawalConfig: fixedWithdrawal
+        expenses: []
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -86,8 +83,7 @@ describe('postRetirementProjections', () => {
       const data: UserData = {
         ...baseUserData,
         currentSavings: 0,
-        expenses: basicExpenses,
-        withdrawalConfig: fixedWithdrawal
+        expenses: basicExpenses
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -101,11 +97,7 @@ describe('postRetirementProjections', () => {
         ...baseUserData,
         currentSavings: 500000,
         expectedReturnRate: 0,
-        expenses: basicExpenses,
-        withdrawalConfig: {
-          strategy: 'fixed',
-          fixedAmount: 3000
-        }
+        expenses: basicExpenses
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -118,70 +110,22 @@ describe('postRetirementProjections', () => {
     })
   })
 
-  describe('Withdrawal strategy execution', () => {
-    it('should execute fixed amount withdrawal', () => {
+  describe('Expense-based withdrawals', () => {
+    it('should withdraw based on expenses', () => {
       const data: UserData = {
         ...baseUserData,
-        expenses: basicExpenses,
-        withdrawalConfig: {
-          strategy: 'fixed',
-          fixedAmount: 5000
-        }
+        expenses: basicExpenses
       }
 
       const projections = generatePostRetirementProjections(data, 95)
 
-      // Should withdraw $5000 every month
-      expect(projections[0].withdrawal).toBe(5000)
-      expect(projections[5].withdrawal).toBe(5000)
-      expect(projections[11].withdrawal).toBe(5000)
-    })
-
-    it('should execute percentage withdrawal', () => {
-      const data: UserData = {
-        ...baseUserData,
-        currentSavings: 1000000,
-        expenses: basicExpenses,
-        withdrawalConfig: {
-          strategy: 'percentage',
-          percentage: 0.04 / 12 // 4% annual = 0.333% monthly
-        }
-      }
-
-      const projections = generatePostRetirementProjections(data, 95)
-
-      // First withdrawal should be ~0.333% of $1M after first month's growth
-      expect(projections[0].withdrawal).toBeGreaterThan(3000) // At least expenses
-
-      // Withdrawal should vary with portfolio value
-      const firstWithdrawal = projections[0].withdrawal
-      const laterWithdrawal = projections[12].withdrawal
-      expect(firstWithdrawal).not.toBe(laterWithdrawal)
-    })
-
-    it('should execute combined withdrawal', () => {
-      const data: UserData = {
-        ...baseUserData,
-        expenses: basicExpenses,
-        withdrawalConfig: {
-          strategy: 'combined',
-          fixedAmount: 2000,
-          percentage: 0.02 / 12 // 2% annual
-        }
-      }
-
-      const projections = generatePostRetirementProjections(data, 95)
-
-      // Should be fixed + percentage
-      expect(projections[0].withdrawal).toBeGreaterThan(2000)
-
-      // Should cover expenses at minimum
+      // Withdrawals should equal expenses each month
       projections.forEach(p => {
-        expect(p.withdrawal).toBeGreaterThanOrEqual(p.expenses)
+        expect(p.expenses).toBeGreaterThan(0)
       })
     })
 
-    it('should ensure withdrawal covers expenses for fixed strategy', () => {
+    it('should handle high expenses causing depletion', () => {
       const data: UserData = {
         ...baseUserData,
         expenses: [
@@ -192,70 +136,13 @@ describe('postRetirementProjections', () => {
             monthlyAmount: 10000,
             inflationRate: 0.03
           }
-        ],
-        withdrawalConfig: {
-          strategy: 'fixed',
-          fixedAmount: 5000 // Lower than expenses
-        }
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
 
-      // First month should withdraw at least $10,000 (expenses)
-      expect(projections[0].withdrawal).toBeGreaterThanOrEqual(10000)
-    })
-
-    it('should ensure withdrawal covers expenses for percentage strategy', () => {
-      const data: UserData = {
-        ...baseUserData,
-        currentSavings: 100000,
-        expenses: [
-          {
-            id: '1',
-            name: 'Expenses',
-            category: 'living',
-            monthlyAmount: 5000,
-            inflationRate: 0.03
-          }
-        ],
-        withdrawalConfig: {
-          strategy: 'percentage',
-          percentage: 0.01 / 12 // Very small percentage
-        }
-      }
-
-      const projections = generatePostRetirementProjections(data, 95)
-
-      // Should withdraw at least expenses amount
-      projections.forEach(p => {
-        expect(p.withdrawal).toBeGreaterThanOrEqual(p.expenses)
-      })
-    })
-
-    it('should ensure withdrawal covers expenses for combined strategy', () => {
-      const data: UserData = {
-        ...baseUserData,
-        currentSavings: 100000,
-        expenses: [
-          {
-            id: '1',
-            name: 'High Expenses',
-            category: 'living',
-            monthlyAmount: 8000,
-            inflationRate: 0
-          }
-        ],
-        withdrawalConfig: {
-          strategy: 'combined',
-          fixedAmount: 1000,
-          percentage: 0.01 / 12 // Combined still less than expenses
-        }
-      }
-
-      const projections = generatePostRetirementProjections(data, 95)
-
-      // Should withdraw at least $8000
-      expect(projections[0].withdrawal).toBeGreaterThanOrEqual(8000)
+      // First month should have $10,000 expenses
+      expect(projections[0].expenses).toBeGreaterThanOrEqual(10000)
     })
   })
 
@@ -271,8 +158,7 @@ describe('postRetirementProjections', () => {
             monthlyAmount: 1000,
             inflationRate: 0.03 // 3% annual
           }
-        ],
-        withdrawalConfig: fixedWithdrawal
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -304,8 +190,7 @@ describe('postRetirementProjections', () => {
             monthlyAmount: 1000,
             inflationRate: 0.06 // 6%
           }
-        ],
-        withdrawalConfig: fixedWithdrawal
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -328,8 +213,7 @@ describe('postRetirementProjections', () => {
             monthlyAmount: 1000,
             inflationRate: 0.03
           }
-        ],
-        withdrawalConfig: fixedWithdrawal
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -350,8 +234,7 @@ describe('postRetirementProjections', () => {
             monthlyAmount: 5000,
             inflationRate: 0
           }
-        ],
-        withdrawalConfig: fixedWithdrawal
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -384,8 +267,7 @@ describe('postRetirementProjections', () => {
             inflationRate: 0,
             startAge: 70 // Starts at age 70
           }
-        ],
-        withdrawalConfig: fixedWithdrawal
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -419,8 +301,7 @@ describe('postRetirementProjections', () => {
             inflationRate: 0,
             endAge: 75 // Ends at age 75
           }
-        ],
-        withdrawalConfig: fixedWithdrawal
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -463,8 +344,7 @@ describe('postRetirementProjections', () => {
             inflationRate: 0,
             startAge: 75
           }
-        ],
-        withdrawalConfig: fixedWithdrawal
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -494,11 +374,7 @@ describe('postRetirementProjections', () => {
             monthlyAmount: 5000,
             inflationRate: 0
           }
-        ],
-        withdrawalConfig: {
-          strategy: 'fixed',
-          fixedAmount: 5000
-        }
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -523,11 +399,7 @@ describe('postRetirementProjections', () => {
             monthlyAmount: 3000,
             inflationRate: 0.03
           }
-        ],
-        withdrawalConfig: {
-          strategy: 'percentage',
-          percentage: 0.03 / 12 // 3% annual withdrawal rate
-        }
+        ]
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -595,8 +467,7 @@ describe('postRetirementProjections', () => {
     it('should include all required fields in each data point', () => {
       const data: UserData = {
         ...baseUserData,
-        expenses: basicExpenses,
-        withdrawalConfig: fixedWithdrawal
+        expenses: basicExpenses
       }
 
       const projections = generatePostRetirementProjections(data, 95)
@@ -607,7 +478,6 @@ describe('postRetirementProjections', () => {
       expect(point).toHaveProperty('month')
       expect(point).toHaveProperty('age')
       expect(point).toHaveProperty('expenses')
-      expect(point).toHaveProperty('withdrawal')
       expect(point).toHaveProperty('portfolioValue')
       expect(point).toHaveProperty('growth')
     })
@@ -615,15 +485,13 @@ describe('postRetirementProjections', () => {
     it('should round monetary values to 2 decimal places', () => {
       const data: UserData = {
         ...baseUserData,
-        expenses: basicExpenses,
-        withdrawalConfig: fixedWithdrawal
+        expenses: basicExpenses
       }
 
       const projections = generatePostRetirementProjections(data, 95)
 
       projections.forEach(point => {
         expect(point.expenses.toString()).toMatch(/^\d+(\.\d{1,2})?$/)
-        expect(point.withdrawal.toString()).toMatch(/^\d+(\.\d{1,2})?$/)
         expect(point.portfolioValue.toString()).toMatch(/^\d+(\.\d{1,2})?$/)
         expect(point.growth.toString()).toMatch(/^-?\d+(\.\d{1,2})?$/)
       })

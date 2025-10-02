@@ -1,4 +1,4 @@
-import type { UserData, PostRetirementDataPoint, RetirementExpense, WithdrawalConfig } from '@/types'
+import type { UserData, PostRetirementDataPoint, RetirementExpense } from '@/types'
 
 /**
  * Calculate total monthly expenses at a given age with inflation applied
@@ -27,31 +27,6 @@ function calculateMonthlyExpenses(
   return totalExpenses
 }
 
-/**
- * Calculate withdrawal amount based on strategy
- */
-function calculateWithdrawal(
-  portfolioValue: number,
-  monthlyExpenses: number,
-  config: WithdrawalConfig
-): number {
-  let withdrawal = 0
-
-  switch (config.strategy) {
-    case 'fixed':
-      withdrawal = config.fixedAmount ?? 0
-      break
-    case 'percentage':
-      withdrawal = portfolioValue * (config.percentage ?? 0)
-      break
-    case 'combined':
-      withdrawal = (config.fixedAmount ?? 0) + portfolioValue * (config.percentage ?? 0)
-      break
-  }
-
-  // Ensure withdrawal covers expenses at minimum
-  return Math.max(withdrawal, monthlyExpenses)
-}
 
 /**
  * Generate month-by-month projections from retirement age to depletion or max age
@@ -60,8 +35,8 @@ export function generatePostRetirementProjections(
   data: UserData,
   maxAge: number = 95
 ): PostRetirementDataPoint[] {
-  // If no expenses or withdrawal config, return empty array
-  if (!data.expenses || data.expenses.length === 0 || !data.withdrawalConfig) {
+  // If no expenses, return empty array
+  if (!data.expenses || data.expenses.length === 0) {
     return []
   }
 
@@ -103,20 +78,17 @@ export function generatePostRetirementProjections(
     // Calculate expenses for this month (inflation-adjusted)
     const monthlyExpenses = calculateMonthlyExpenses(data.expenses, age, monthIndex, data.currentAge)
 
-    // Calculate withdrawal based on strategy
-    const withdrawal = calculateWithdrawal(portfolioValue, monthlyExpenses, data.withdrawalConfig)
-
     // Store portfolio value before changes
     const portfolioBeforeMonth = portfolioValue
 
-    // Subtract withdrawal
-    portfolioValue -= withdrawal
+    // Subtract expenses
+    portfolioValue -= monthlyExpenses
 
     // Apply investment growth on remaining balance
     portfolioValue = portfolioValue * (1 + monthlyRate)
 
     // Calculate growth this month
-    const growth = portfolioValue - portfolioBeforeMonth + withdrawal
+    const growth = portfolioValue - portfolioBeforeMonth + monthlyExpenses
 
     // Ensure portfolio doesn't go negative
     if (portfolioValue < 0) {
@@ -129,7 +101,6 @@ export function generatePostRetirementProjections(
       month: adjustedMonth,
       age: Math.round(age * 100) / 100,
       expenses: Math.round(monthlyExpenses * 100) / 100,
-      withdrawal: Math.round(withdrawal * 100) / 100,
       portfolioValue: Math.round(portfolioValue * 100) / 100,
       growth: Math.round(growth * 100) / 100
     })

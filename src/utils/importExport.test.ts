@@ -4,7 +4,7 @@ import type { UserData, RetirementData } from '@/types'
 
 describe('Import/Export with Phase 2 support', () => {
   describe('exportData', () => {
-    it('exports Phase 1 data with version 2.0.0', () => {
+    it('exports Phase 1 data with version 4.0.0', () => {
       const userData: UserData = {
         currentAge: 30,
         retirementAge: 65,
@@ -16,7 +16,7 @@ describe('Import/Export with Phase 2 support', () => {
 
       const exported = exportData(userData)
 
-      expect(exported.version).toBe('3.0.0') // Updated for Phase 4
+      expect(exported.version).toBe('4.0.0')
       expect(exported.user).toEqual(userData)
       expect(exported.exportDate).toBeDefined()
     })
@@ -47,7 +47,7 @@ describe('Import/Export with Phase 2 support', () => {
 
       const exported = exportData(userData)
 
-      expect(exported.version).toBe('3.0.0') // Updated for Phase 4
+      expect(exported.version).toBe('4.0.0')
       expect(exported.user.incomeSources).toHaveLength(1)
       expect(exported.user.oneOffReturns).toHaveLength(1)
     })

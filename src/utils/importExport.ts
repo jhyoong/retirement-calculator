@@ -1,6 +1,6 @@
 import type { RetirementData, UserData } from '@/types'
 
-const CURRENT_VERSION = '3.0.0'
+const CURRENT_VERSION = '4.0.0'
 
 /**
  * Export retirement data to JSON
@@ -33,7 +33,7 @@ export function downloadJSON(data: RetirementData, filename = 'retirement-data.j
 
 /**
  * Validate imported data structure
- * Supports both v1.0.0 and v2.0.0 formats
+ * Supports v1.0.0, v2.0.0, v3.0.0, and v4.0.0 formats
  */
 export function validateImportedData(data: unknown): data is RetirementData {
   if (typeof data !== 'object' || data === null) {
@@ -101,7 +101,8 @@ export function validateImportedData(data: unknown): data is RetirementData {
     }
   }
 
-  // Phase 4: Validate withdrawal config if present (optional)
+  // Phase 4 (v3 only): Validate withdrawal config if present (optional, removed in v4)
+  // Accept it for backwards compatibility but will be removed during migration
   if (user.withdrawalConfig !== undefined) {
     if (typeof user.withdrawalConfig !== 'object' || user.withdrawalConfig === null) return false
     const wc = user.withdrawalConfig as Record<string, unknown>

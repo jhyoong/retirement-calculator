@@ -8,7 +8,7 @@ import {
   calculateYearsUntilDepletion,
   checkSustainabilityWarning
 } from './calculations'
-import type { UserData, RetirementExpense, WithdrawalConfig } from '@/types'
+import type { UserData, RetirementExpense } from '@/types'
 
 describe('calculateFutureValue', () => {
   it('calculates correctly with principal and contributions', () => {
@@ -252,18 +252,22 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
     }
   ]
 
-  describe('Fixed withdrawal strategy', () => {
-    it('calculates depletion with fixed withdrawal exceeding returns', () => {
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 5000
-      }
+  describe('Expense-based depletion', () => {
+    it('calculates depletion with high expenses exceeding returns', () => {
+      const highExpenses: RetirementExpense[] = [
+        {
+          id: '1',
+          name: 'High Expenses',
+          category: 'living',
+          monthlyAmount: 5000,
+          inflationRate: 0.03
+        }
+      ]
 
       const years = calculateYearsUntilDepletion(
         500000, // $500k starting balance
         0.05,   // 5% return
-        basicExpenses,
-        config,
+        highExpenses,
         65      // retirement age
       )
 
@@ -272,17 +276,21 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
       expect(years!).toBeLessThan(30)
     })
 
-    it('returns null for sustainable fixed withdrawal', () => {
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 1500 // $1500/month from $500k at 5% is sustainable
-      }
+    it('returns null for sustainable low expenses', () => {
+      const lowExpenses: RetirementExpense[] = [
+        {
+          id: '1',
+          name: 'Low Expenses',
+          category: 'living',
+          monthlyAmount: 1500,
+          inflationRate: 0.03
+        }
+      ]
 
       const years = calculateYearsUntilDepletion(
         1000000, // Higher balance to make sustainable
         0.07,    // Higher return
-        basicExpenses,
-        config,
+        lowExpenses,
         65
       )
 
@@ -290,79 +298,25 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
     })
 
     it('handles immediate depletion scenario', () => {
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 10000
-      }
+      const extremeExpenses: RetirementExpense[] = [
+        {
+          id: '1',
+          name: 'Extreme Expenses',
+          category: 'living',
+          monthlyAmount: 10000,
+          inflationRate: 0.03
+        }
+      ]
 
       const years = calculateYearsUntilDepletion(
         50000, // Small balance
         0.05,
-        basicExpenses,
-        config,
+        extremeExpenses,
         65
       )
 
       expect(years).not.toBeNull()
       expect(years!).toBeLessThan(1)
-    })
-  })
-
-  describe('Percentage withdrawal strategy', () => {
-    it('calculates depletion with high percentage withdrawal', () => {
-      const config: WithdrawalConfig = {
-        strategy: 'percentage',
-        percentage: 0.08 // 8% withdrawal rate
-      }
-
-      const years = calculateYearsUntilDepletion(
-        500000,
-        0.05, // 5% return < 8% withdrawal
-        basicExpenses,
-        config,
-        65
-      )
-
-      expect(years).not.toBeNull()
-      expect(years!).toBeGreaterThan(0)
-    })
-
-    it('returns null for sustainable percentage withdrawal', () => {
-      const config: WithdrawalConfig = {
-        strategy: 'percentage',
-        percentage: 0.02 // 2% withdrawal rate
-      }
-
-      const years = calculateYearsUntilDepletion(
-        1000000,
-        0.07, // 7% return >> 2% withdrawal
-        basicExpenses,
-        config,
-        65
-      )
-
-      expect(years).toBeNull() // Sustainable
-    })
-  })
-
-  describe('Combined withdrawal strategy', () => {
-    it('calculates depletion with combined strategy', () => {
-      const config: WithdrawalConfig = {
-        strategy: 'combined',
-        fixedAmount: 2000,
-        percentage: 0.04
-      }
-
-      const years = calculateYearsUntilDepletion(
-        300000,
-        0.05,
-        basicExpenses,
-        config,
-        65
-      )
-
-      expect(years).not.toBeNull()
-      expect(years!).toBeGreaterThan(0)
     })
   })
 
@@ -373,21 +327,15 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
           id: '1',
           name: 'Healthcare',
           category: 'healthcare',
-          monthlyAmount: 1000,
+          monthlyAmount: 3000,
           inflationRate: 0.06 // 6% medical inflation
         }
       ]
-
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 3000 // Higher withdrawal than expense initially
-      }
 
       const years = calculateYearsUntilDepletion(
         300000, // Lower balance
         0.04,   // Lower return
         highInflationExpenses,
-        config,
         65
       )
 
@@ -420,16 +368,10 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         }
       ]
 
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 4000
-      }
-
       const years = calculateYearsUntilDepletion(
         600000,
         0.06,
         multiExpenses,
-        config,
         65
       )
 
@@ -445,7 +387,7 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
           id: '1',
           name: 'Early Retirement Expense',
           category: 'living',
-          monthlyAmount: 2000,
+          monthlyAmount: 2500,
           inflationRate: 0.03,
           startAge: 65,
           endAge: 70
@@ -461,16 +403,10 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         }
       ]
 
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 2500 // Higher withdrawal to cause depletion
-      }
-
       const years = calculateYearsUntilDepletion(
         300000, // Lower balance
         0.04,   // Lower return
         ageRangeExpenses,
-        config,
         65
       )
 
@@ -485,22 +421,16 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
           id: '1',
           name: 'Deferred Healthcare',
           category: 'healthcare',
-          monthlyAmount: 1000,
+          monthlyAmount: 2000,
           inflationRate: 0.05,
           startAge: 75 // Starts 10 years after retirement
         }
       ]
 
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 2000
-      }
-
       const years = calculateYearsUntilDepletion(
         300000,
         0.05,
         futureExpenses,
-        config,
         65
       )
 
@@ -510,16 +440,10 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
 
   describe('Edge cases', () => {
     it('handles zero starting balance', () => {
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 1000
-      }
-
       const years = calculateYearsUntilDepletion(
         0,
         0.05,
         basicExpenses,
-        config,
         65
       )
 
@@ -527,17 +451,12 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
     })
 
     it('handles zero return rate', () => {
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 3000
-      }
-
       const noInflationExpenses: RetirementExpense[] = [
         {
           id: '1',
           name: 'Living',
           category: 'living',
-          monthlyAmount: 2000,
+          monthlyAmount: 3000,
           inflationRate: 0 // No inflation to simplify calculation
         }
       ]
@@ -546,61 +465,26 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         100000,
         0, // No returns
         noInflationExpenses,
-        config,
         65
       )
 
       expect(years).not.toBeNull()
-      // Withdrawal is max(3000, 2000) = 3000/month
+      // Expenses are 3000/month
       // So it should deplete in roughly 100000 / (3000 * 12) ~= 2.78 years
       expect(years!).toBeGreaterThan(2)
       expect(years!).toBeLessThan(4)
     })
 
     it('handles zero expenses', () => {
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 3000
-      }
-
       const years = calculateYearsUntilDepletion(
         200000, // Lower balance
         0.03,   // Lower return
         [], // No expenses
-        config,
         65
       )
 
-      expect(years).not.toBeNull()
-      expect(years!).toBeGreaterThan(0)
-    })
-
-    it('chooses max of withdrawal and expenses', () => {
-      const lowExpenses: RetirementExpense[] = [
-        {
-          id: '1',
-          name: 'Minimal Living',
-          category: 'living',
-          monthlyAmount: 1000,
-          inflationRate: 0.03
-        }
-      ]
-
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 5000 // Higher than expenses
-      }
-
-      const years = calculateYearsUntilDepletion(
-        300000,
-        0.05,
-        lowExpenses,
-        config,
-        65
-      )
-
-      expect(years).not.toBeNull()
-      expect(years!).toBeGreaterThan(0)
+      // No expenses means no depletion
+      expect(years).toBeNull()
     })
   })
 })
@@ -644,11 +528,6 @@ describe('Phase 4: calculateRetirement with expenses', () => {
       }
     ]
 
-    const config: WithdrawalConfig = {
-      strategy: 'fixed',
-      fixedAmount: 3000
-    }
-
     const data: UserData = {
       currentAge: 30,
       retirementAge: 65,
@@ -656,8 +535,7 @@ describe('Phase 4: calculateRetirement with expenses', () => {
       monthlyContribution: 1000,
       expectedReturnRate: 0.07,
       inflationRate: 0.03,
-      expenses,
-      withdrawalConfig: config
+      expenses
     }
 
     const result = calculateRetirement(data)
@@ -682,7 +560,7 @@ describe('Phase 4: calculateRetirement with expenses', () => {
     expect(result.sustainabilityWarning).toBe(false)
   })
 
-  it('correctly warns for high withdrawal rates', () => {
+  it('correctly warns for high expense rates', () => {
     const expenses: RetirementExpense[] = [
       {
         id: '1',
@@ -693,11 +571,6 @@ describe('Phase 4: calculateRetirement with expenses', () => {
       }
     ]
 
-    const config: WithdrawalConfig = {
-      strategy: 'fixed',
-      fixedAmount: 5000
-    }
-
     const data: UserData = {
       currentAge: 60,
       retirementAge: 65,
@@ -705,8 +578,7 @@ describe('Phase 4: calculateRetirement with expenses', () => {
       monthlyContribution: 1000,
       expectedReturnRate: 0.05,
       inflationRate: 0.03,
-      expenses,
-      withdrawalConfig: config
+      expenses
     }
 
     const result = calculateRetirement(data)
@@ -736,11 +608,7 @@ describe('Phase 4: Validation with expenses', () => {
           monthlyAmount: 3000,
           inflationRate: 0.03
         }
-      ],
-      withdrawalConfig: {
-        strategy: 'fixed',
-        fixedAmount: 3000
-      }
+      ]
     }
 
     const result = validateInputs(data)
@@ -845,94 +713,6 @@ describe('Phase 4: Validation with expenses', () => {
     expect(result.errors.some(e => e.field.includes('endAge'))).toBe(true)
   })
 
-  it('validates withdrawal config for fixed strategy', () => {
-    const data: UserData = {
-      ...validData,
-      expenses: [
-        {
-          id: '1',
-          name: 'Test',
-          category: 'living',
-          monthlyAmount: 3000,
-          inflationRate: 0.03
-        }
-      ],
-      withdrawalConfig: {
-        strategy: 'fixed',
-        fixedAmount: 3000
-      }
-    }
-
-    const result = validateInputs(data)
-    expect(result.isValid).toBe(true)
-  })
-
-  it('rejects fixed strategy without fixedAmount', () => {
-    const data: UserData = {
-      ...validData,
-      expenses: [
-        {
-          id: '1',
-          name: 'Test',
-          category: 'living',
-          monthlyAmount: 3000,
-          inflationRate: 0.03
-        }
-      ],
-      withdrawalConfig: {
-        strategy: 'fixed'
-      }
-    }
-
-    const result = validateInputs(data)
-    expect(result.isValid).toBe(false)
-    expect(result.errors.some(e => e.field.includes('fixedAmount'))).toBe(true)
-  })
-
-  it('rejects percentage strategy without percentage', () => {
-    const data: UserData = {
-      ...validData,
-      expenses: [
-        {
-          id: '1',
-          name: 'Test',
-          category: 'living',
-          monthlyAmount: 3000,
-          inflationRate: 0.03
-        }
-      ],
-      withdrawalConfig: {
-        strategy: 'percentage'
-      }
-    }
-
-    const result = validateInputs(data)
-    expect(result.isValid).toBe(false)
-    expect(result.errors.some(e => e.field.includes('percentage'))).toBe(true)
-  })
-
-  it('validates combined strategy with both values', () => {
-    const data: UserData = {
-      ...validData,
-      expenses: [
-        {
-          id: '1',
-          name: 'Test',
-          category: 'living',
-          monthlyAmount: 3000,
-          inflationRate: 0.03
-        }
-      ],
-      withdrawalConfig: {
-        strategy: 'combined',
-        fixedAmount: 2000,
-        percentage: 0.03
-      }
-    }
-
-    const result = validateInputs(data)
-    expect(result.isValid).toBe(true)
-  })
 })
 
 describe('Pre-retirement expenses', () => {

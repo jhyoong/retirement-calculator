@@ -42,6 +42,7 @@
 import { ref } from 'vue'
 import { useRetirementStore } from '@/stores/retirement'
 import { exportData, downloadJSON, parseImportedFile } from '@/utils/importExport'
+import { migrateV1ToV2, migrateV2ToV3, migrateV3ToV4, needsMigration } from '@/utils/migration'
 
 const store = useRetirementStore()
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -81,7 +82,21 @@ async function handleImport(event: Event) {
   }
 
   try {
-    const data = await parseImportedFile(file)
+    let data = await parseImportedFile(file)
+
+    // Migrate data if needed
+    if (needsMigration(data)) {
+      if (data.version === '1.0.0') {
+        data = migrateV1ToV2(data)
+      }
+      if (data.version === '2.0.0') {
+        data = migrateV2ToV3(data)
+      }
+      if (data.version === '3.0.0') {
+        data = migrateV3ToV4(data)
+      }
+    }
+
     store.loadData(data.user)
 
     message.value = 'Data imported successfully!'

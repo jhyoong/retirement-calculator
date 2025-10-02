@@ -12,7 +12,6 @@ export interface UserData {
   oneOffReturns?: OneOffReturn[];
   // Phase 4 additions
   expenses?: RetirementExpense[];
-  withdrawalConfig?: WithdrawalConfig;
 }
 
 export interface RetirementData {
@@ -82,7 +81,6 @@ export interface MonthlyDataPoint {
 // Phase 4 Type Definitions
 
 export type ExpenseCategory = 'living' | 'healthcare' | 'travel' | 'other';
-export type WithdrawalStrategy = 'fixed' | 'percentage' | 'combined';
 
 export interface RetirementExpense {
   id: string;
@@ -94,19 +92,12 @@ export interface RetirementExpense {
   endAge?: number; // Optional, defaults to max projection age
 }
 
-export interface WithdrawalConfig {
-  strategy: WithdrawalStrategy;
-  fixedAmount?: number; // Used for 'fixed' and 'combined' strategies
-  percentage?: number; // Used for 'percentage' and 'combined' strategies (as decimal, e.g., 0.04 for 4%)
-}
-
 export interface PostRetirementDataPoint {
   monthIndex: number; // 0-based index from retirement
   year: number;
   month: number; // 1-12
   age: number;
   expenses: number; // Total expenses this month (inflation-adjusted)
-  withdrawal: number; // Amount withdrawn from portfolio
   portfolioValue: number; // Portfolio value at end of month
   growth: number; // Investment growth this month
 }

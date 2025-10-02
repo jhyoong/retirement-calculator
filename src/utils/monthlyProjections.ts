@@ -141,35 +141,13 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     // Calculate growth this month (interest earned)
     const growth = balance - balanceBeforeMonth - netContribution
 
-    // Calculate withdrawal amount for display purposes
-    // This shows what the withdrawal strategy dictates (used for display only)
-    let withdrawalAmount = monthlyExpenses
-    const atOrAfterRetirement = age >= data.retirementAge
-
-    if (atOrAfterRetirement && data.withdrawalConfig) {
-      const config = data.withdrawalConfig
-      switch (config.strategy) {
-        case 'fixed':
-          withdrawalAmount = config.fixedAmount ?? 0
-          break
-        case 'percentage':
-          withdrawalAmount = balanceBeforeMonth * (config.percentage ?? 0)
-          break
-        case 'combined':
-          withdrawalAmount = (config.fixedAmount ?? 0) + balanceBeforeMonth * (config.percentage ?? 0)
-          break
-      }
-      // Ensure withdrawal covers expenses at minimum
-      withdrawalAmount = Math.max(withdrawalAmount, monthlyExpenses)
-    }
-
     projections.push({
       monthIndex,
       year: adjustedYear,
       month: adjustedMonth,
       age: Math.round(age * 100) / 100,
       income: Math.round(monthlyIncome * 100) / 100,
-      expenses: Math.round(withdrawalAmount * 100) / 100, // Show total withdrawal need (before income offset)
+      expenses: Math.round(monthlyExpenses * 100) / 100, // Show actual expenses
       contributions: Math.round(cumulativeContributions * 100) / 100,
       portfolioValue: Math.round(balance * 100) / 100,
       growth: Math.round(growth * 100) / 100

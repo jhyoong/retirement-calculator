@@ -74,6 +74,26 @@ export function migrateV2ToV3(data: RetirementData): RetirementData {
 }
 
 /**
+ * Migrate data from v3.0.0 to v4.0.0 format
+ * v3 has withdrawal config, v4 removes it (expenses only)
+ */
+export function migrateV3ToV4(data: RetirementData): RetirementData {
+  // If already v4 or later, return as-is
+  if (data.version !== '3.0.0') {
+    return data
+  }
+
+  // Remove withdrawalConfig from user data
+  const { withdrawalConfig: _removed, ...userWithoutWithdrawal } = data.user as any
+
+  return {
+    ...data,
+    version: '4.0.0',
+    user: userWithoutWithdrawal
+  }
+}
+
+/**
  * Get data version
  */
 export function getDataVersion(data: RetirementData): string {
@@ -84,5 +104,5 @@ export function getDataVersion(data: RetirementData): string {
  * Check if data needs migration
  */
 export function needsMigration(data: RetirementData): boolean {
-  return data.version === '1.0.0' || data.version === '2.0.0'
+  return data.version === '1.0.0' || data.version === '2.0.0' || data.version === '3.0.0'
 }

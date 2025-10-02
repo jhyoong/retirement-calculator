@@ -58,7 +58,7 @@ describe('Phase 2 Integration Tests', () => {
 
       // Step 5: Export data
       const exported = exportData(retirementStore.userData)
-      expect(exported.version).toBe('3.0.0') // Updated for Phase 4
+      expect(exported.version).toBe('4.0.0')
       expect(exported.user.incomeSources).toHaveLength(2)
       expect(exported.user.oneOffReturns).toHaveLength(1)
 

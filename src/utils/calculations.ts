@@ -229,32 +229,6 @@ function validateRetirementExpense(expense: import('@/types').RetirementExpense,
   return errors
 }
 
-/**
- * Phase 4: Validate withdrawal config
- */
-function validateWithdrawalConfig(config: import('@/types').WithdrawalConfig): ValidationError[] {
-  const errors: ValidationError[] = []
-
-  if (config.strategy === 'fixed' || config.strategy === 'combined') {
-    if (config.fixedAmount === undefined || config.fixedAmount < 0) {
-      errors.push({
-        field: 'withdrawalConfig.fixedAmount',
-        message: 'Fixed amount must be specified and cannot be negative'
-      })
-    }
-  }
-
-  if (config.strategy === 'percentage' || config.strategy === 'combined') {
-    if (config.percentage === undefined || config.percentage < 0 || config.percentage > 1) {
-      errors.push({
-        field: 'withdrawalConfig.percentage',
-        message: 'Percentage must be specified and between 0% and 100%'
-      })
-    }
-  }
-
-  return errors
-}
 
 /**
  * Validate user input data
@@ -337,11 +311,6 @@ export function validateInputs(data: UserData): ValidationResult {
     data.expenses.forEach((expense, index) => {
       errors.push(...validateRetirementExpense(expense, index, data.currentAge))
     })
-  }
-
-  // Phase 4: Withdrawal config validation (if expenses exist)
-  if (data.expenses && data.expenses.length > 0 && data.withdrawalConfig) {
-    errors.push(...validateWithdrawalConfig(data.withdrawalConfig))
   }
 
   return {
@@ -478,7 +447,6 @@ export function calculateYearsUntilDepletion(
   startingBalance: number,
   annualReturnRate: number,
   expenses: import('@/types').RetirementExpense[],
-  withdrawalConfig: import('@/types').WithdrawalConfig,
   retirementAge: number,
   maxAge: number = 95
 ): number | null {
@@ -504,31 +472,14 @@ export function calculateYearsUntilDepletion(
       }
     })
 
-    // Calculate withdrawal based on strategy
-    let withdrawal = 0
-    switch (withdrawalConfig.strategy) {
-      case 'fixed':
-        withdrawal = withdrawalConfig.fixedAmount || 0
-        break
-      case 'percentage':
-        withdrawal = balance * (withdrawalConfig.percentage || 0) / 12
-        break
-      case 'combined':
-        withdrawal = (withdrawalConfig.fixedAmount || 0) + balance * (withdrawalConfig.percentage || 0) / 12
-        break
-    }
-
-    // Use the greater of withdrawal strategy or actual expenses
-    const amountToWithdraw = Math.max(withdrawal, monthlyExpenses)
-
-    // Check if balance can cover withdrawal
-    if (balance < amountToWithdraw) {
+    // Check if balance can cover expenses
+    if (balance < monthlyExpenses) {
       // Portfolio depleted
       return Math.round((monthIndex / 12) * 100) / 100
     }
 
-    // Withdraw from portfolio
-    balance -= amountToWithdraw
+    // Withdraw expenses from portfolio
+    balance -= monthlyExpenses
 
     // Apply investment returns on remaining balance
     balance = balance * (1 + monthlyRate)
@@ -544,15 +495,15 @@ export function calculateYearsUntilDepletion(
 }
 
 /**
- * Phase 4: Check if withdrawal rate is sustainable (>4-5% is risky)
+ * Phase 4: Check if expense rate is sustainable (>5% annually is risky)
  */
 export function checkSustainabilityWarning(
   portfolioValue: number,
-  annualWithdrawal: number
+  annualExpenses: number
 ): boolean {
   if (portfolioValue === 0) return true
-  const withdrawalRate = annualWithdrawal / portfolioValue
-  return withdrawalRate > 0.05 // Warning if >5% withdrawal rate
+  const expenseRate = annualExpenses / portfolioValue
+  return expenseRate > 0.05 // Warning if >5% expense rate
 }
 
 /**
@@ -646,7 +597,7 @@ export function calculateRetirement(data: UserData): CalculationResult {
   let yearsUntilDepletion: number | null = null
   let sustainabilityWarning = false
 
-  if (data.expenses && data.expenses.length > 0 && data.withdrawalConfig) {
+  if (data.expenses && data.expenses.length > 0) {
     // Use actual retirement age (when income truly stops)
     const actualRetirementAge = findActualRetirementAge(data)
 
@@ -654,25 +605,20 @@ export function calculateRetirement(data: UserData): CalculationResult {
       futureValue,
       data.expectedReturnRate,
       data.expenses,
-      data.withdrawalConfig,
       actualRetirementAge
     )
 
-    // Calculate annual withdrawal for warning check
-    let annualWithdrawal = 0
-    switch (data.withdrawalConfig.strategy) {
-      case 'fixed':
-        annualWithdrawal = (data.withdrawalConfig.fixedAmount || 0) * 12
-        break
-      case 'percentage':
-        annualWithdrawal = futureValue * (data.withdrawalConfig.percentage || 0)
-        break
-      case 'combined':
-        annualWithdrawal = (data.withdrawalConfig.fixedAmount || 0) * 12 + futureValue * (data.withdrawalConfig.percentage || 0)
-        break
-    }
+    // Calculate annual expenses for warning check (at retirement age, before inflation)
+    const annualExpenses = data.expenses.reduce((total, expense) => {
+      const startAge = expense.startAge ?? data.currentAge
+      const endAge = expense.endAge ?? Infinity
+      if (actualRetirementAge >= startAge && actualRetirementAge < endAge) {
+        return total + expense.monthlyAmount * 12
+      }
+      return total
+    }, 0)
 
-    sustainabilityWarning = checkSustainabilityWarning(futureValue, annualWithdrawal)
+    sustainabilityWarning = checkSustainabilityWarning(futureValue, annualExpenses)
   }
 
   return {

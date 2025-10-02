@@ -39,10 +39,7 @@
           <OneOffReturnForm v-show="activeTab === 'oneoff'" />
 
           <!-- Retirement Expenses Tab -->
-          <div v-show="activeTab === 'expenses'" class="space-y-6">
-            <ExpenseForm />
-            <WithdrawalStrategyConfig />
-          </div>
+          <ExpenseForm v-show="activeTab === 'expenses'" />
 
           <ResultsDisplay v-show="activeTab === 'results'" />
           <VisualizationsTab v-show="activeTab === 'visualizations'" />
@@ -63,7 +60,6 @@ import RetirementForm from '@/components/RetirementForm.vue'
 import IncomeSourceForm from '@/components/IncomeSourceForm.vue'
 import OneOffReturnForm from '@/components/OneOffReturnForm.vue'
 import ExpenseForm from '@/components/ExpenseForm.vue'
-import WithdrawalStrategyConfig from '@/components/WithdrawalStrategyConfig.vue'
 import ResultsDisplay from '@/components/ResultsDisplay.vue'
 import VisualizationsTab from '@/components/VisualizationsTab.vue'
 import ImportExport from '@/components/ImportExport.vue'

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { RetirementExpense, WithdrawalConfig } from '@/types'
+import type { RetirementExpense } from '@/types'
 
 export const useExpenseStore = defineStore('expense', () => {
   // State
@@ -14,11 +14,6 @@ export const useExpenseStore = defineStore('expense', () => {
       inflationRate: 0.03, // 3% annual inflation
     }
   ])
-
-  const withdrawalConfig = ref<WithdrawalConfig>({
-    strategy: 'fixed',
-    fixedAmount: 3000,
-  })
 
   // Computed: Total monthly expenses at retirement age (before inflation adjustment)
   const totalMonthlyExpenses = computed((): number => {
@@ -87,15 +82,8 @@ export const useExpenseStore = defineStore('expense', () => {
     return false
   }
 
-  function updateWithdrawalConfig(config: WithdrawalConfig) {
-    withdrawalConfig.value = { ...config }
-  }
-
-  function loadData(expensesData: RetirementExpense[], configData?: WithdrawalConfig) {
+  function loadData(expensesData: RetirementExpense[]) {
     expenses.value = expensesData
-    if (configData) {
-      withdrawalConfig.value = configData
-    }
   }
 
   function resetToDefaults() {
@@ -108,16 +96,11 @@ export const useExpenseStore = defineStore('expense', () => {
         inflationRate: 0.03,
       }
     ]
-    withdrawalConfig.value = {
-      strategy: 'fixed',
-      fixedAmount: 3000,
-    }
   }
 
   return {
     // State
     expenses,
-    withdrawalConfig,
     // Computed
     totalMonthlyExpenses,
     expensesByCategory,
@@ -126,7 +109,6 @@ export const useExpenseStore = defineStore('expense', () => {
     addExpense,
     removeExpense,
     updateExpense,
-    updateWithdrawalConfig,
     loadData,
     resetToDefaults
   }
