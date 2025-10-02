@@ -289,6 +289,126 @@ describe('monthlyProjections', () => {
       // First month: 10000 * 1.01 = 10100, growth = 100
       expect(projections[0].growth).toBeCloseTo(100, 0)
     })
+
+    it('should not decrease contributions when expenses exceed income', () => {
+      const incomeSources: IncomeStream[] = [
+        {
+          id: '1',
+          name: 'Salary',
+          type: 'salary',
+          amount: 1000,
+          frequency: 'monthly',
+          startDate: getRelativeDate(0)
+        }
+      ]
+
+      const data: UserData = {
+        currentAge: 30,
+        retirementAge: 31,
+        currentSavings: 50000,
+        monthlyContribution: 0,
+        expectedReturnRate: 0,
+        inflationRate: 0,
+        incomeSources,
+        expenses: [
+          {
+            id: '1',
+            name: 'High Expenses',
+            category: 'living',
+            monthlyAmount: 2000, // Exceeds income by 1000
+            inflationRate: 0
+          }
+        ]
+      }
+
+      const projections = generateMonthlyProjections(data)
+
+      // First month: income (1000) - expenses (2000) = -1000 net
+      // Contributions should be: 50000 (initial) + 0 (no positive contribution)
+      expect(projections[0].contributions).toBe(50000)
+
+      // Portfolio should decrease by 1000 (withdrawal)
+      expect(projections[0].portfolioValue).toBe(49000)
+
+      // All months should have same contribution (no new money flowing in)
+      projections.forEach((month) => {
+        expect(month.contributions).toBe(50000)
+      })
+    })
+
+    it('should only add to contributions when income exceeds expenses', () => {
+      const incomeSources: IncomeStream[] = [
+        {
+          id: '1',
+          name: 'Variable Income',
+          type: 'salary',
+          amount: 3000,
+          frequency: 'monthly',
+          startDate: getRelativeDate(0),
+          endDate: getRelativeDate(6) // Only first 6 months
+        }
+      ]
+
+      const data: UserData = {
+        currentAge: 30,
+        retirementAge: 31,
+        currentSavings: 10000,
+        monthlyContribution: 0,
+        expectedReturnRate: 0,
+        inflationRate: 0,
+        incomeSources,
+        expenses: [
+          {
+            id: '1',
+            name: 'Expenses',
+            category: 'living',
+            monthlyAmount: 2000,
+            inflationRate: 0
+          }
+        ]
+      }
+
+      const projections = generateMonthlyProjections(data)
+
+      // First 6 months: 3000 income - 2000 expenses = 1000 net contribution per month
+      expect(projections[0].contributions).toBe(11000) // 10000 + 1000
+      expect(projections[5].contributions).toBe(16000) // 10000 + 6000
+
+      // After month 6: 0 income - 2000 expenses = -2000 net (withdrawal)
+      // Contributions should stay at 16000 (no new money flowing in)
+      expect(projections[6].contributions).toBe(16000)
+      expect(projections[11].contributions).toBe(16000)
+
+      // Portfolio should still decrease from withdrawals
+      expect(projections[6].portfolioValue).toBeLessThan(projections[5].portfolioValue)
+    })
+
+    it('should never have negative contributions', () => {
+      const data: UserData = {
+        currentAge: 30,
+        retirementAge: 32,
+        currentSavings: 5000,
+        monthlyContribution: 0,
+        expectedReturnRate: 0,
+        inflationRate: 0,
+        expenses: [
+          {
+            id: '1',
+            name: 'Heavy Expenses',
+            category: 'living',
+            monthlyAmount: 1000,
+            inflationRate: 0
+          }
+        ]
+      }
+
+      const projections = generateMonthlyProjections(data)
+
+      // All contributions should be non-negative
+      projections.forEach((month) => {
+        expect(month.contributions).toBeGreaterThanOrEqual(0)
+      })
+    })
   })
 
   describe('applyInflationAdjustment', () => {

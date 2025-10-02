@@ -139,7 +139,10 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     balance += netContribution
 
     // Update cumulative contributions
-    cumulativeContributions += netContribution
+    // Only add to contributions when net is positive (money flowing IN)
+    // When expenses exceed income, we're withdrawing, not contributing
+    const monthlyContribution = Math.max(0, netContribution)
+    cumulativeContributions += monthlyContribution
 
     // Apply interest on the new balance (after contribution)
     balance = balance * (1 + monthlyRate)
