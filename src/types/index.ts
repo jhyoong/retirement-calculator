@@ -12,6 +12,9 @@ export interface UserData {
   oneOffReturns?: OneOffReturn[];
   // Phase 4 additions
   expenses?: RetirementExpense[];
+  // Phase 5 additions
+  loans?: Loan[];
+  oneTimeExpenses?: OneTimeExpense[];
 }
 
 export interface RetirementData {
@@ -100,4 +103,30 @@ export interface PostRetirementDataPoint {
   expenses: number; // Total expenses this month (inflation-adjusted)
   portfolioValue: number; // Portfolio value at end of month
   growth: number; // Investment growth this month
+}
+
+// Phase 5 Type Definitions
+
+export interface Loan {
+  id: string;
+  name: string;
+  principal: number; // Loan amount
+  interestRate: number; // Annual interest rate as decimal (e.g., 0.05 for 5%)
+  termMonths: number; // Loan term in months
+  startDate: string; // YYYY-MM format
+  extraPayments?: ExtraPayment[]; // Optional early repayment
+}
+
+export interface ExtraPayment {
+  date: string; // YYYY-MM format
+  amount: number;
+}
+
+export interface OneTimeExpense {
+  id: string;
+  name: string;
+  amount: number;
+  date: string; // YYYY-MM format
+  category: ExpenseCategory;
+  description?: string;
 }

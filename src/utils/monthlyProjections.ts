@@ -1,5 +1,6 @@
-import type { UserData, MonthlyDataPoint, IncomeStream, OneOffReturn } from '@/types'
+import type { UserData, MonthlyDataPoint, IncomeStream, OneOffReturn, Loan, OneTimeExpense } from '@/types'
 import { adjustForInflation } from './calculations'
+import { getLoanPaymentForMonth } from './loanCalculations'
 
 /**
  * Helper: Convert frequency to monthly amount
@@ -125,6 +126,22 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
         const yearsFromExpenseStart = monthsFromExpenseStart / 12
         const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromExpenseStart)
         monthlyExpenses += inflatedAmount
+      }
+    })
+
+    // Phase 5: Add loan payments for this month
+    const loans = data.loans || []
+    loans.forEach((loan: Loan) => {
+      const payment = getLoanPaymentForMonth(loan, adjustedYear, adjustedMonth)
+      monthlyExpenses += payment
+    })
+
+    // Phase 5: Add one-time expenses for this month
+    const oneTimeExpenses = data.oneTimeExpenses || []
+    oneTimeExpenses.forEach((expense: OneTimeExpense) => {
+      const expenseMonth = parseMonthDate(expense.date, currentYear, currentMonth)
+      if (monthIndex === expenseMonth) {
+        monthlyExpenses += expense.amount
       }
     })
 
