@@ -50,6 +50,30 @@ export function convertMonthlyContributionToIncomeSource(userData: UserData): Us
 }
 
 /**
+ * Migrate data from v2.0.0 to v3.0.0 format
+ * v2 has income sources, v3 adds expenses and withdrawal config
+ */
+export function migrateV2ToV3(data: RetirementData): RetirementData {
+  // If already v3 or later, return as-is
+  if (data.version !== '2.0.0') {
+    return data
+  }
+
+  // V2 data is already compatible with v3
+  // Just update the version number
+  // expenses and withdrawalConfig are optional and will be undefined
+  return {
+    ...data,
+    version: '3.0.0',
+    user: {
+      ...data.user,
+      // V2 data doesn't have expenses or withdrawalConfig
+      // They will be undefined, which is valid for v3
+    }
+  }
+}
+
+/**
  * Get data version
  */
 export function getDataVersion(data: RetirementData): string {
@@ -60,5 +84,5 @@ export function getDataVersion(data: RetirementData): string {
  * Check if data needs migration
  */
 export function needsMigration(data: RetirementData): boolean {
-  return data.version === '1.0.0'
+  return data.version === '1.0.0' || data.version === '2.0.0'
 }

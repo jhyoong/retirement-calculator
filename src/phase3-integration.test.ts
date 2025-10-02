@@ -2,12 +2,27 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useRetirementStore } from './stores/retirement'
 import { useIncomeStore } from './stores/income'
+import { useExpenseStore } from './stores/expense'
 import { generateMonthlyProjections, applyInflationAdjustment } from './utils/monthlyProjections'
 import type { IncomeStream, OneOffReturn } from './types'
+
+// Helper to create date strings relative to current month
+function getRelativeDate(monthsFromNow: number): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1 // 0-indexed to 1-indexed
+  const targetMonth = month + monthsFromNow
+  const targetYear = year + Math.floor((targetMonth - 1) / 12)
+  const finalMonth = ((targetMonth - 1) % 12) + 1
+  return `${targetYear}-${String(finalMonth).padStart(2, '0')}`
+}
 
 describe('Phase 3 Integration Tests', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    // Clear default expenses to avoid interference with Phase 3 tests
+    const expenseStore = useExpenseStore()
+    expenseStore.expenses = []
   })
 
   describe('End-to-end flow: Basic inputs to visualizations', () => {
@@ -51,8 +66,8 @@ describe('Phase 3 Integration Tests', () => {
         type: 'salary',
         amount: 5000,
         frequency: 'monthly',
-        startDate: '2025-01',
-        endDate: '2027-01'
+        startDate: getRelativeDate(0),
+        endDate: getRelativeDate(24) // Ends after 24 months
       }
 
       incomeStore.addIncomeSource(incomeSource)
@@ -86,7 +101,7 @@ describe('Phase 3 Integration Tests', () => {
         type: 'custom',
         amount: 2000,
         frequency: 'monthly',
-        startDate: '2025-01'
+        startDate: getRelativeDate(0)
       }
       incomeStore.addIncomeSource(incomeSource)
 
@@ -222,12 +237,12 @@ describe('Phase 3 Integration Tests', () => {
         type: 'salary',
         amount: 5000,
         frequency: 'monthly',
-        startDate: '2025-01'
+        startDate: getRelativeDate(0)
       }
 
       const oneOffReturn: OneOffReturn = {
         id: '1',
-        date: '2025-12',
+        date: getRelativeDate(11), // 11 months from now (month index 11)
         amount: 50000,
         description: 'Bonus'
       }
@@ -237,7 +252,7 @@ describe('Phase 3 Integration Tests', () => {
 
       const projections = generateMonthlyProjections(retirementStore.userData)
 
-      // Month 11 (December) should have both salary and bonus
+      // Month 11 should have both salary and bonus
       expect(projections[11].income).toBe(55000)
 
       // Other months should have only salary
@@ -264,7 +279,7 @@ describe('Phase 3 Integration Tests', () => {
         type: 'salary',
         amount: 5000,
         frequency: 'monthly',
-        startDate: '2025-01'
+        startDate: getRelativeDate(0)
       }
 
       incomeStore.addIncomeSource(incomeSource)
@@ -292,7 +307,7 @@ describe('Phase 3 Integration Tests', () => {
         type: 'salary',
         amount: 5000,
         frequency: 'monthly',
-        startDate: '2025-01'
+        startDate: getRelativeDate(0)
       })
 
       retirementStore.resetToDefaults()

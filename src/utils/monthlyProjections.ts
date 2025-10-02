@@ -43,7 +43,7 @@ export function generateMonthlyProjections(data: UserData): MonthlyDataPoint[] {
   const totalMonths = yearsToRetirement * 12
 
   const currentYear = new Date().getFullYear()
-  const currentMonth = 1 // January baseline
+  const currentMonth = new Date().getMonth() + 1 // Current month (1-12)
 
   let balance = data.currentSavings
   let cumulativeContributions = data.currentSavings
@@ -103,18 +103,39 @@ export function generateMonthlyProjections(data: UserData): MonthlyDataPoint[] {
       monthlyIncome = data.monthlyContribution
     }
 
+    // Calculate expenses for this month
+    let monthlyExpenses = 0
+    const expenses = data.expenses || []
+
+    expenses.forEach(expense => {
+      const startAge = expense.startAge ?? data.currentAge
+      const endAge = expense.endAge ?? 120
+
+      if (age >= startAge && age < endAge) {
+        // Apply inflation from expense start
+        const yearsFromExpenseStart = Math.max(0, age - startAge)
+        const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromExpenseStart)
+        monthlyExpenses += inflatedAmount
+      }
+    })
+
     // Store balance before any changes
     const balanceBeforeMonth = balance
 
     // Add income to balance
     balance += monthlyIncome
-    cumulativeContributions += monthlyIncome
+
+    // Subtract expenses from balance
+    balance -= monthlyExpenses
+
+    // Update cumulative contributions (income - expenses)
+    cumulativeContributions += (monthlyIncome - monthlyExpenses)
 
     // Apply interest on the new balance (after contribution)
     balance = balance * (1 + monthlyRate)
 
     // Calculate growth this month (interest earned)
-    const growth = balance - balanceBeforeMonth - monthlyIncome
+    const growth = balance - balanceBeforeMonth - monthlyIncome + monthlyExpenses
 
     projections.push({
       monthIndex,
@@ -122,6 +143,7 @@ export function generateMonthlyProjections(data: UserData): MonthlyDataPoint[] {
       month: adjustedMonth,
       age: Math.round(age * 100) / 100,
       income: Math.round(monthlyIncome * 100) / 100,
+      expenses: Math.round(monthlyExpenses * 100) / 100,
       contributions: Math.round(cumulativeContributions * 100) / 100,
       portfolioValue: Math.round(balance * 100) / 100,
       growth: Math.round(growth * 100) / 100
@@ -145,6 +167,7 @@ export function applyInflationAdjustment(
     return {
       ...point,
       income: Math.round(adjustForInflation(point.income, inflationRate, yearsFromStart) * 100) / 100,
+      expenses: Math.round(adjustForInflation(point.expenses, inflationRate, yearsFromStart) * 100) / 100,
       contributions: Math.round(adjustForInflation(point.contributions, inflationRate, yearsFromStart) * 100) / 100,
       portfolioValue: Math.round(adjustForInflation(point.portfolioValue, inflationRate, yearsFromStart) * 100) / 100,
       growth: Math.round(adjustForInflation(point.growth, inflationRate, yearsFromStart) * 100) / 100

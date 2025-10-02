@@ -16,7 +16,7 @@ describe('Import/Export with Phase 2 support', () => {
 
       const exported = exportData(userData)
 
-      expect(exported.version).toBe('2.0.0')
+      expect(exported.version).toBe('3.0.0') // Updated for Phase 4
       expect(exported.user).toEqual(userData)
       expect(exported.exportDate).toBeDefined()
     })
@@ -47,7 +47,7 @@ describe('Import/Export with Phase 2 support', () => {
 
       const exported = exportData(userData)
 
-      expect(exported.version).toBe('2.0.0')
+      expect(exported.version).toBe('3.0.0') // Updated for Phase 4
       expect(exported.user.incomeSources).toHaveLength(1)
       expect(exported.user.oneOffReturns).toHaveLength(1)
     })

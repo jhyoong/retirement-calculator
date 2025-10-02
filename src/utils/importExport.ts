@@ -1,6 +1,6 @@
 import type { RetirementData, UserData } from '@/types'
 
-const CURRENT_VERSION = '2.0.0'
+const CURRENT_VERSION = '3.0.0'
 
 /**
  * Export retirement data to JSON
@@ -82,6 +82,33 @@ export function validateImportedData(data: unknown): data is RetirementData {
       if (typeof o.amount !== 'number') return false
       if (typeof o.description !== 'string') return false
     }
+  }
+
+  // Phase 4: Validate expenses if present (optional)
+  if (user.expenses !== undefined) {
+    if (!Array.isArray(user.expenses)) return false
+    for (const expense of user.expenses) {
+      if (typeof expense !== 'object' || expense === null) return false
+      const e = expense as Record<string, unknown>
+      if (typeof e.id !== 'string') return false
+      if (typeof e.name !== 'string') return false
+      if (typeof e.category !== 'string') return false
+      if (typeof e.monthlyAmount !== 'number') return false
+      if (typeof e.inflationRate !== 'number') return false
+      // startAge and endAge are optional
+      if (e.startAge !== undefined && typeof e.startAge !== 'number') return false
+      if (e.endAge !== undefined && typeof e.endAge !== 'number') return false
+    }
+  }
+
+  // Phase 4: Validate withdrawal config if present (optional)
+  if (user.withdrawalConfig !== undefined) {
+    if (typeof user.withdrawalConfig !== 'object' || user.withdrawalConfig === null) return false
+    const wc = user.withdrawalConfig as Record<string, unknown>
+    if (typeof wc.strategy !== 'string') return false
+    // fixedAmount and percentage are optional depending on strategy
+    if (wc.fixedAmount !== undefined && typeof wc.fixedAmount !== 'number') return false
+    if (wc.percentage !== undefined && typeof wc.percentage !== 'number') return false
   }
 
   return true

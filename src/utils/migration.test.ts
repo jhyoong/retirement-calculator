@@ -134,7 +134,7 @@ describe('Data Migration', () => {
       expect(needsMigration(data)).toBe(true)
     })
 
-    it('returns false for v2.0.0 data', () => {
+    it('returns true for v2.0.0 data (needs migration to v3)', () => {
       const data: RetirementData = {
         version: '2.0.0',
         exportDate: '2025-01-01T00:00:00.000Z',
@@ -148,7 +148,7 @@ describe('Data Migration', () => {
         }
       }
 
-      expect(needsMigration(data)).toBe(false)
+      expect(needsMigration(data)).toBe(true) // Updated for Phase 4
     })
   })
 

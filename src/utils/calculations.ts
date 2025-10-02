@@ -170,6 +170,93 @@ function validateOneOffReturn(oneOff: OneOffReturn, index: number): ValidationEr
 }
 
 /**
+ * Phase 4: Validate retirement expense
+ */
+function validateRetirementExpense(expense: import('@/types').RetirementExpense, index: number, currentAge: number): ValidationError[] {
+  const errors: ValidationError[] = []
+  const prefix = `expense[${index}]`
+
+  // Name validation
+  if (!expense.name || expense.name.trim().length === 0) {
+    errors.push({
+      field: `${prefix}.name`,
+      message: 'Expense name is required'
+    })
+  }
+
+  // Amount validation
+  if (expense.monthlyAmount < 0) {
+    errors.push({
+      field: `${prefix}.monthlyAmount`,
+      message: 'Monthly amount cannot be negative'
+    })
+  }
+
+  // Inflation rate validation
+  if (expense.inflationRate < -0.5 || expense.inflationRate > 1) {
+    errors.push({
+      field: `${prefix}.inflationRate`,
+      message: 'Inflation rate must be between -50% and 100%'
+    })
+  }
+
+  // Age range validation
+  if (expense.startAge !== undefined) {
+    if (expense.startAge < currentAge) {
+      errors.push({
+        field: `${prefix}.startAge`,
+        message: 'Start age cannot be in the past (must be at or after current age)'
+      })
+    }
+  }
+
+  if (expense.endAge !== undefined) {
+    if (expense.endAge <= currentAge) {
+      errors.push({
+        field: `${prefix}.endAge`,
+        message: 'End age must be after current age'
+      })
+    }
+
+    if (expense.startAge !== undefined && expense.endAge <= expense.startAge) {
+      errors.push({
+        field: `${prefix}.endAge`,
+        message: 'End age must be after start age'
+      })
+    }
+  }
+
+  return errors
+}
+
+/**
+ * Phase 4: Validate withdrawal config
+ */
+function validateWithdrawalConfig(config: import('@/types').WithdrawalConfig): ValidationError[] {
+  const errors: ValidationError[] = []
+
+  if (config.strategy === 'fixed' || config.strategy === 'combined') {
+    if (config.fixedAmount === undefined || config.fixedAmount < 0) {
+      errors.push({
+        field: 'withdrawalConfig.fixedAmount',
+        message: 'Fixed amount must be specified and cannot be negative'
+      })
+    }
+  }
+
+  if (config.strategy === 'percentage' || config.strategy === 'combined') {
+    if (config.percentage === undefined || config.percentage < 0 || config.percentage > 1) {
+      errors.push({
+        field: 'withdrawalConfig.percentage',
+        message: 'Percentage must be specified and between 0% and 100%'
+      })
+    }
+  }
+
+  return errors
+}
+
+/**
  * Validate user input data
  */
 export function validateInputs(data: UserData): ValidationResult {
@@ -245,6 +332,18 @@ export function validateInputs(data: UserData): ValidationResult {
     })
   }
 
+  // Phase 4: Expenses validation
+  if (data.expenses) {
+    data.expenses.forEach((expense, index) => {
+      errors.push(...validateRetirementExpense(expense, index, data.currentAge))
+    })
+  }
+
+  // Phase 4: Withdrawal config validation (if expenses exist)
+  if (data.expenses && data.expenses.length > 0 && data.withdrawalConfig) {
+    errors.push(...validateWithdrawalConfig(data.withdrawalConfig))
+  }
+
   return {
     isValid: errors.length === 0,
     errors
@@ -294,12 +393,13 @@ export function calculateFutureValueWithIncomeSources(
   years: number,
   _currentAge: number,
   incomeSources: IncomeStream[],
-  oneOffReturns: OneOffReturn[]
+  oneOffReturns: OneOffReturn[],
+  expenses?: import('@/types').RetirementExpense[]
 ): { futureValue: number; totalContributions: number } {
   const monthlyRate = annualRate / 12
   const months = years * 12
   const currentYear = new Date().getFullYear()
-  const currentMonth = 1 // January baseline
+  const currentMonth = new Date().getMonth() + 1 // Current month (1-12)
 
   let balance = principal
   let totalContributions = principal
@@ -332,9 +432,33 @@ export function calculateFutureValueWithIncomeSources(
       }
     })
 
+    // Calculate expenses for this month
+    let monthlyExpenses = 0
+    if (expenses && expenses.length > 0) {
+      const currentAge = _currentAge + (month / 12)
+
+      expenses.forEach(expense => {
+        const startAge = expense.startAge ?? _currentAge
+        const endAge = expense.endAge ?? 120 // Far future
+
+        if (currentAge >= startAge && currentAge < endAge) {
+          // Calculate inflation from expense start
+          const yearsFromExpenseStart = Math.max(0, (currentAge - startAge))
+          const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromExpenseStart)
+          monthlyExpenses += inflatedAmount
+        }
+      })
+    }
+
     // Add contribution to balance
     balance += monthlyContribution
+
+    // Subtract expenses from balance
+    balance -= monthlyExpenses
+
+    // Update total contributions (income - expenses)
     totalContributions += monthlyContribution
+    totalContributions -= monthlyExpenses
 
     // Apply interest
     balance = balance * (1 + monthlyRate)
@@ -344,6 +468,91 @@ export function calculateFutureValueWithIncomeSources(
     futureValue: balance,
     totalContributions
   }
+}
+
+/**
+ * Phase 4: Calculate post-retirement portfolio sustainability
+ * Returns years until portfolio depletes, or null if sustainable
+ */
+export function calculateYearsUntilDepletion(
+  startingBalance: number,
+  annualReturnRate: number,
+  expenses: import('@/types').RetirementExpense[],
+  withdrawalConfig: import('@/types').WithdrawalConfig,
+  retirementAge: number,
+  maxAge: number = 95
+): number | null {
+  const monthlyRate = annualReturnRate / 12
+  let balance = startingBalance
+  const maxMonths = (maxAge - retirementAge) * 12
+
+  for (let monthIndex = 0; monthIndex < maxMonths; monthIndex++) {
+    const currentAge = retirementAge + monthIndex / 12
+
+    // Calculate total expenses for this month with inflation-adjusted amounts
+    let monthlyExpenses = 0
+    expenses.forEach(expense => {
+      // Check if expense is active at this age
+      const startAge = expense.startAge ?? retirementAge
+      const endAge = expense.endAge ?? maxAge
+
+      if (currentAge >= startAge && currentAge < endAge) {
+        // Apply inflation from retirement age
+        const yearsFromRetirement = monthIndex / 12
+        const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromRetirement)
+        monthlyExpenses += inflatedAmount
+      }
+    })
+
+    // Calculate withdrawal based on strategy
+    let withdrawal = 0
+    switch (withdrawalConfig.strategy) {
+      case 'fixed':
+        withdrawal = withdrawalConfig.fixedAmount || 0
+        break
+      case 'percentage':
+        withdrawal = balance * (withdrawalConfig.percentage || 0) / 12
+        break
+      case 'combined':
+        withdrawal = (withdrawalConfig.fixedAmount || 0) + balance * (withdrawalConfig.percentage || 0) / 12
+        break
+    }
+
+    // Use the greater of withdrawal strategy or actual expenses
+    const amountToWithdraw = Math.max(withdrawal, monthlyExpenses)
+
+    // Check if balance can cover withdrawal
+    if (balance < amountToWithdraw) {
+      // Portfolio depleted
+      return Math.round((monthIndex / 12) * 100) / 100
+    }
+
+    // Withdraw from portfolio
+    balance -= amountToWithdraw
+
+    // Apply investment returns on remaining balance
+    balance = balance * (1 + monthlyRate)
+
+    // Stop if balance goes negative
+    if (balance <= 0) {
+      return Math.round((monthIndex / 12) * 100) / 100
+    }
+  }
+
+  // Portfolio lasted until max age - sustainable
+  return null
+}
+
+/**
+ * Phase 4: Check if withdrawal rate is sustainable (>4-5% is risky)
+ */
+export function checkSustainabilityWarning(
+  portfolioValue: number,
+  annualWithdrawal: number
+): boolean {
+  if (portfolioValue === 0) return true
+  const withdrawalRate = annualWithdrawal / portfolioValue
+  return withdrawalRate > 0.05 // Warning if >5% withdrawal rate
 }
 
 /**
@@ -369,7 +578,8 @@ export function calculateRetirement(data: UserData): CalculationResult {
       yearsToRetirement,
       data.currentAge,
       data.incomeSources,
-      data.oneOffReturns || []
+      data.oneOffReturns || [],
+      data.expenses
     )
     futureValue = result.futureValue
     totalContributions = result.totalContributions
@@ -397,11 +607,43 @@ export function calculateRetirement(data: UserData): CalculationResult {
     yearsToRetirement
   )
 
+  // Phase 4: Calculate post-retirement sustainability if expenses are defined
+  let yearsUntilDepletion: number | null = null
+  let sustainabilityWarning = false
+
+  if (data.expenses && data.expenses.length > 0 && data.withdrawalConfig) {
+    yearsUntilDepletion = calculateYearsUntilDepletion(
+      futureValue,
+      data.expectedReturnRate,
+      data.expenses,
+      data.withdrawalConfig,
+      data.retirementAge
+    )
+
+    // Calculate annual withdrawal for warning check
+    let annualWithdrawal = 0
+    switch (data.withdrawalConfig.strategy) {
+      case 'fixed':
+        annualWithdrawal = (data.withdrawalConfig.fixedAmount || 0) * 12
+        break
+      case 'percentage':
+        annualWithdrawal = futureValue * (data.withdrawalConfig.percentage || 0)
+        break
+      case 'combined':
+        annualWithdrawal = (data.withdrawalConfig.fixedAmount || 0) * 12 + futureValue * (data.withdrawalConfig.percentage || 0)
+        break
+    }
+
+    sustainabilityWarning = checkSustainabilityWarning(futureValue, annualWithdrawal)
+  }
+
   return {
     futureValue: Math.round(futureValue * 100) / 100,
     totalContributions: Math.round(totalContributions * 100) / 100,
     investmentGrowth: Math.round(investmentGrowth * 100) / 100,
     inflationAdjustedValue: Math.round(inflationAdjustedValue * 100) / 100,
-    yearsToRetirement
+    yearsToRetirement,
+    yearsUntilDepletion,
+    sustainabilityWarning
   }
 }
