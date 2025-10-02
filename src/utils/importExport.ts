@@ -89,9 +89,50 @@ export function validateImportedData(data: unknown): data is RetirementData {
       if (typeof e.category !== 'string') return false
       if (typeof e.monthlyAmount !== 'number') return false
       if (typeof e.inflationRate !== 'number') return false
-      // startAge and endAge are optional
-      if (e.startAge !== undefined && typeof e.startAge !== 'number') return false
-      if (e.endAge !== undefined && typeof e.endAge !== 'number') return false
+      // startDate and endDate are optional
+      if (e.startDate !== undefined && typeof e.startDate !== 'string') return false
+      if (e.endDate !== undefined && typeof e.endDate !== 'string') return false
+    }
+  }
+
+  // Phase 5: Validate loans if present (optional)
+  if (user.loans !== undefined) {
+    if (!Array.isArray(user.loans)) return false
+    for (const loan of user.loans) {
+      if (typeof loan !== 'object' || loan === null) return false
+      const l = loan as Record<string, unknown>
+      if (typeof l.id !== 'string') return false
+      if (typeof l.name !== 'string') return false
+      if (typeof l.principal !== 'number') return false
+      if (typeof l.interestRate !== 'number') return false
+      if (typeof l.termMonths !== 'number') return false
+      if (typeof l.startDate !== 'string') return false
+      // extraPayments is optional
+      if (l.extraPayments !== undefined) {
+        if (!Array.isArray(l.extraPayments)) return false
+        for (const payment of l.extraPayments) {
+          if (typeof payment !== 'object' || payment === null) return false
+          const p = payment as Record<string, unknown>
+          if (typeof p.date !== 'string') return false
+          if (typeof p.amount !== 'number') return false
+        }
+      }
+    }
+  }
+
+  // Phase 5: Validate one-time expenses if present (optional)
+  if (user.oneTimeExpenses !== undefined) {
+    if (!Array.isArray(user.oneTimeExpenses)) return false
+    for (const expense of user.oneTimeExpenses) {
+      if (typeof expense !== 'object' || expense === null) return false
+      const e = expense as Record<string, unknown>
+      if (typeof e.id !== 'string') return false
+      if (typeof e.name !== 'string') return false
+      if (typeof e.amount !== 'number') return false
+      if (typeof e.date !== 'string') return false
+      if (typeof e.category !== 'string') return false
+      // description is optional
+      if (e.description !== undefined && typeof e.description !== 'string') return false
     }
   }
 

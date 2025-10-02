@@ -30,7 +30,10 @@ export const useRetirementStore = defineStore('retirement', () => {
       incomeSources: incomeStore.incomeSources.length > 0 ? incomeStore.incomeSources : undefined,
       oneOffReturns: incomeStore.oneOffReturns.length > 0 ? incomeStore.oneOffReturns : undefined,
       // Phase 4: Include expenses if they exist
-      expenses: expenseStore.expenses.length > 0 ? expenseStore.expenses : undefined
+      expenses: expenseStore.expenses.length > 0 ? expenseStore.expenses : undefined,
+      // Phase 5: Include loans and one-time expenses if they exist
+      loans: expenseStore.loans.length > 0 ? expenseStore.loans : undefined,
+      oneTimeExpenses: expenseStore.oneTimeExpenses.length > 0 ? expenseStore.oneTimeExpenses : undefined
     }
   })
 
@@ -97,14 +100,18 @@ export const useRetirementStore = defineStore('retirement', () => {
       incomeStore.resetToDefaults()
     }
 
-    // Phase 4: Load expenses
+    // Phase 4 & 5: Load expenses, loans, and one-time expenses
     const expenseStore = useExpenseStore()
-    if (data.expenses) {
-      expenseStore.loadData(data.expenses)
+    if (data.expenses || data.loans || data.oneTimeExpenses) {
+      expenseStore.loadData(
+        data.expenses || [],
+        data.loans || [],
+        data.oneTimeExpenses || []
+      )
     } else {
-      // If no expenses in imported data, load empty array (don't reset to defaults)
+      // If no Phase 4/5 data in imported data, load empty arrays (don't reset to defaults)
       // This maintains backward compatibility with Phase 1-3 data
-      expenseStore.loadData([])
+      expenseStore.loadData([], [], [])
     }
   }
 

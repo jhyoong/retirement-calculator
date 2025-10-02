@@ -1,9 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { RetirementExpense } from '@/types'
+import type { RetirementExpense, Loan, OneTimeExpense } from '@/types'
 
 export const useExpenseStore = defineStore('expense', () => {
-  // State
+  // State - Phase 4
   const expenses = ref<RetirementExpense[]>([
     // Default expense
     {
@@ -15,6 +15,10 @@ export const useExpenseStore = defineStore('expense', () => {
       // startDate and endDate are optional - undefined means start now and ongoing
     }
   ])
+
+  // State - Phase 5
+  const loans = ref<Loan[]>([])
+  const oneTimeExpenses = ref<OneTimeExpense[]>([])
 
   // Computed: Total monthly expenses at retirement age (before inflation adjustment)
   const totalMonthlyExpenses = computed((): number => {
@@ -83,8 +87,10 @@ export const useExpenseStore = defineStore('expense', () => {
     return false
   }
 
-  function loadData(expensesData: RetirementExpense[]) {
+  function loadData(expensesData: RetirementExpense[], loansData?: Loan[], oneTimeExpensesData?: OneTimeExpense[]) {
     expenses.value = expensesData
+    loans.value = loansData || []
+    oneTimeExpenses.value = oneTimeExpensesData || []
   }
 
   function resetToDefaults() {
@@ -98,20 +104,87 @@ export const useExpenseStore = defineStore('expense', () => {
         // startDate and endDate are optional - undefined means start now and ongoing
       }
     ]
+    loans.value = []
+    oneTimeExpenses.value = []
+  }
+
+  // Phase 5 Actions - Loans
+  function addLoan(loan: Omit<Loan, 'id'>): string {
+    const newLoan: Loan = {
+      ...loan,
+      id: crypto.randomUUID()
+    }
+    loans.value.push(newLoan)
+    return newLoan.id
+  }
+
+  function removeLoan(id: string): boolean {
+    const index = loans.value.findIndex(l => l.id === id)
+    if (index !== -1) {
+      loans.value.splice(index, 1)
+      return true
+    }
+    return false
+  }
+
+  function updateLoan(id: string, updates: Partial<Omit<Loan, 'id'>>): boolean {
+    const loan = loans.value.find(l => l.id === id)
+    if (loan) {
+      Object.assign(loan, updates)
+      return true
+    }
+    return false
+  }
+
+  // Phase 5 Actions - One-Time Expenses
+  function addOneTimeExpense(expense: Omit<OneTimeExpense, 'id'>): string {
+    const newExpense: OneTimeExpense = {
+      ...expense,
+      id: crypto.randomUUID()
+    }
+    oneTimeExpenses.value.push(newExpense)
+    return newExpense.id
+  }
+
+  function removeOneTimeExpense(id: string): boolean {
+    const index = oneTimeExpenses.value.findIndex(e => e.id === id)
+    if (index !== -1) {
+      oneTimeExpenses.value.splice(index, 1)
+      return true
+    }
+    return false
+  }
+
+  function updateOneTimeExpense(id: string, updates: Partial<Omit<OneTimeExpense, 'id'>>): boolean {
+    const expense = oneTimeExpenses.value.find(e => e.id === id)
+    if (expense) {
+      Object.assign(expense, updates)
+      return true
+    }
+    return false
   }
 
   return {
     // State
     expenses,
+    loans,
+    oneTimeExpenses,
     // Computed
     totalMonthlyExpenses,
     expensesByCategory,
     totalsByCategory,
-    // Actions
+    // Actions - Phase 4
     addExpense,
     removeExpense,
     updateExpense,
     loadData,
-    resetToDefaults
+    resetToDefaults,
+    // Actions - Phase 5
+    addLoan,
+    removeLoan,
+    updateLoan,
+    addOneTimeExpense,
+    removeOneTimeExpense,
+    updateOneTimeExpense
   }
 })

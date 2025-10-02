@@ -1,4 +1,5 @@
 import type { UserData, CalculationResult, ValidationResult, ValidationError, IncomeStream, OneOffReturn } from '@/types'
+import { getLoanPaymentForMonth } from './loanCalculations'
 
 /**
  * Calculate future value using compound interest formula
@@ -233,6 +234,108 @@ function validateRetirementExpense(expense: import('@/types').RetirementExpense,
   return errors
 }
 
+/**
+ * Phase 5: Validate loan
+ */
+function validateLoan(loan: import('@/types').Loan, index: number): ValidationError[] {
+  const errors: ValidationError[] = []
+  const prefix = `loan[${index}]`
+
+  // Name validation
+  if (!loan.name || loan.name.trim().length === 0) {
+    errors.push({
+      field: `${prefix}.name`,
+      message: 'Loan name is required'
+    })
+  }
+
+  // Principal validation
+  if (loan.principal <= 0) {
+    errors.push({
+      field: `${prefix}.principal`,
+      message: 'Loan principal must be greater than 0'
+    })
+  }
+
+  // Interest rate validation
+  if (loan.interestRate < 0 || loan.interestRate > 1) {
+    errors.push({
+      field: `${prefix}.interestRate`,
+      message: 'Interest rate must be between 0% and 100%'
+    })
+  }
+
+  // Term validation
+  if (loan.termMonths <= 0 || loan.termMonths > 600) { // Max 50 years
+    errors.push({
+      field: `${prefix}.termMonths`,
+      message: 'Loan term must be between 1 and 600 months (50 years)'
+    })
+  }
+
+  // Start date validation
+  if (!validateDateString(loan.startDate)) {
+    errors.push({
+      field: `${prefix}.startDate`,
+      message: 'Start date must be in YYYY-MM format'
+    })
+  }
+
+  // Extra payments validation
+  if (loan.extraPayments) {
+    loan.extraPayments.forEach((payment, i) => {
+      if (!validateDateString(payment.date)) {
+        errors.push({
+          field: `${prefix}.extraPayments[${i}].date`,
+          message: 'Extra payment date must be in YYYY-MM format'
+        })
+      }
+      if (payment.amount <= 0) {
+        errors.push({
+          field: `${prefix}.extraPayments[${i}].amount`,
+          message: 'Extra payment amount must be greater than 0'
+        })
+      }
+    })
+  }
+
+  return errors
+}
+
+/**
+ * Phase 5: Validate one-time expense
+ */
+function validateOneTimeExpense(expense: import('@/types').OneTimeExpense, index: number): ValidationError[] {
+  const errors: ValidationError[] = []
+  const prefix = `oneTimeExpense[${index}]`
+
+  // Name validation
+  if (!expense.name || expense.name.trim().length === 0) {
+    errors.push({
+      field: `${prefix}.name`,
+      message: 'Expense name is required'
+    })
+  }
+
+  // Amount validation
+  if (expense.amount <= 0) {
+    errors.push({
+      field: `${prefix}.amount`,
+      message: 'Expense amount must be greater than 0'
+    })
+  }
+
+  // Date validation
+  if (!validateDateString(expense.date)) {
+    errors.push({
+      field: `${prefix}.date`,
+      message: 'Date must be in YYYY-MM format'
+    })
+  }
+
+  return errors
+}
+
 
 /**
  * Validate user input data
@@ -317,6 +420,20 @@ export function validateInputs(data: UserData): ValidationResult {
     })
   }
 
+  // Phase 5: Loans validation
+  if (data.loans) {
+    data.loans.forEach((loan, index) => {
+      errors.push(...validateLoan(loan, index))
+    })
+  }
+
+  // Phase 5: One-time expenses validation
+  if (data.oneTimeExpenses) {
+    data.oneTimeExpenses.forEach((expense, index) => {
+      errors.push(...validateOneTimeExpense(expense, index))
+    })
+  }
+
   return {
     isValid: errors.length === 0,
     errors
@@ -367,7 +484,9 @@ export function calculateFutureValueWithIncomeSources(
   _currentAge: number,
   incomeSources: IncomeStream[],
   oneOffReturns: OneOffReturn[],
-  expenses?: import('@/types').RetirementExpense[]
+  expenses?: import('@/types').RetirementExpense[],
+  loans?: import('@/types').Loan[],
+  oneTimeExpenses?: import('@/types').OneTimeExpense[]
 ): { futureValue: number; totalContributions: number } {
   const monthlyRate = annualRate / 12
   const months = years * 12
@@ -423,6 +542,31 @@ export function calculateFutureValueWithIncomeSources(
           const yearsFromExpenseStart = monthsFromExpenseStart / 12
           const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromExpenseStart)
           monthlyExpenses += inflatedAmount
+        }
+      })
+    }
+
+    // Phase 5: Add loan payments for this month
+    if (loans && loans.length > 0) {
+      const yearOffset = Math.floor(month / 12)
+      const monthOffset = month % 12
+      const year = currentYear + yearOffset
+      const monthNum = currentMonth + monthOffset
+      const adjustedYear = monthNum > 12 ? year + Math.floor((monthNum - 1) / 12) : year
+      const adjustedMonth = monthNum > 12 ? ((monthNum - 1) % 12) + 1 : monthNum
+
+      loans.forEach(loan => {
+        const payment = getLoanPaymentForMonth(loan, adjustedYear, adjustedMonth)
+        monthlyExpenses += payment
+      })
+    }
+
+    // Phase 5: Add one-time expenses if they occur in this month
+    if (oneTimeExpenses && oneTimeExpenses.length > 0) {
+      oneTimeExpenses.forEach(expense => {
+        const expenseMonth = parseMonthDate(expense.date, currentYear, currentMonth)
+        if (month === expenseMonth) {
+          monthlyExpenses += expense.amount
         }
       })
     }
@@ -600,7 +744,9 @@ export function calculateRetirement(data: UserData): CalculationResult {
       data.currentAge,
       data.incomeSources,
       data.oneOffReturns || [],
-      data.expenses
+      data.expenses,
+      data.loans,
+      data.oneTimeExpenses
     )
     futureValue = result.futureValue
     totalContributions = result.totalContributions
