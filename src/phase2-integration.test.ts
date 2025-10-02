@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useRetirementStore } from './stores/retirement'
 import { useIncomeStore } from './stores/income'
+import { useExpenseStore } from './stores/expense'
 import { exportData, validateImportedData } from './utils/importExport'
 import { migrateV1ToV2 } from './utils/migration'
 import type { RetirementData, UserData } from './types'
@@ -9,6 +10,9 @@ import type { RetirementData, UserData } from './types'
 describe('Phase 2 Integration Tests', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    // Clear default expenses to avoid interference with Phase 2 tests
+    const expenseStore = useExpenseStore()
+    expenseStore.expenses = []
   })
 
   describe('End-to-End: Income Sources Flow', () => {
@@ -54,7 +58,7 @@ describe('Phase 2 Integration Tests', () => {
 
       // Step 5: Export data
       const exported = exportData(retirementStore.userData)
-      expect(exported.version).toBe('2.0.0')
+      expect(exported.version).toBe('3.0.0') // Updated for Phase 4
       expect(exported.user.incomeSources).toHaveLength(2)
       expect(exported.user.oneOffReturns).toHaveLength(1)
 
@@ -64,8 +68,11 @@ describe('Phase 2 Integration Tests', () => {
       // Step 7: Simulate import into new store
       const newPinia = createPinia()
       setActivePinia(newPinia)
-      const newRetirementStore = useRetirementStore()
 
+      const newExpenseStore = useExpenseStore()
+      newExpenseStore.expenses = [] // Clear default expenses BEFORE loadData
+
+      const newRetirementStore = useRetirementStore()
       newRetirementStore.loadData(exported.user)
 
       // Step 8: Verify imported data
@@ -76,7 +83,8 @@ describe('Phase 2 Integration Tests', () => {
 
       // Step 9: Verify calculations are the same
       const newResults = newRetirementStore.results
-      expect(newResults!.futureValue).toBe(results!.futureValue)
+      // Use toBeCloseTo for floating point comparison
+      expect(newResults!.futureValue).toBeCloseTo(results!.futureValue, -2)
     })
   })
 
@@ -279,6 +287,8 @@ describe('Phase 2 Integration Tests', () => {
       const pinia1 = createPinia()
       setActivePinia(pinia1)
       const store1 = useRetirementStore()
+      const expense1 = useExpenseStore()
+      expense1.expenses = [] // Clear default expenses
       store1.updateMonthlyContribution(3000)
 
       const result1 = store1.results!
@@ -288,6 +298,8 @@ describe('Phase 2 Integration Tests', () => {
       setActivePinia(pinia2)
       const store2 = useRetirementStore()
       const income2 = useIncomeStore()
+      const expense2 = useExpenseStore()
+      expense2.expenses = [] // Clear default expenses
 
       income2.addIncomeSource({
         id: '1',

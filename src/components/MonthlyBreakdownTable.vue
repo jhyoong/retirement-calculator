@@ -18,6 +18,9 @@
               Income
             </th>
             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Expenses
+            </th>
+            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               Contributions
             </th>
             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -38,6 +41,9 @@
             </td>
             <td class="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-900">
               {{ formatCurrency(point.income) }}
+            </td>
+            <td class="px-4 py-2 whitespace-nowrap text-sm text-right text-red-600">
+              {{ formatCurrency(point.expenses) }}
             </td>
             <td class="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-900">
               {{ formatCurrency(point.contributions) }}

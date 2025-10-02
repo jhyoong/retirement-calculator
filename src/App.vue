@@ -37,6 +37,13 @@
           <RetirementForm v-show="activeTab === 'basic'" />
           <IncomeSourceForm v-show="activeTab === 'income'" />
           <OneOffReturnForm v-show="activeTab === 'oneoff'" />
+
+          <!-- Retirement Expenses Tab -->
+          <div v-show="activeTab === 'expenses'" class="space-y-6">
+            <ExpenseForm />
+            <WithdrawalStrategyConfig />
+          </div>
+
           <ResultsDisplay v-show="activeTab === 'results'" />
           <VisualizationsTab v-show="activeTab === 'visualizations'" />
           <ImportExport v-show="activeTab === 'data'" />
@@ -44,7 +51,7 @@
       </main>
 
       <footer class="mt-12 text-center text-sm text-gray-500">
-        <p>Phase 3: Monthly Breakdowns with Charts and Tables</p>
+        <p>How to retire? - JH</p>
       </footer>
     </div>
   </div>
@@ -55,6 +62,8 @@ import { ref } from 'vue'
 import RetirementForm from '@/components/RetirementForm.vue'
 import IncomeSourceForm from '@/components/IncomeSourceForm.vue'
 import OneOffReturnForm from '@/components/OneOffReturnForm.vue'
+import ExpenseForm from '@/components/ExpenseForm.vue'
+import WithdrawalStrategyConfig from '@/components/WithdrawalStrategyConfig.vue'
 import ResultsDisplay from '@/components/ResultsDisplay.vue'
 import VisualizationsTab from '@/components/VisualizationsTab.vue'
 import ImportExport from '@/components/ImportExport.vue'
@@ -63,6 +72,7 @@ const tabs = [
   { id: 'basic', label: 'Basic Info' },
   { id: 'income', label: 'Income Sources' },
   { id: 'oneoff', label: 'One-Off Returns' },
+  { id: 'expenses', label: 'Expenses' },
   { id: 'results', label: 'Results' },
   { id: 'visualizations', label: 'Visualizations' },
   { id: 'data', label: 'Import/Export' }

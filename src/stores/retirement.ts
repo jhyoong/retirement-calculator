@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import type { UserData, CalculationResult, ValidationResult } from '@/types'
 import { calculateRetirement, validateInputs } from '@/utils/calculations'
 import { useIncomeStore } from './income'
+import { useExpenseStore } from './expense'
 
 export const useRetirementStore = defineStore('retirement', () => {
   // State with sensible defaults
@@ -16,6 +17,7 @@ export const useRetirementStore = defineStore('retirement', () => {
   // Computed: get user data object
   const userData = computed((): UserData => {
     const incomeStore = useIncomeStore()
+    const expenseStore = useExpenseStore()
 
     return {
       currentAge: currentAge.value,
@@ -26,7 +28,10 @@ export const useRetirementStore = defineStore('retirement', () => {
       inflationRate: inflationRate.value,
       // Phase 2: Include income sources if they exist
       incomeSources: incomeStore.incomeSources.length > 0 ? incomeStore.incomeSources : undefined,
-      oneOffReturns: incomeStore.oneOffReturns.length > 0 ? incomeStore.oneOffReturns : undefined
+      oneOffReturns: incomeStore.oneOffReturns.length > 0 ? incomeStore.oneOffReturns : undefined,
+      // Phase 4: Include expenses and withdrawal config if they exist
+      expenses: expenseStore.expenses.length > 0 ? expenseStore.expenses : undefined,
+      withdrawalConfig: expenseStore.expenses.length > 0 ? expenseStore.withdrawalConfig : undefined
     }
   })
 
@@ -92,6 +97,18 @@ export const useRetirementStore = defineStore('retirement', () => {
     } else {
       incomeStore.resetToDefaults()
     }
+
+    // Phase 4: Load expenses and withdrawal config
+    const expenseStore = useExpenseStore()
+    if (data.expenses && data.withdrawalConfig) {
+      expenseStore.loadData(data.expenses, data.withdrawalConfig)
+    } else if (data.expenses) {
+      expenseStore.loadData(data.expenses)
+    } else {
+      // If no expenses in imported data, load empty array (don't reset to defaults)
+      // This maintains backward compatibility with Phase 1-3 data
+      expenseStore.loadData([])
+    }
   }
 
   function resetToDefaults() {
@@ -105,6 +122,10 @@ export const useRetirementStore = defineStore('retirement', () => {
     // Phase 2: Reset income data
     const incomeStore = useIncomeStore()
     incomeStore.resetToDefaults()
+
+    // Phase 4: Reset expense data
+    const expenseStore = useExpenseStore()
+    expenseStore.resetToDefaults()
   }
 
   return {

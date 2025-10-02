@@ -3,6 +3,17 @@ import { generateMonthlyProjections, applyInflationAdjustment } from './monthlyP
 import { calculateRetirement } from './calculations'
 import type { UserData, IncomeStream, OneOffReturn } from '@/types'
 
+// Helper to create date strings relative to current month
+function getRelativeDate(monthsFromNow: number): string {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth() + 1 // 0-indexed to 1-indexed
+  const targetMonth = month + monthsFromNow
+  const targetYear = year + Math.floor((targetMonth - 1) / 12)
+  const finalMonth = ((targetMonth - 1) % 12) + 1
+  return `${targetYear}-${String(finalMonth).padStart(2, '0')}`
+}
+
 describe('monthlyProjections', () => {
   describe('generateMonthlyProjections', () => {
     it('should generate correct number of monthly data points', () => {
@@ -46,7 +57,7 @@ describe('monthlyProjections', () => {
           type: 'custom',
           amount: 1500,
           frequency: 'monthly',
-          startDate: '2025-01'
+          startDate: getRelativeDate(0)
         }
       ]
 
@@ -95,8 +106,8 @@ describe('monthlyProjections', () => {
           type: 'salary',
           amount: 5000,
           frequency: 'monthly',
-          startDate: '2025-01',
-          endDate: '2026-01' // 12 months
+          startDate: getRelativeDate(0),
+          endDate: getRelativeDate(12) // 12 months from now
         }
       ]
 
@@ -128,7 +139,7 @@ describe('monthlyProjections', () => {
           type: 'rental',
           amount: 2000,
           frequency: 'monthly',
-          startDate: '2025-01'
+          startDate: getRelativeDate(0)
           // No endDate = ongoing
         }
       ]
@@ -159,7 +170,7 @@ describe('monthlyProjections', () => {
           type: 'salary',
           amount: 12000,
           frequency: 'yearly',
-          startDate: '2025-01'
+          startDate: getRelativeDate(0)
         }
       ]
 
@@ -183,7 +194,7 @@ describe('monthlyProjections', () => {
       const oneOffReturns: OneOffReturn[] = [
         {
           id: '1',
-          date: '2025-06', // 6 months from start
+          date: getRelativeDate(5), // 5 months from now (month index 5)
           amount: 50000,
           description: 'Bonus'
         }
@@ -218,7 +229,7 @@ describe('monthlyProjections', () => {
           type: 'salary',
           amount: 5000,
           frequency: 'monthly',
-          startDate: '2025-01'
+          startDate: getRelativeDate(0)
         },
         {
           id: '2',
@@ -226,7 +237,7 @@ describe('monthlyProjections', () => {
           type: 'rental',
           amount: 1500,
           frequency: 'monthly',
-          startDate: '2025-01'
+          startDate: getRelativeDate(0)
         }
       ]
 
@@ -350,7 +361,7 @@ describe('monthlyProjections', () => {
           type: 'custom',
           amount: 1500,
           frequency: 'monthly',
-          startDate: '2025-01'
+          startDate: getRelativeDate(0)
         }
       ]
 

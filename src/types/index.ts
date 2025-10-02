@@ -10,6 +10,9 @@ export interface UserData {
   // Phase 2 additions
   incomeSources?: IncomeStream[];
   oneOffReturns?: OneOffReturn[];
+  // Phase 4 additions
+  expenses?: RetirementExpense[];
+  withdrawalConfig?: WithdrawalConfig;
 }
 
 export interface RetirementData {
@@ -24,6 +27,9 @@ export interface CalculationResult {
   investmentGrowth: number;
   inflationAdjustedValue: number;
   yearsToRetirement: number;
+  // Phase 4 additions
+  yearsUntilDepletion: number | null; // null means sustainable/never depletes
+  sustainabilityWarning: boolean; // true if withdrawal rate is too high (>4-5%)
 }
 
 export interface ValidationError {
@@ -67,7 +73,40 @@ export interface MonthlyDataPoint {
   month: number; // 1-12
   age: number;
   income: number; // Income received this month
-  contributions: number; // Total contributions up to this month
+  expenses: number; // Expenses paid this month
+  contributions: number; // Total net contributions up to this month (income - expenses)
   portfolioValue: number; // Portfolio value at end of month
   growth: number; // Growth this month (investment returns)
+}
+
+// Phase 4 Type Definitions
+
+export type ExpenseCategory = 'living' | 'healthcare' | 'travel' | 'other';
+export type WithdrawalStrategy = 'fixed' | 'percentage' | 'combined';
+
+export interface RetirementExpense {
+  id: string;
+  name: string;
+  category: ExpenseCategory;
+  monthlyAmount: number;
+  inflationRate: number; // Annual inflation rate as decimal (e.g., 0.03 for 3%)
+  startAge?: number; // Optional, defaults to current age
+  endAge?: number; // Optional, defaults to max projection age
+}
+
+export interface WithdrawalConfig {
+  strategy: WithdrawalStrategy;
+  fixedAmount?: number; // Used for 'fixed' and 'combined' strategies
+  percentage?: number; // Used for 'percentage' and 'combined' strategies (as decimal, e.g., 0.04 for 4%)
+}
+
+export interface PostRetirementDataPoint {
+  monthIndex: number; // 0-based index from retirement
+  year: number;
+  month: number; // 1-12
+  age: number;
+  expenses: number; // Total expenses this month (inflation-adjusted)
+  withdrawal: number; // Amount withdrawn from portfolio
+  portfolioValue: number; // Portfolio value at end of month
+  growth: number; // Investment growth this month
 }

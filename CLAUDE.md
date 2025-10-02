@@ -28,6 +28,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. The application uses:
 - **Vue 3** with Composition API (`<script setup>`)
 - **Pinia** for state management (NOT Vuex)
+- **Chart.js** with vue-chartjs for data visualizations
 - **Tailwind CSS** for styling
 - **Vitest** for testing
 - **TypeScript** in strict mode
@@ -48,7 +49,7 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Main store for basic retirement calculation inputs
 - Manages: currentAge, retirementAge, currentSavings, monthlyContribution, expectedReturnRate, inflationRate
 - Computed properties: `userData`, `validation`, `results`
-- Integrates with IncomeStore for Phase 2 features
+- Integrates with IncomeStore (Phase 2) and ExpenseStore (Phase 4)
 - Actions: update methods, loadData, resetToDefaults
 
 **Income Store** (`src/stores/income.ts`):
@@ -58,17 +59,39 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Helpers: `convertToMonthly()` - converts daily/weekly/yearly/custom frequencies to monthly amounts
 - Actions: add/remove/update methods for both income sources and one-off returns
 
-### Calculation Logic (`src/utils/calculations.ts`)
+**Expense Store** (`src/stores/expense.ts`):
+- Phase 4 addition for retirement expense tracking
+- Manages: `expenses` array, `withdrawalConfig` object
+- Computed: `totalMonthlyExpenses`, `expensesByCategory`, `totalsByCategory`
+- Default: Single "Living Expenses" entry ($3000/month, 3% inflation)
+- Actions: add/remove/update methods for expenses, updateWithdrawalConfig
 
-**Core Functions**:
+### Calculation Logic
+
+**Core Calculations** (`src/utils/calculations.ts`):
 - `calculateFutureValue()` - Standard compound interest formula: FV = PV(1+r)^n + PMT × [((1+r)^n - 1) / r]
 - `calculateFutureValueWithIncomeSources()` - Month-by-month calculation for variable income streams
-- `calculateRetirement()` - Main entry point, auto-detects which calculation method to use
-- `validateInputs()` - Comprehensive validation for all input types
+- `calculateRetirement()` - Main entry point, auto-detects calculation method, includes Phase 4 sustainability metrics
+- `validateInputs()` - Comprehensive validation for all input types including expenses and withdrawal config
+
+**Monthly Projections** (`src/utils/monthlyProjections.ts`):
+- Phase 3 addition for chart and table visualizations
+- `generateMonthlyProjections()` - Month-by-month data from current age to retirement
+- Returns array of `MonthlyDataPoint` with income, expenses, contributions, portfolio value, growth
+- Handles both income sources and legacy monthlyContribution
+
+**Post-Retirement Projections** (`src/utils/postRetirementProjections.ts`):
+- Phase 4 addition for retirement sustainability analysis
+- `generatePostRetirementProjections()` - Month-by-month simulation from retirement to depletion/max age
+- Implements 3 withdrawal strategies: fixed, percentage, combined
+- Applies category-specific inflation to expenses
+- Age-based expense filtering (startAge/endAge support)
+- Detects portfolio depletion for sustainability warnings
 
 **Calculation Behavior**:
 - If `incomeSources` exist: uses time-based month-by-month calculation
 - Otherwise: falls back to legacy constant `monthlyContribution` formula
+- Phase 4: Calculates `yearsUntilDepletion` and `sustainabilityWarning` when expenses exist
 - Handles edge cases: zero interest rate, date validation, frequency conversions
 - All monetary values rounded to 2 decimal places
 
@@ -76,7 +99,7 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 
 **App.vue**:
 - Root component with tab navigation
-- 5 tabs: Basic Info, Income Sources, One-Off Returns, Results, Import/Export
+- 7 tabs: Basic Info, Income Sources, One-Off Returns, Expenses, Results, Visualizations, Import/Export
 - Uses `v-show` for tab content (all rendered, visibility toggled)
 
 **RetirementForm.vue**:
@@ -87,9 +110,28 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Phase 2 components for varied income
 - Manage income store arrays
 
+**ExpenseForm.vue** & **WithdrawalStrategyConfig.vue**:
+- Phase 4 components for retirement expense tracking
+- ExpenseForm: Add/edit/remove expenses with category, amount, inflation, optional age ranges
+- WithdrawalStrategyConfig: Configure withdrawal strategy (fixed, percentage, or combined)
+- Displays validation errors inline
+
 **ResultsDisplay.vue**:
 - Displays calculated results from store
 - Shows: future value, total contributions, investment growth, inflation-adjusted value
+- Phase 4: Includes SustainabilityDisplay when expenses exist
+- Shows validation errors with helpful navigation tips
+
+**SustainabilityDisplay.vue**:
+- Phase 4 component showing retirement sustainability metrics
+- Green/red status based on portfolio depletion
+- Warning banner for high withdrawal rates (>5%)
+- Displays years until depletion or "Sustainable" message
+
+**VisualizationsTab.vue**:
+- Phase 3 component with chart and table views
+- PortfolioChart: Line chart showing portfolio growth over time using Chart.js
+- MonthlyBreakdownTable: Detailed month-by-month data table
 
 **ImportExport.vue**:
 - Export data to JSON with versioning
@@ -97,28 +139,30 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 
 ### Data Versioning & Migration
 
-**Current Version**: 2.0.0
+**Current Version**: 3.0.0
 
 **Version History**:
 - v1.0.0: Basic calculator with `monthlyContribution` only
 - v2.0.0: Added `incomeSources` and `oneOffReturns` support
+- v3.0.0: Added `expenses` and `withdrawalConfig` support (Phase 4)
 
 **Migration** (`src/utils/migration.ts`):
-- `migrateV1ToV2()` - Auto-migrates old format to new
+- `migrateV1ToV2()` - Migrates basic calculator to income sources format
+- `migrateV2ToV3()` - Migrates to include expense and withdrawal config structure
 - `convertMonthlyContributionToIncomeSource()` - Optional conversion of legacy field
 - `monthlyContribution` field maintained for backward compatibility
 
 **Import/Export** (`src/utils/importExport.ts`):
-- `exportData()` - Creates versioned RetirementData object
-- `validateImportedData()` - Validates structure for both v1 and v2
+- `exportData()` - Creates versioned RetirementData object (current: v3.0.0)
+- `validateImportedData()` - Validates structure for v1, v2, and v3 formats
 - `parseImportedFile()` - Reads and validates JSON files
 
 ### Type System (`src/types/index.ts`)
 
 **Core Types**:
-- `UserData` - All user inputs (Phase 1 + Phase 2 fields)
+- `UserData` - All user inputs (Phase 1-4 fields)
 - `RetirementData` - Export format with version and exportDate
-- `CalculationResult` - Calculation outputs
+- `CalculationResult` - Calculation outputs (includes Phase 4: yearsUntilDepletion, sustainabilityWarning)
 - `ValidationResult` & `ValidationError` - Validation system
 
 **Phase 2 Types**:
@@ -126,6 +170,17 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - `OneOffReturn` - One-time future payments
 - `IncomeType`: 'salary' | 'rental' | 'dividend' | 'business' | 'custom'
 - `IncomeFrequency`: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom'
+
+**Phase 3 Types**:
+- `MonthlyDataPoint` - Month-by-month projection data for charts/tables
+  - Includes: monthIndex, year, month, age, income, expenses, contributions, portfolioValue, growth
+
+**Phase 4 Types**:
+- `RetirementExpense` - Expense definition with category, amount, inflation, optional age ranges
+- `WithdrawalConfig` - Withdrawal strategy configuration (fixed/percentage/combined)
+- `PostRetirementDataPoint` - Post-retirement projection data
+- `ExpenseCategory`: 'living' | 'healthcare' | 'travel' | 'other'
+- `WithdrawalStrategy`: 'fixed' | 'percentage' | 'combined'
 
 ### Date Handling
 - All dates use YYYY-MM format strings (e.g., "2025-10")
@@ -161,7 +216,8 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Unit tests for all utils and stores
 - Tests use Vitest with JSDOM environment
 - Test files excluded from build via tsconfig.json
-- Integration test: `src/phase2-integration.test.ts`
+- Integration tests: `src/phase2-integration.test.ts`, `src/phase3-integration.test.ts`, `src/phase4-integration.test.ts`
+- Total: 239 tests across 12 test files covering all phases
 
 ### TypeScript Configuration
 - Strict mode enabled with all linting flags
