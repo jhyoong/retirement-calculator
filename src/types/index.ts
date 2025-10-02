@@ -15,7 +15,6 @@ export interface UserData {
 }
 
 export interface RetirementData {
-  version: string;
   exportDate: string;
   user: UserData;
 }

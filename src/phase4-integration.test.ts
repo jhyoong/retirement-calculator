@@ -3,8 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useRetirementStore } from './stores/retirement'
 import { useExpenseStore } from './stores/expense'
 import { exportData, validateImportedData } from './utils/importExport'
-import { migrateV1ToV2, migrateV2ToV3, needsMigration } from './utils/migration'
-import type { RetirementData, RetirementExpense } from './types'
+import type { RetirementExpense } from './types'
 
 describe('Phase 4 Integration Tests', () => {
   beforeEach(() => {
@@ -189,14 +188,12 @@ describe('Phase 4 Integration Tests', () => {
 
       const exported = exportData(retirementStore.userData)
 
-      expect(exported.version).toBe('4.0.0')
       expect(exported.user.expenses).toHaveLength(1)
       expect(exported.user.expenses![0].name).toBe('Living')
     })
 
-    it('should import v3 data successfully', () => {
-      const v3Data: RetirementData = {
-        version: '3.0.0',
+    it('should import data with expenses successfully', () => {
+      const data = {
         exportDate: new Date().toISOString(),
         user: {
           currentAge: 35,
@@ -217,12 +214,11 @@ describe('Phase 4 Integration Tests', () => {
         }
       }
 
-      expect(validateImportedData(v3Data)).toBe(true)
+      expect(validateImportedData(data)).toBe(true)
     })
 
-    it('should validate v4 structure correctly', () => {
-      const validV4: RetirementData = {
-        version: '4.0.0',
+    it('should validate data structure correctly', () => {
+      const validData = {
         exportDate: '2025-01-01',
         user: {
           currentAge: 30,
@@ -245,7 +241,7 @@ describe('Phase 4 Integration Tests', () => {
         }
       }
 
-      expect(validateImportedData(validV4)).toBe(true)
+      expect(validateImportedData(validData)).toBe(true)
     })
 
     it('should round-trip export/import without data loss', () => {
@@ -303,10 +299,9 @@ describe('Phase 4 Integration Tests', () => {
     })
   })
 
-  describe('Migration v2 to v3', () => {
-    it('should migrate v2 data successfully', () => {
-      const v2Data: RetirementData = {
-        version: '2.0.0',
+  describe('Data compatibility', () => {
+    it('should import data with income sources', () => {
+      const data = {
         exportDate: '2024-01-01',
         user: {
           currentAge: 30,
@@ -328,66 +323,11 @@ describe('Phase 4 Integration Tests', () => {
         }
       }
 
-      const migrated = migrateV2ToV3(v2Data)
-
-      expect(migrated.version).toBe('3.0.0')
-      expect(migrated.user.incomeSources).toHaveLength(1)
-      expect(migrated.user.expenses).toBeUndefined()
+      expect(validateImportedData(data)).toBe(true)
     })
 
-    it('should handle missing expenses field in v2 data', () => {
-      const v2Data: RetirementData = {
-        version: '2.0.0',
-        exportDate: '2024-01-01',
-        user: {
-          currentAge: 30,
-          retirementAge: 65,
-          currentSavings: 100000,
-          monthlyContribution: 1000,
-          expectedReturnRate: 0.06,
-          inflationRate: 0.03
-        }
-      }
-
-      const migrated = migrateV2ToV3(v2Data)
-
-      expect(migrated.version).toBe('3.0.0')
-      expect(migrated.user.expenses).toBeUndefined()
-
-      // Should be valid for import
-      expect(validateImportedData(migrated)).toBe(true)
-    })
-  })
-
-  describe('Backward compatibility', () => {
-    it('should import v1 data (via migration chain)', () => {
-      const v1Data: RetirementData = {
-        version: '1.0.0',
-        exportDate: '2023-01-01',
-        user: {
-          currentAge: 25,
-          retirementAge: 65,
-          currentSavings: 50000,
-          monthlyContribution: 800,
-          expectedReturnRate: 0.07,
-          inflationRate: 0.03
-        }
-      }
-
-      // Migrate v1 -> v2
-      const v2Data = migrateV1ToV2(v1Data)
-      expect(v2Data.version).toBe('2.0.0')
-
-      // Migrate v2 -> v3
-      const v3Data = migrateV2ToV3(v2Data)
-      expect(v3Data.version).toBe('3.0.0')
-
-      expect(validateImportedData(v3Data)).toBe(true)
-    })
-
-    it('should import v2 data without issues', () => {
-      const v2Data: RetirementData = {
-        version: '2.0.0',
+    it('should import data with all features', () => {
+      const data = {
         exportDate: '2024-06-01',
         user: {
           currentAge: 35,
@@ -417,16 +357,10 @@ describe('Phase 4 Integration Tests', () => {
         }
       }
 
-      expect(validateImportedData(v2Data)).toBe(true)
-      expect(needsMigration(v2Data)).toBe(true)
-
-      const v3Data = migrateV2ToV3(v2Data)
-      expect(v3Data.version).toBe('3.0.0')
-      expect(v3Data.user.incomeSources).toHaveLength(1)
-      expect(v3Data.user.oneOffReturns).toHaveLength(1)
+      expect(validateImportedData(data)).toBe(true)
     })
 
-    it('should preserve Phase 1-3 features with Phase 4 additions', () => {
+    it('should preserve all features with expenses', () => {
       const retirementStore = useRetirementStore()
       const expenseStore = useExpenseStore()
 

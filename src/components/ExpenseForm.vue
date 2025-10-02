@@ -181,14 +181,14 @@ const retirementStore = useRetirementStore()
 // Check if there are any expense-related validation errors
 const hasExpenseErrors = computed(() => {
   return retirementStore.validation.errors.some(e =>
-    e.field.startsWith('expense[') || e.field.startsWith('withdrawalConfig.')
+    e.field.startsWith('expense[')
   )
 })
 
 // Get all expense-related error messages
 const expenseErrorMessages = computed(() => {
   return retirementStore.validation.errors
-    .filter(e => e.field.startsWith('expense[') || e.field.startsWith('withdrawalConfig.'))
+    .filter(e => e.field.startsWith('expense['))
     .map(e => e.message)
 })
 

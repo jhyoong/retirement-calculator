@@ -1,13 +1,10 @@
 import type { RetirementData, UserData } from '@/types'
 
-const CURRENT_VERSION = '4.0.0'
-
 /**
  * Export retirement data to JSON
  */
 export function exportData(userData: UserData): RetirementData {
   return {
-    version: CURRENT_VERSION,
     exportDate: new Date().toISOString(),
     user: userData
   }
@@ -33,7 +30,6 @@ export function downloadJSON(data: RetirementData, filename = 'retirement-data.j
 
 /**
  * Validate imported data structure
- * Supports v1.0.0, v2.0.0, v3.0.0, and v4.0.0 formats
  */
 export function validateImportedData(data: unknown): data is RetirementData {
   if (typeof data !== 'object' || data === null) {
@@ -43,13 +39,12 @@ export function validateImportedData(data: unknown): data is RetirementData {
   const obj = data as Record<string, unknown>
 
   // Check required fields
-  if (typeof obj.version !== 'string') return false
   if (typeof obj.exportDate !== 'string') return false
   if (typeof obj.user !== 'object' || obj.user === null) return false
 
   const user = obj.user as Record<string, unknown>
 
-  // Validate core user data fields (required in all versions)
+  // Validate core user data fields
   if (typeof user.currentAge !== 'number') return false
   if (typeof user.retirementAge !== 'number') return false
   if (typeof user.currentSavings !== 'number') return false
@@ -57,10 +52,9 @@ export function validateImportedData(data: unknown): data is RetirementData {
   if (typeof user.expectedReturnRate !== 'number') return false
   if (typeof user.inflationRate !== 'number') return false
 
-  // Phase 2: Validate income sources if present (optional)
+  // Validate income sources if present (optional)
   if (user.incomeSources !== undefined) {
     if (!Array.isArray(user.incomeSources)) return false
-    // Basic validation of income source structure
     for (const source of user.incomeSources) {
       if (typeof source !== 'object' || source === null) return false
       const s = source as Record<string, unknown>
@@ -71,7 +65,7 @@ export function validateImportedData(data: unknown): data is RetirementData {
     }
   }
 
-  // Phase 2: Validate one-off returns if present (optional)
+  // Validate one-off returns if present (optional)
   if (user.oneOffReturns !== undefined) {
     if (!Array.isArray(user.oneOffReturns)) return false
     for (const oneOff of user.oneOffReturns) {
@@ -84,7 +78,7 @@ export function validateImportedData(data: unknown): data is RetirementData {
     }
   }
 
-  // Phase 4: Validate expenses if present (optional)
+  // Validate expenses if present (optional)
   if (user.expenses !== undefined) {
     if (!Array.isArray(user.expenses)) return false
     for (const expense of user.expenses) {
@@ -99,17 +93,6 @@ export function validateImportedData(data: unknown): data is RetirementData {
       if (e.startAge !== undefined && typeof e.startAge !== 'number') return false
       if (e.endAge !== undefined && typeof e.endAge !== 'number') return false
     }
-  }
-
-  // Phase 4 (v3 only): Validate withdrawal config if present (optional, removed in v4)
-  // Accept it for backwards compatibility but will be removed during migration
-  if (user.withdrawalConfig !== undefined) {
-    if (typeof user.withdrawalConfig !== 'object' || user.withdrawalConfig === null) return false
-    const wc = user.withdrawalConfig as Record<string, unknown>
-    if (typeof wc.strategy !== 'string') return false
-    // fixedAmount and percentage are optional depending on strategy
-    if (wc.fixedAmount !== undefined && typeof wc.fixedAmount !== 'number') return false
-    if (wc.percentage !== undefined && typeof wc.percentage !== 'number') return false
   }
 
   return true

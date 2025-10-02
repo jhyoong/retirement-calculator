@@ -4,8 +4,7 @@ import { useRetirementStore } from './stores/retirement'
 import { useIncomeStore } from './stores/income'
 import { useExpenseStore } from './stores/expense'
 import { exportData, validateImportedData } from './utils/importExport'
-import { migrateV1ToV2 } from './utils/migration'
-import type { RetirementData, UserData } from './types'
+import type { UserData } from './types'
 
 describe('Phase 2 Integration Tests', () => {
   beforeEach(() => {
@@ -58,7 +57,6 @@ describe('Phase 2 Integration Tests', () => {
 
       // Step 5: Export data
       const exported = exportData(retirementStore.userData)
-      expect(exported.version).toBe('4.0.0')
       expect(exported.user.incomeSources).toHaveLength(2)
       expect(exported.user.oneOffReturns).toHaveLength(1)
 
@@ -100,29 +98,19 @@ describe('Phase 2 Integration Tests', () => {
       expect(legacyResults!.totalContributions).toBeGreaterThan(50000)
     })
 
-    it('migrates v1.0.0 data to v2.0.0', () => {
-      const v1Data: RetirementData = {
-        version: '1.0.0',
-        exportDate: '2024-01-01T00:00:00.000Z',
-        user: {
-          currentAge: 28,
-          retirementAge: 60,
-          currentSavings: 30000,
-          monthlyContribution: 1500,
-          expectedReturnRate: 0.08,
-          inflationRate: 0.025
-        }
+    it('imports legacy data without income sources', () => {
+      const userData: UserData = {
+        currentAge: 28,
+        retirementAge: 60,
+        currentSavings: 30000,
+        monthlyContribution: 1500,
+        expectedReturnRate: 0.08,
+        inflationRate: 0.025
       }
-
-      // Migrate
-      const v2Data = migrateV1ToV2(v1Data)
-
-      expect(v2Data.version).toBe('2.0.0')
-      expect(validateImportedData(v2Data)).toBe(true)
 
       // Load into store
       const retirementStore = useRetirementStore()
-      retirementStore.loadData(v2Data.user)
+      retirementStore.loadData(userData)
 
       // Verify it still calculates correctly
       const results = retirementStore.results

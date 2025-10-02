@@ -115,11 +115,6 @@ function formatFieldName(field: string): string {
     }
   }
 
-  if (field.startsWith('withdrawalConfig.')) {
-    const subfield = field.replace('withdrawalConfig.', '')
-    return `Withdrawal ${subfield.replace(/([A-Z])/g, ' $1').trim()}`
-  }
-
   if (field.startsWith('incomeSource[')) {
     const match = field.match(/incomeSource\[(\d+)\]\.(.+)/)
     if (match) {
