@@ -26,7 +26,7 @@ describe('Phase 3 Integration Tests', () => {
   })
 
   describe('End-to-end flow: Basic inputs to visualizations', () => {
-    it('should generate monthly projections from store data (legacy mode)', () => {
+    it('should generate monthly projections from store data', () => {
       const store = useRetirementStore()
       const incomeStore = useIncomeStore()
 
@@ -60,7 +60,7 @@ describe('Phase 3 Integration Tests', () => {
       }
     })
 
-    it('should generate monthly projections with income sources (Phase 2 mode)', () => {
+    it('should generate monthly projections with time-limited income sources', () => {
       const retirementStore = useRetirementStore()
       const incomeStore = useIncomeStore()
 

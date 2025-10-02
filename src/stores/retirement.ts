@@ -10,7 +10,7 @@ export const useRetirementStore = defineStore('retirement', () => {
   const currentAge = ref(30)
   const retirementAge = ref(65)
   const currentSavings = ref(50000)
-  const expectedReturnRate = ref(0.07) // 7%
+  const expectedReturnRate = ref(0.05) // 7%
   const inflationRate = ref(0.03) // 3%
 
   // Computed: get user data object

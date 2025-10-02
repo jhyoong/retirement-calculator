@@ -35,18 +35,8 @@
         <!-- Tab Content -->
         <div class="space-y-6">
           <RetirementForm v-show="activeTab === 'basic'" />
-          <IncomeSourceForm v-show="activeTab === 'income'" />
-          <OneOffReturnForm v-show="activeTab === 'oneoff'" />
-
-          <!-- Phase 4: Retirement Expenses Tab -->
-          <ExpenseForm v-show="activeTab === 'expenses'" />
-
-          <!-- Phase 5: Loans Tab -->
-          <LoanForm v-show="activeTab === 'loans'" />
-
-          <!-- Phase 5: One-Time Expenses Tab -->
-          <OneTimeExpenseForm v-show="activeTab === 'onetimeexpenses'" />
-
+          <IncomeTab v-show="activeTab === 'income'" />
+          <ExpenseTab v-show="activeTab === 'expenses'" />
           <ResultsDisplay v-show="activeTab === 'results'" />
           <VisualizationsTab v-show="activeTab === 'visualizations'" />
           <ImportExport v-show="activeTab === 'data'" />
@@ -63,22 +53,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import RetirementForm from '@/components/RetirementForm.vue'
-import IncomeSourceForm from '@/components/IncomeSourceForm.vue'
-import OneOffReturnForm from '@/components/OneOffReturnForm.vue'
-import ExpenseForm from '@/components/ExpenseForm.vue'
-import LoanForm from '@/components/LoanForm.vue'
-import OneTimeExpenseForm from '@/components/OneTimeExpenseForm.vue'
+import IncomeTab from '@/components/IncomeTab.vue'
+import ExpenseTab from '@/components/ExpenseTab.vue'
 import ResultsDisplay from '@/components/ResultsDisplay.vue'
 import VisualizationsTab from '@/components/VisualizationsTab.vue'
 import ImportExport from '@/components/ImportExport.vue'
 
 const tabs = [
   { id: 'basic', label: 'Basic Info' },
-  { id: 'income', label: 'Income Sources' },
-  { id: 'oneoff', label: 'One-Off Returns' },
+  { id: 'income', label: 'Income' },
   { id: 'expenses', label: 'Expenses' },
-  { id: 'loans', label: 'Loans' },
-  { id: 'onetimeexpenses', label: 'One-Time Expenses' },
   { id: 'results', label: 'Results' },
   { id: 'visualizations', label: 'Visualizations' },
   { id: 'data', label: 'Import/Export' }

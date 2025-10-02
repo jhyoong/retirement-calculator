@@ -7,41 +7,24 @@
         </h2>
 
         <div class="flex items-center space-x-4">
-          <div class="flex items-center space-x-2">
+          <div v-if="store.validation.isValid" class="flex items-center space-x-2">
             <label class="text-sm font-medium text-gray-700">
-              Show:
+              Show up to age:
             </label>
-            <button
-              @click="showInflationAdjusted = false"
-              :class="[
-                'px-4 py-2 rounded-l-lg text-sm font-medium transition-colors',
-                !showInflationAdjusted
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              ]"
+            <select
+              v-model.number="selectedMaxAge"
+              class="px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
             >
-              Nominal
-            </button>
-            <button
-              @click="showInflationAdjusted = true"
-              :class="[
-                'px-4 py-2 rounded-r-lg text-sm font-medium transition-colors',
-                showInflationAdjusted
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              ]"
-            >
-              Inflation-Adjusted
-            </button>
+              <option :value="undefined">Retirement Age ({{ store.userData.retirementAge }})</option>
+              <option
+                v-for="age in availableAges"
+                :key="age"
+                :value="age"
+              >
+                {{ age }}
+              </option>
+            </select>
           </div>
-
-          <button
-            v-if="canShowMore"
-            @click="showExtended = !showExtended"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-green-600 text-white hover:bg-green-700"
-          >
-            {{ showExtended ? 'Show Less' : 'Show More (to Age 80)' }}
-          </button>
         </div>
       </div>
 
@@ -62,38 +45,28 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRetirementStore } from '@/stores/retirement'
-import { generateMonthlyProjections, applyInflationAdjustment } from '@/utils/monthlyProjections'
+import { generateMonthlyProjections } from '@/utils/monthlyProjections'
 import PortfolioChart from './PortfolioChart.vue'
 import MonthlyBreakdownTable from './MonthlyBreakdownTable.vue'
 
 const store = useRetirementStore()
-const showInflationAdjusted = ref(false)
-const showExtended = ref(false)
+const selectedMaxAge = ref<number | undefined>(undefined)
+
+// Generate available ages from retirement age to 100
+const availableAges = computed(() => {
+  const retirementAge = store.userData.retirementAge
+  const ages: number[] = []
+  for (let age = retirementAge + 1; age <= 100; age++) {
+    ages.push(age)
+  }
+  return ages
+})
 
 // Generate monthly projections from current user data
-const nominalProjections = computed(() => {
+const displayData = computed(() => {
   if (!store.validation.isValid) {
     return []
   }
-  const maxAge = showExtended.value ? 80 : undefined
-  return generateMonthlyProjections(store.userData, maxAge)
-})
-
-// Apply inflation adjustment if toggled
-const displayData = computed(() => {
-  if (nominalProjections.value.length === 0) {
-    return []
-  }
-
-  if (showInflationAdjusted.value) {
-    return applyInflationAdjustment(nominalProjections.value, store.userData.inflationRate)
-  }
-
-  return nominalProjections.value
-})
-
-// Check if "Show More" button should be available
-const canShowMore = computed(() => {
-  return store.validation.isValid && store.userData.retirementAge < 80
+  return generateMonthlyProjections(store.userData, selectedMaxAge.value)
 })
 </script>
