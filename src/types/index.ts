@@ -87,8 +87,8 @@ export interface RetirementExpense {
   category: ExpenseCategory;
   monthlyAmount: number;
   inflationRate: number; // Annual inflation rate as decimal (e.g., 0.03 for 3%)
-  startAge?: number; // Optional, defaults to current age
-  endAge?: number; // Optional, defaults to max projection age
+  startDate?: string; // YYYY-MM format, optional - defaults to current month
+  endDate?: string; // YYYY-MM format, optional - defaults to ongoing
 }
 
 export interface PostRetirementDataPoint {

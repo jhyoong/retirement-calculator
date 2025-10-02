@@ -131,7 +131,7 @@ describe('Expense Store', () => {
       expect(added?.monthlyAmount).toBe(500)
     })
 
-    it('should add expense with optional age fields', () => {
+    it('should add expense with optional date fields', () => {
       const store = useExpenseStore()
 
       const id = store.addExpense({
@@ -139,13 +139,13 @@ describe('Expense Store', () => {
         category: 'healthcare',
         monthlyAmount: 800,
         inflationRate: 0.06,
-        startAge: 65,
-        endAge: 70
+        startDate: '2025-01',
+        endDate: '2030-01'
       })
 
       const added = store.expenses.find(e => e.id === id)
-      expect(added?.startAge).toBe(65)
-      expect(added?.endAge).toBe(70)
+      expect(added?.startDate).toBe('2025-01')
+      expect(added?.endDate).toBe('2030-01')
     })
 
     it('should generate unique ids for multiple expenses', () => {

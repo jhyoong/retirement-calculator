@@ -67,30 +67,24 @@
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            Start Age
-            <span class="text-gray-500 text-xs">(optional - defaults to current age)</span>
+            Start Date
+            <span class="text-gray-500 text-xs">(optional - defaults to current month)</span>
           </label>
           <input
-            v-model.number="newExpense.startAge"
-            type="number"
-            min="0"
-            max="120"
-            placeholder="e.g., 65"
+            v-model="newExpense.startDate"
+            type="month"
             class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            End Age
+            End Date
             <span class="text-gray-500 text-xs">(optional - leave blank for ongoing)</span>
           </label>
           <input
-            v-model.number="newExpense.endAge"
-            type="number"
-            min="0"
-            max="120"
-            placeholder="e.g., 85"
+            v-model="newExpense.endDate"
+            type="month"
             class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -106,8 +100,8 @@
       <!-- Informational Note -->
       <div class="mt-4 p-3 bg-blue-50 rounded-md text-sm text-blue-900">
         <p>
-          <strong>Note:</strong> Expenses reduce your portfolio balance during the accumulation
-          phase. They can start at any age from your current age onwards.
+          <strong>Note:</strong> Expenses reduce your portfolio balance during both accumulation
+          and retirement. You can specify when expenses start and end using dates.
         </p>
       </div>
     </div>
@@ -137,12 +131,12 @@
               <p>
                 <strong>Inflation Rate:</strong> {{ (expense.inflationRate * 100).toFixed(1) }}% per year
               </p>
-              <p v-if="expense.startAge || expense.endAge">
-                <strong>Age Range:</strong>
-                <span v-if="expense.startAge">from age {{ expense.startAge }}</span>
-                <span v-if="expense.startAge && expense.endAge"> to age {{ expense.endAge }}</span>
-                <span v-if="!expense.startAge && expense.endAge">until age {{ expense.endAge }}</span>
-                <span v-if="!expense.startAge && !expense.endAge" class="text-green-600"> (ongoing)</span>
+              <p v-if="expense.startDate || expense.endDate">
+                <strong>Date Range:</strong>
+                <span v-if="expense.startDate">from {{ expense.startDate }}</span>
+                <span v-if="expense.startDate && expense.endDate"> to {{ expense.endDate }}</span>
+                <span v-if="!expense.startDate && expense.endDate">until {{ expense.endDate }}</span>
+                <span v-if="!expense.startDate && !expense.endDate" class="text-green-600"> (ongoing)</span>
               </p>
             </div>
           </div>
@@ -197,8 +191,8 @@ const newExpense = ref({
   category: 'living' as ExpenseCategory,
   monthlyAmount: 0,
   inflationRatePercent: 3, // Default 3%
-  startAge: undefined as number | undefined,
-  endAge: undefined as number | undefined
+  startDate: '' as string,
+  endDate: '' as string
 })
 
 function addExpense() {
@@ -208,8 +202,8 @@ function addExpense() {
     category: newExpense.value.category,
     monthlyAmount: newExpense.value.monthlyAmount,
     inflationRate: newExpense.value.inflationRatePercent / 100, // Convert % to decimal
-    startAge: newExpense.value.startAge,
-    endAge: newExpense.value.endAge
+    startDate: newExpense.value.startDate || undefined,
+    endDate: newExpense.value.endDate || undefined
   }
 
   expenseStore.addExpense(expense)
@@ -220,8 +214,8 @@ function addExpense() {
     category: 'living',
     monthlyAmount: 0,
     inflationRatePercent: 3,
-    startAge: undefined,
-    endAge: undefined
+    startDate: '',
+    endDate: ''
   }
 }
 

@@ -111,12 +111,18 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     const expenses = data.expenses || []
 
     expenses.forEach(expense => {
-      const startAge = expense.startAge ?? data.currentAge
-      const endAge = expense.endAge ?? 120
+      // Determine if expense is active in this month
+      const startMonth = expense.startDate
+        ? parseMonthDate(expense.startDate, currentYear, currentMonth)
+        : 0 // Start immediately if no start date
+      const endMonth = expense.endDate
+        ? parseMonthDate(expense.endDate, currentYear, currentMonth)
+        : totalMonths + 1 // Ongoing if no end date
 
-      if (age >= startAge && age < endAge) {
+      if (monthIndex >= startMonth && monthIndex < endMonth) {
         // Apply inflation from expense start
-        const yearsFromExpenseStart = Math.max(0, age - startAge)
+        const monthsFromExpenseStart = Math.max(0, monthIndex - startMonth)
+        const yearsFromExpenseStart = monthsFromExpenseStart / 12
         const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromExpenseStart)
         monthlyExpenses += inflatedAmount
       }

@@ -110,8 +110,8 @@ describe('Phase 4 Integration Tests', () => {
         category: 'healthcare',
         monthlyAmount: 2000,
         inflationRate: 0.06,
-        startAge: 75, // Only starts at 75
-        endAge: 85
+        startDate: '2040-01', // Only starts 10 years after retirement
+        endDate: '2050-01'
       })
 
       const results = retirementStore.results
@@ -234,8 +234,8 @@ describe('Phase 4 Integration Tests', () => {
               category: 'living',
               monthlyAmount: 3000,
               inflationRate: 0.03,
-              startAge: 65,
-              endAge: 85
+              startDate: '2020-01',
+              endDate: '2040-01'
             }
           ]
         }
@@ -267,7 +267,7 @@ describe('Phase 4 Integration Tests', () => {
         category: 'living',
         monthlyAmount: 3500,
         inflationRate: 0.03,
-        startAge: 67
+        startDate: '2025-01'
       })
 
       expenseStore.addExpense({
@@ -276,8 +276,8 @@ describe('Phase 4 Integration Tests', () => {
         category: 'healthcare',
         monthlyAmount: 1200,
         inflationRate: 0.06,
-        startAge: 75,
-        endAge: 90
+        startDate: '2033-01',
+        endDate: '2048-01'
       })
 
       // Export

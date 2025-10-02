@@ -12,6 +12,7 @@ export const useExpenseStore = defineStore('expense', () => {
       category: 'living',
       monthlyAmount: 3000,
       inflationRate: 0.03, // 3% annual inflation
+      // startDate and endDate are optional - undefined means start now and ongoing
     }
   ])
 
@@ -94,6 +95,7 @@ export const useExpenseStore = defineStore('expense', () => {
         category: 'living',
         monthlyAmount: 3000,
         inflationRate: 0.03,
+        // startDate and endDate are optional - undefined means start now and ongoing
       }
     ]
   }

@@ -156,7 +156,8 @@ describe('postRetirementProjections', () => {
             name: 'Living',
             category: 'living',
             monthlyAmount: 1000,
-            inflationRate: 0.03 // 3% annual
+            inflationRate: 0.03, // 3% annual
+            startDate: '2060-10' // Start at retirement (age 30 + 35 years)
           }
         ]
       }
@@ -181,14 +182,16 @@ describe('postRetirementProjections', () => {
             name: 'Living',
             category: 'living',
             monthlyAmount: 2000,
-            inflationRate: 0.03 // 3%
+            inflationRate: 0.03, // 3%
+            startDate: '2060-10'
           },
           {
             id: '2',
             name: 'Healthcare',
             category: 'healthcare',
             monthlyAmount: 1000,
-            inflationRate: 0.06 // 6%
+            inflationRate: 0.06, // 6%
+            startDate: '2060-10'
           }
         ]
       }
@@ -211,7 +214,8 @@ describe('postRetirementProjections', () => {
             name: 'Living',
             category: 'living',
             monthlyAmount: 1000,
-            inflationRate: 0.03
+            inflationRate: 0.03,
+            startDate: '2060-10'
           }
         ]
       }
@@ -265,7 +269,7 @@ describe('postRetirementProjections', () => {
             category: 'travel',
             monthlyAmount: 1000,
             inflationRate: 0,
-            startAge: 70 // Starts at age 70
+            startDate: '2065-10' // Starts 5 years after retirement (2060-10)
           }
         ]
       }
@@ -299,7 +303,7 @@ describe('postRetirementProjections', () => {
             category: 'travel',
             monthlyAmount: 1000,
             inflationRate: 0,
-            endAge: 75 // Ends at age 75
+            endDate: '2070-10' // Ends 10 years after retirement (2060-10)
           }
         ]
       }
@@ -333,8 +337,8 @@ describe('postRetirementProjections', () => {
             category: 'travel',
             monthlyAmount: 1000,
             inflationRate: 0,
-            startAge: 65,
-            endAge: 75
+            startDate: '2060-10',
+            endDate: '2070-10'
           },
           {
             id: '3',
@@ -342,7 +346,7 @@ describe('postRetirementProjections', () => {
             category: 'healthcare',
             monthlyAmount: 500,
             inflationRate: 0,
-            startAge: 75
+            startDate: '2070-10'
           }
         ]
       }
@@ -449,7 +453,7 @@ describe('postRetirementProjections', () => {
           category: 'travel',
           monthlyAmount: 2000,
           inflationRate: 0.03,
-          startAge: 70
+          startDate: '2065-10' // Starts 5 years after retirement (2060-10)
         }
       ]
 

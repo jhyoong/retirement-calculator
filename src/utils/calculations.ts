@@ -172,7 +172,7 @@ function validateOneOffReturn(oneOff: OneOffReturn, index: number): ValidationEr
 /**
  * Phase 4: Validate retirement expense
  */
-function validateRetirementExpense(expense: import('@/types').RetirementExpense, index: number, currentAge: number): ValidationError[] {
+function validateRetirementExpense(expense: import('@/types').RetirementExpense, index: number): ValidationError[] {
   const errors: ValidationError[] = []
   const prefix = `expense[${index}]`
 
@@ -200,29 +200,33 @@ function validateRetirementExpense(expense: import('@/types').RetirementExpense,
     })
   }
 
-  // Age range validation
-  if (expense.startAge !== undefined) {
-    if (expense.startAge < currentAge) {
+  // Start date validation (if provided)
+  if (expense.startDate) {
+    if (!validateDateString(expense.startDate)) {
       errors.push({
-        field: `${prefix}.startAge`,
-        message: 'Start age cannot be in the past (must be at or after current age)'
+        field: `${prefix}.startDate`,
+        message: 'Start date must be in YYYY-MM format'
       })
     }
   }
 
-  if (expense.endAge !== undefined) {
-    if (expense.endAge <= currentAge) {
+  // End date validation (if provided)
+  if (expense.endDate) {
+    if (!validateDateString(expense.endDate)) {
       errors.push({
-        field: `${prefix}.endAge`,
-        message: 'End age must be after current age'
+        field: `${prefix}.endDate`,
+        message: 'End date must be in YYYY-MM format'
       })
-    }
-
-    if (expense.startAge !== undefined && expense.endAge <= expense.startAge) {
-      errors.push({
-        field: `${prefix}.endAge`,
-        message: 'End age must be after start age'
-      })
+    } else if (expense.startDate && validateDateString(expense.startDate)) {
+      // Check that end date is after start date
+      const start = new Date(expense.startDate + '-01')
+      const end = new Date(expense.endDate + '-01')
+      if (end <= start) {
+        errors.push({
+          field: `${prefix}.endDate`,
+          message: 'End date must be after start date'
+        })
+      }
     }
   }
 
@@ -309,7 +313,7 @@ export function validateInputs(data: UserData): ValidationResult {
   // Phase 4: Expenses validation
   if (data.expenses) {
     data.expenses.forEach((expense, index) => {
-      errors.push(...validateRetirementExpense(expense, index, data.currentAge))
+      errors.push(...validateRetirementExpense(expense, index))
     })
   }
 
@@ -404,15 +408,19 @@ export function calculateFutureValueWithIncomeSources(
     // Calculate expenses for this month
     let monthlyExpenses = 0
     if (expenses && expenses.length > 0) {
-      const currentAge = _currentAge + (month / 12)
-
       expenses.forEach(expense => {
-        const startAge = expense.startAge ?? _currentAge
-        const endAge = expense.endAge ?? 120 // Far future
+        // Determine if expense is active in this month
+        const startMonth = expense.startDate
+          ? parseMonthDate(expense.startDate, currentYear, currentMonth)
+          : 0 // Start immediately if no start date
+        const endMonth = expense.endDate
+          ? parseMonthDate(expense.endDate, currentYear, currentMonth)
+          : months + 1 // Ongoing if no end date
 
-        if (currentAge >= startAge && currentAge < endAge) {
+        if (month >= startMonth && month < endMonth) {
           // Calculate inflation from expense start
-          const yearsFromExpenseStart = Math.max(0, (currentAge - startAge))
+          const monthsFromExpenseStart = Math.max(0, month - startMonth)
+          const yearsFromExpenseStart = monthsFromExpenseStart / 12
           const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromExpenseStart)
           monthlyExpenses += inflatedAmount
         }
@@ -453,21 +461,46 @@ export function calculateYearsUntilDepletion(
   const monthlyRate = annualReturnRate / 12
   let balance = startingBalance
   const maxMonths = (maxAge - retirementAge) * 12
+  const currentYear = new Date().getFullYear()
+  const currentMonth = new Date().getMonth() + 1
+
+  // Calculate months to retirement to establish the baseline for retirement month
+  const monthsToRetirement = retirementAge * 12 // Approximate
+  const retirementYear = currentYear + Math.floor((currentMonth - 1 + monthsToRetirement) / 12)
+  const retirementMonth = ((currentMonth - 1 + monthsToRetirement) % 12) + 1
 
   for (let monthIndex = 0; monthIndex < maxMonths; monthIndex++) {
-    const currentAge = retirementAge + monthIndex / 12
+    // Calculate current date
+    const yearOffset = Math.floor(monthIndex / 12)
+    const monthOffset = monthIndex % 12
+    const year = retirementYear + yearOffset
+    const month = retirementMonth + monthOffset
+
+    // Adjust if month exceeds 12
+    const adjustedYear = month > 12 ? year + Math.floor((month - 1) / 12) : year
+    const adjustedMonth = month > 12 ? ((month - 1) % 12) + 1 : month
+
+    // Format current month as YYYY-MM
+    const currentMonthStr = `${adjustedYear}-${String(adjustedMonth).padStart(2, '0')}`
 
     // Calculate total expenses for this month with inflation-adjusted amounts
     let monthlyExpenses = 0
     expenses.forEach(expense => {
-      // Check if expense is active at this age
-      const startAge = expense.startAge ?? retirementAge
-      const endAge = expense.endAge ?? maxAge
+      // Determine if expense is active in this month
+      const startDateStr = expense.startDate || `${currentYear}-${String(currentMonth).padStart(2, '0')}`
+      const endDateStr = expense.endDate || `9999-12` // Far future
 
-      if (currentAge >= startAge && currentAge < endAge) {
-        // Apply inflation from retirement age
-        const yearsFromRetirement = monthIndex / 12
-        const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromRetirement)
+      // Simple string comparison works for YYYY-MM format
+      if (currentMonthStr >= startDateStr && currentMonthStr < endDateStr) {
+        // Calculate months from expense start for inflation
+        const startDate = new Date(startDateStr + '-01')
+        const currentDate = new Date(currentMonthStr + '-01')
+        const monthsFromExpenseStart = Math.max(0,
+          (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
+          (currentDate.getMonth() - startDate.getMonth())
+        )
+        const yearsFromExpenseStart = monthsFromExpenseStart / 12
+        const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromExpenseStart)
         monthlyExpenses += inflatedAmount
       }
     })
@@ -609,10 +642,18 @@ export function calculateRetirement(data: UserData): CalculationResult {
     )
 
     // Calculate annual expenses for warning check (at retirement age, before inflation)
+    const currentYear = new Date().getFullYear()
+    const currentMonth = new Date().getMonth() + 1
+    const monthsToRetirement = (actualRetirementAge - data.currentAge) * 12
+    const retirementYear = currentYear + Math.floor((currentMonth - 1 + monthsToRetirement) / 12)
+    const retirementMonth = ((currentMonth - 1 + monthsToRetirement) % 12) + 1
+    const retirementMonthStr = `${retirementYear}-${String(retirementMonth).padStart(2, '0')}`
+
     const annualExpenses = data.expenses.reduce((total, expense) => {
-      const startAge = expense.startAge ?? data.currentAge
-      const endAge = expense.endAge ?? Infinity
-      if (actualRetirementAge >= startAge && actualRetirementAge < endAge) {
+      const startDateStr = expense.startDate || `${currentYear}-${String(currentMonth).padStart(2, '0')}`
+      const endDateStr = expense.endDate || `9999-12`
+
+      if (retirementMonthStr >= startDateStr && retirementMonthStr < endDateStr) {
         return total + expense.monthlyAmount * 12
       }
       return total
