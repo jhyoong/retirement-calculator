@@ -6,31 +6,41 @@
           Visualizations
         </h2>
 
-        <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-gray-700">
-            Show:
-          </label>
+        <div class="flex items-center space-x-4">
+          <div class="flex items-center space-x-2">
+            <label class="text-sm font-medium text-gray-700">
+              Show:
+            </label>
+            <button
+              @click="showInflationAdjusted = false"
+              :class="[
+                'px-4 py-2 rounded-l-lg text-sm font-medium transition-colors',
+                !showInflationAdjusted
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              ]"
+            >
+              Nominal
+            </button>
+            <button
+              @click="showInflationAdjusted = true"
+              :class="[
+                'px-4 py-2 rounded-r-lg text-sm font-medium transition-colors',
+                showInflationAdjusted
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              ]"
+            >
+              Inflation-Adjusted
+            </button>
+          </div>
+
           <button
-            @click="showInflationAdjusted = false"
-            :class="[
-              'px-4 py-2 rounded-l-lg text-sm font-medium transition-colors',
-              !showInflationAdjusted
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            ]"
+            v-if="canShowMore"
+            @click="showExtended = !showExtended"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-green-600 text-white hover:bg-green-700"
           >
-            Nominal
-          </button>
-          <button
-            @click="showInflationAdjusted = true"
-            :class="[
-              'px-4 py-2 rounded-r-lg text-sm font-medium transition-colors',
-              showInflationAdjusted
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            ]"
-          >
-            Inflation-Adjusted
+            {{ showExtended ? 'Show Less' : 'Show More (to Age 80)' }}
           </button>
         </div>
       </div>
@@ -58,13 +68,15 @@ import MonthlyBreakdownTable from './MonthlyBreakdownTable.vue'
 
 const store = useRetirementStore()
 const showInflationAdjusted = ref(false)
+const showExtended = ref(false)
 
 // Generate monthly projections from current user data
 const nominalProjections = computed(() => {
   if (!store.validation.isValid) {
     return []
   }
-  return generateMonthlyProjections(store.userData)
+  const maxAge = showExtended.value ? 80 : undefined
+  return generateMonthlyProjections(store.userData, maxAge)
 })
 
 // Apply inflation adjustment if toggled
@@ -78,5 +90,10 @@ const displayData = computed(() => {
   }
 
   return nominalProjections.value
+})
+
+// Check if "Show More" button should be available
+const canShowMore = computed(() => {
+  return store.validation.isValid && store.userData.retirementAge < 80
 })
 </script>

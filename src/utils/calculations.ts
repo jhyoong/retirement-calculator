@@ -556,6 +556,31 @@ export function checkSustainabilityWarning(
 }
 
 /**
+ * Helper: Find the actual age when all income stops
+ */
+function findActualRetirementAge(data: UserData): number {
+  if (!data.incomeSources || data.incomeSources.length === 0) {
+    return data.retirementAge
+  }
+
+  const currentYear = new Date().getFullYear()
+  const currentMonth = new Date().getMonth() + 1
+
+  let latestIncomeAge = data.retirementAge
+
+  data.incomeSources.forEach(source => {
+    if (source.endDate) {
+      const [year, month] = source.endDate.split('-').map(Number)
+      const monthsFromNow = (year - currentYear) * 12 + (month - currentMonth)
+      const ageWhenIncomeEnds = data.currentAge + (monthsFromNow / 12)
+      latestIncomeAge = Math.max(latestIncomeAge, ageWhenIncomeEnds)
+    }
+  })
+
+  return latestIncomeAge
+}
+
+/**
  * Main calculation function for retirement planning
  */
 export function calculateRetirement(data: UserData): CalculationResult {
@@ -572,10 +597,14 @@ export function calculateRetirement(data: UserData): CalculationResult {
 
   // Use time-based calculation if income sources exist
   if (data.incomeSources && data.incomeSources.length > 0) {
+    // Calculate until actual end of income (may be beyond retirement age)
+    const actualRetirementAge = findActualRetirementAge(data)
+    const yearsToActualRetirement = actualRetirementAge - data.currentAge
+
     const result = calculateFutureValueWithIncomeSources(
       data.currentSavings,
       data.expectedReturnRate,
-      yearsToRetirement,
+      yearsToActualRetirement,
       data.currentAge,
       data.incomeSources,
       data.oneOffReturns || [],
@@ -601,10 +630,16 @@ export function calculateRetirement(data: UserData): CalculationResult {
 
   const investmentGrowth = futureValue - totalContributions
 
+  // Calculate inflation adjustment based on actual accumulation period
+  const actualRetirementAge = data.incomeSources && data.incomeSources.length > 0
+    ? findActualRetirementAge(data)
+    : data.retirementAge
+  const yearsToActualRetirement = actualRetirementAge - data.currentAge
+
   const inflationAdjustedValue = adjustForInflation(
     futureValue,
     data.inflationRate,
-    yearsToRetirement
+    yearsToActualRetirement
   )
 
   // Phase 4: Calculate post-retirement sustainability if expenses are defined
@@ -612,12 +647,15 @@ export function calculateRetirement(data: UserData): CalculationResult {
   let sustainabilityWarning = false
 
   if (data.expenses && data.expenses.length > 0 && data.withdrawalConfig) {
+    // Use actual retirement age (when income truly stops)
+    const actualRetirementAge = findActualRetirementAge(data)
+
     yearsUntilDepletion = calculateYearsUntilDepletion(
       futureValue,
       data.expectedReturnRate,
       data.expenses,
       data.withdrawalConfig,
-      data.retirementAge
+      actualRetirementAge
     )
 
     // Calculate annual withdrawal for warning check

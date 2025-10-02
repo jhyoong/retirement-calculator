@@ -35,12 +35,13 @@ function parseMonthDate(dateStr: string, baseYear: number, baseMonth: number): n
 }
 
 /**
- * Generate month-by-month projections from current age to retirement
+ * Generate month-by-month projections from current age to retirement (or maxAge if specified)
  */
-export function generateMonthlyProjections(data: UserData): MonthlyDataPoint[] {
+export function generateMonthlyProjections(data: UserData, maxAge?: number): MonthlyDataPoint[] {
   const monthlyRate = data.expectedReturnRate / 12
-  const yearsToRetirement = data.retirementAge - data.currentAge
-  const totalMonths = yearsToRetirement * 12
+  const endAge = maxAge ?? data.retirementAge
+  const yearsToEnd = endAge - data.currentAge
+  const totalMonths = yearsToEnd * 12
 
   const currentYear = new Date().getFullYear()
   const currentMonth = new Date().getMonth() + 1 // Current month (1-12)
@@ -75,7 +76,7 @@ export function generateMonthlyProjections(data: UserData): MonthlyDataPoint[] {
     let monthlyIncome = 0
 
     if (useIncomeSources) {
-      // Phase 2: Variable income sources
+      // Phase 2: Variable income sources - respect their actual start/end dates
       incomeSources.forEach((source: IncomeStream) => {
         const startMonth = parseMonthDate(source.startDate, currentYear, currentMonth)
         const endMonth = source.endDate
@@ -99,8 +100,10 @@ export function generateMonthlyProjections(data: UserData): MonthlyDataPoint[] {
         }
       })
     } else {
-      // Phase 1: Constant monthly contribution
-      monthlyIncome = data.monthlyContribution
+      // Phase 1: Constant monthly contribution - only before retirement
+      if (age < data.retirementAge) {
+        monthlyIncome = data.monthlyContribution
+      }
     }
 
     // Calculate expenses for this month
@@ -122,20 +125,43 @@ export function generateMonthlyProjections(data: UserData): MonthlyDataPoint[] {
     // Store balance before any changes
     const balanceBeforeMonth = balance
 
-    // Add income to balance
-    balance += monthlyIncome
+    // Calculate net contribution (income - expenses)
+    // This is what actually flows into/out of the portfolio
+    const netContribution = monthlyIncome - monthlyExpenses
 
-    // Subtract expenses from balance
-    balance -= monthlyExpenses
+    // Add net contribution to portfolio
+    balance += netContribution
 
-    // Update cumulative contributions (income - expenses)
-    cumulativeContributions += (monthlyIncome - monthlyExpenses)
+    // Update cumulative contributions
+    cumulativeContributions += netContribution
 
     // Apply interest on the new balance (after contribution)
     balance = balance * (1 + monthlyRate)
 
     // Calculate growth this month (interest earned)
-    const growth = balance - balanceBeforeMonth - monthlyIncome + monthlyExpenses
+    const growth = balance - balanceBeforeMonth - netContribution
+
+    // Calculate withdrawal amount for display purposes
+    // This shows what the withdrawal strategy dictates (used for display only)
+    let withdrawalAmount = monthlyExpenses
+    const atOrAfterRetirement = age >= data.retirementAge
+
+    if (atOrAfterRetirement && data.withdrawalConfig) {
+      const config = data.withdrawalConfig
+      switch (config.strategy) {
+        case 'fixed':
+          withdrawalAmount = config.fixedAmount ?? 0
+          break
+        case 'percentage':
+          withdrawalAmount = balanceBeforeMonth * (config.percentage ?? 0)
+          break
+        case 'combined':
+          withdrawalAmount = (config.fixedAmount ?? 0) + balanceBeforeMonth * (config.percentage ?? 0)
+          break
+      }
+      // Ensure withdrawal covers expenses at minimum
+      withdrawalAmount = Math.max(withdrawalAmount, monthlyExpenses)
+    }
 
     projections.push({
       monthIndex,
@@ -143,7 +169,7 @@ export function generateMonthlyProjections(data: UserData): MonthlyDataPoint[] {
       month: adjustedMonth,
       age: Math.round(age * 100) / 100,
       income: Math.round(monthlyIncome * 100) / 100,
-      expenses: Math.round(monthlyExpenses * 100) / 100,
+      expenses: Math.round(withdrawalAmount * 100) / 100, // Show total withdrawal need (before income offset)
       contributions: Math.round(cumulativeContributions * 100) / 100,
       portfolioValue: Math.round(balance * 100) / 100,
       growth: Math.round(growth * 100) / 100
