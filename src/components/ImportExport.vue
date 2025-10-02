@@ -82,6 +82,7 @@ async function handleImport(event: Event) {
 
   try {
     const data = await parseImportedFile(file)
+
     store.loadData(data.user)
 
     message.value = 'Data imported successfully!'

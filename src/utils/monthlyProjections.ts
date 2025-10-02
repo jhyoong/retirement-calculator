@@ -111,12 +111,18 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     const expenses = data.expenses || []
 
     expenses.forEach(expense => {
-      const startAge = expense.startAge ?? data.currentAge
-      const endAge = expense.endAge ?? 120
+      // Determine if expense is active in this month
+      const startMonth = expense.startDate
+        ? parseMonthDate(expense.startDate, currentYear, currentMonth)
+        : 0 // Start immediately if no start date
+      const endMonth = expense.endDate
+        ? parseMonthDate(expense.endDate, currentYear, currentMonth)
+        : totalMonths + 1 // Ongoing if no end date
 
-      if (age >= startAge && age < endAge) {
+      if (monthIndex >= startMonth && monthIndex < endMonth) {
         // Apply inflation from expense start
-        const yearsFromExpenseStart = Math.max(0, age - startAge)
+        const monthsFromExpenseStart = Math.max(0, monthIndex - startMonth)
+        const yearsFromExpenseStart = monthsFromExpenseStart / 12
         const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromExpenseStart)
         monthlyExpenses += inflatedAmount
       }
@@ -133,7 +139,10 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     balance += netContribution
 
     // Update cumulative contributions
-    cumulativeContributions += netContribution
+    // Only add to contributions when net is positive (money flowing IN)
+    // When expenses exceed income, we're withdrawing, not contributing
+    const monthlyContribution = Math.max(0, netContribution)
+    cumulativeContributions += monthlyContribution
 
     // Apply interest on the new balance (after contribution)
     balance = balance * (1 + monthlyRate)
@@ -141,35 +150,13 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     // Calculate growth this month (interest earned)
     const growth = balance - balanceBeforeMonth - netContribution
 
-    // Calculate withdrawal amount for display purposes
-    // This shows what the withdrawal strategy dictates (used for display only)
-    let withdrawalAmount = monthlyExpenses
-    const atOrAfterRetirement = age >= data.retirementAge
-
-    if (atOrAfterRetirement && data.withdrawalConfig) {
-      const config = data.withdrawalConfig
-      switch (config.strategy) {
-        case 'fixed':
-          withdrawalAmount = config.fixedAmount ?? 0
-          break
-        case 'percentage':
-          withdrawalAmount = balanceBeforeMonth * (config.percentage ?? 0)
-          break
-        case 'combined':
-          withdrawalAmount = (config.fixedAmount ?? 0) + balanceBeforeMonth * (config.percentage ?? 0)
-          break
-      }
-      // Ensure withdrawal covers expenses at minimum
-      withdrawalAmount = Math.max(withdrawalAmount, monthlyExpenses)
-    }
-
     projections.push({
       monthIndex,
       year: adjustedYear,
       month: adjustedMonth,
       age: Math.round(age * 100) / 100,
       income: Math.round(monthlyIncome * 100) / 100,
-      expenses: Math.round(withdrawalAmount * 100) / 100, // Show total withdrawal need (before income offset)
+      expenses: Math.round(monthlyExpenses * 100) / 100, // Show actual expenses
       contributions: Math.round(cumulativeContributions * 100) / 100,
       portfolioValue: Math.round(balance * 100) / 100,
       growth: Math.round(growth * 100) / 100

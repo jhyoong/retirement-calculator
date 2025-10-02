@@ -49,9 +49,9 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
         </svg>
         <div class="flex-1">
-          <h4 class="font-semibold text-yellow-900 mb-1">High Withdrawal Rate</h4>
+          <h4 class="font-semibold text-yellow-900 mb-1">High Expense Rate</h4>
           <p class="text-sm text-yellow-800">
-            Your withdrawal rate exceeds the recommended safe threshold of 5% annually.
+            Your annual expenses exceed the recommended safe threshold of 5% of your portfolio.
             This increases the risk of depleting your portfolio prematurely.
           </p>
         </div>
@@ -71,19 +71,19 @@
 
       <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
         <p class="text-sm text-gray-700 font-medium mb-1">
-          Annual Withdrawal
+          Annual Expenses
         </p>
         <p class="text-2xl font-bold text-gray-900">
-          {{ formatCurrency(annualWithdrawal) }}
+          {{ formatCurrency(annualExpenses) }}
         </p>
       </div>
 
       <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
         <p class="text-sm text-gray-700 font-medium mb-1">
-          Initial Withdrawal Rate
+          Initial Expense Rate
         </p>
         <p class="text-2xl font-bold text-gray-900">
-          {{ withdrawalRatePercent }}%
+          {{ expenseRatePercent }}%
         </p>
         <p class="text-xs text-gray-600 mt-1">
           of portfolio at retirement
@@ -93,7 +93,7 @@
 
     <!-- No Expenses Message -->
     <div v-else class="text-center py-8 text-gray-500 bg-gray-50 rounded-lg border border-gray-200">
-      <p>Add retirement expenses and configure your withdrawal strategy to see sustainability analysis.</p>
+      <p>Add retirement expenses to see sustainability analysis.</p>
     </div>
   </div>
 </template>
@@ -107,7 +107,7 @@ const store = useRetirementStore()
 const expenseStore = useExpenseStore()
 
 const hasExpenses = computed(() => {
-  return expenseStore.expenses.length > 0 && expenseStore.withdrawalConfig.strategy !== undefined
+  return expenseStore.expenses.length > 0
 })
 
 const isSustainable = computed(() => {
@@ -115,41 +115,21 @@ const isSustainable = computed(() => {
 })
 
 const depletionAge = computed(() => {
-  if (!store.results || store.results.yearsUntilDepletion === null) {
+  if (!store.results || store.results.depletionAge === null) {
     return null
   }
-  return store.retirementAge + store.results.yearsUntilDepletion
+  return store.results.depletionAge
 })
 
-const annualWithdrawal = computed(() => {
-  // Calculate first year withdrawal based on strategy
-  const config = expenseStore.withdrawalConfig
-  const futureValue = store.results?.futureValue ?? 0
-
-  let monthlyWithdrawal = 0
-
-  switch (config.strategy) {
-    case 'fixed':
-      monthlyWithdrawal = config.fixedAmount ?? 0
-      break
-    case 'percentage':
-      monthlyWithdrawal = futureValue * (config.percentage ?? 0)
-      break
-    case 'combined':
-      monthlyWithdrawal = (config.fixedAmount ?? 0) + futureValue * (config.percentage ?? 0)
-      break
-  }
-
-  // Ensure it covers expenses
-  monthlyWithdrawal = Math.max(monthlyWithdrawal, expenseStore.totalMonthlyExpenses)
-
-  return monthlyWithdrawal * 12
+const annualExpenses = computed(() => {
+  // Calculate first year expenses (before inflation)
+  return expenseStore.totalMonthlyExpenses * 12
 })
 
-const withdrawalRatePercent = computed(() => {
+const expenseRatePercent = computed(() => {
   const futureValue = store.results?.futureValue ?? 0
   if (futureValue === 0) return 0
-  const rate = (annualWithdrawal.value / futureValue) * 100
+  const rate = (annualExpenses.value / futureValue) * 100
   return rate.toFixed(2)
 })
 

@@ -12,11 +12,9 @@ export interface UserData {
   oneOffReturns?: OneOffReturn[];
   // Phase 4 additions
   expenses?: RetirementExpense[];
-  withdrawalConfig?: WithdrawalConfig;
 }
 
 export interface RetirementData {
-  version: string;
   exportDate: string;
   user: UserData;
 }
@@ -29,6 +27,7 @@ export interface CalculationResult {
   yearsToRetirement: number;
   // Phase 4 additions
   yearsUntilDepletion: number | null; // null means sustainable/never depletes
+  depletionAge: number | null; // exact age when portfolio depletes, null if sustainable
   sustainabilityWarning: boolean; // true if withdrawal rate is too high (>4-5%)
 }
 
@@ -82,7 +81,6 @@ export interface MonthlyDataPoint {
 // Phase 4 Type Definitions
 
 export type ExpenseCategory = 'living' | 'healthcare' | 'travel' | 'other';
-export type WithdrawalStrategy = 'fixed' | 'percentage' | 'combined';
 
 export interface RetirementExpense {
   id: string;
@@ -90,14 +88,8 @@ export interface RetirementExpense {
   category: ExpenseCategory;
   monthlyAmount: number;
   inflationRate: number; // Annual inflation rate as decimal (e.g., 0.03 for 3%)
-  startAge?: number; // Optional, defaults to current age
-  endAge?: number; // Optional, defaults to max projection age
-}
-
-export interface WithdrawalConfig {
-  strategy: WithdrawalStrategy;
-  fixedAmount?: number; // Used for 'fixed' and 'combined' strategies
-  percentage?: number; // Used for 'percentage' and 'combined' strategies (as decimal, e.g., 0.04 for 4%)
+  startDate?: string; // YYYY-MM format, optional - defaults to current month
+  endDate?: string; // YYYY-MM format, optional - defaults to ongoing
 }
 
 export interface PostRetirementDataPoint {
@@ -106,7 +98,6 @@ export interface PostRetirementDataPoint {
   month: number; // 1-12
   age: number;
   expenses: number; // Total expenses this month (inflation-adjusted)
-  withdrawal: number; // Amount withdrawn from portfolio
   portfolioValue: number; // Portfolio value at end of month
   growth: number; // Investment growth this month
 }

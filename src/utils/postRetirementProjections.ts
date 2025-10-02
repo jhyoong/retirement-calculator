@@ -1,25 +1,31 @@
-import type { UserData, PostRetirementDataPoint, RetirementExpense, WithdrawalConfig } from '@/types'
+import type { UserData, PostRetirementDataPoint, RetirementExpense } from '@/types'
 
 /**
- * Calculate total monthly expenses at a given age with inflation applied
+ * Calculate total monthly expenses at a given month with inflation applied
  */
 function calculateMonthlyExpenses(
   expenses: RetirementExpense[],
-  age: number,
-  monthsFromRetirement: number,
-  currentAge: number
+  currentMonthStr: string,
+  currentYear: number,
+  currentMonth: number
 ): number {
   let totalExpenses = 0
 
   expenses.forEach(expense => {
-    // Check if expense applies at this age
-    const startAge = expense.startAge ?? currentAge
-    const endAge = expense.endAge ?? Infinity
+    // Determine if expense is active in this month
+    const startDateStr = expense.startDate || `${currentYear}-${String(currentMonth).padStart(2, '0')}`
+    const endDateStr = expense.endDate || `9999-12`
 
-    if (age >= startAge && age < endAge) {
-      // Apply inflation for this expense category
-      const yearsFromStart = monthsFromRetirement / 12
-      const inflationMultiplier = Math.pow(1 + expense.inflationRate, yearsFromStart)
+    if (currentMonthStr >= startDateStr && currentMonthStr < endDateStr) {
+      // Calculate months from expense start for inflation
+      const startDate = new Date(startDateStr + '-01')
+      const currentDate = new Date(currentMonthStr + '-01')
+      const monthsFromExpenseStart = Math.max(0,
+        (currentDate.getFullYear() - startDate.getFullYear()) * 12 +
+        (currentDate.getMonth() - startDate.getMonth())
+      )
+      const yearsFromExpenseStart = monthsFromExpenseStart / 12
+      const inflationMultiplier = Math.pow(1 + expense.inflationRate, yearsFromExpenseStart)
       totalExpenses += expense.monthlyAmount * inflationMultiplier
     }
   })
@@ -27,31 +33,6 @@ function calculateMonthlyExpenses(
   return totalExpenses
 }
 
-/**
- * Calculate withdrawal amount based on strategy
- */
-function calculateWithdrawal(
-  portfolioValue: number,
-  monthlyExpenses: number,
-  config: WithdrawalConfig
-): number {
-  let withdrawal = 0
-
-  switch (config.strategy) {
-    case 'fixed':
-      withdrawal = config.fixedAmount ?? 0
-      break
-    case 'percentage':
-      withdrawal = portfolioValue * (config.percentage ?? 0)
-      break
-    case 'combined':
-      withdrawal = (config.fixedAmount ?? 0) + portfolioValue * (config.percentage ?? 0)
-      break
-  }
-
-  // Ensure withdrawal covers expenses at minimum
-  return Math.max(withdrawal, monthlyExpenses)
-}
 
 /**
  * Generate month-by-month projections from retirement age to depletion or max age
@@ -60,8 +41,8 @@ export function generatePostRetirementProjections(
   data: UserData,
   maxAge: number = 95
 ): PostRetirementDataPoint[] {
-  // If no expenses or withdrawal config, return empty array
-  if (!data.expenses || data.expenses.length === 0 || !data.withdrawalConfig) {
+  // If no expenses, return empty array
+  if (!data.expenses || data.expenses.length === 0) {
     return []
   }
 
@@ -100,23 +81,28 @@ export function generatePostRetirementProjections(
     // Calculate age (fractional)
     const age = data.retirementAge + (monthIndex / 12)
 
-    // Calculate expenses for this month (inflation-adjusted)
-    const monthlyExpenses = calculateMonthlyExpenses(data.expenses, age, monthIndex, data.currentAge)
+    // Format current month as YYYY-MM
+    const currentMonthStr = `${adjustedYear}-${String(adjustedMonth).padStart(2, '0')}`
 
-    // Calculate withdrawal based on strategy
-    const withdrawal = calculateWithdrawal(portfolioValue, monthlyExpenses, data.withdrawalConfig)
+    // Calculate expenses for this month (inflation-adjusted)
+    const monthlyExpenses = calculateMonthlyExpenses(
+      data.expenses,
+      currentMonthStr,
+      currentYear,
+      currentMonth
+    )
 
     // Store portfolio value before changes
     const portfolioBeforeMonth = portfolioValue
 
-    // Subtract withdrawal
-    portfolioValue -= withdrawal
+    // Subtract expenses
+    portfolioValue -= monthlyExpenses
 
     // Apply investment growth on remaining balance
     portfolioValue = portfolioValue * (1 + monthlyRate)
 
     // Calculate growth this month
-    const growth = portfolioValue - portfolioBeforeMonth + withdrawal
+    const growth = portfolioValue - portfolioBeforeMonth + monthlyExpenses
 
     // Ensure portfolio doesn't go negative
     if (portfolioValue < 0) {
@@ -129,7 +115,6 @@ export function generatePostRetirementProjections(
       month: adjustedMonth,
       age: Math.round(age * 100) / 100,
       expenses: Math.round(monthlyExpenses * 100) / 100,
-      withdrawal: Math.round(withdrawal * 100) / 100,
       portfolioValue: Math.round(portfolioValue * 100) / 100,
       growth: Math.round(growth * 100) / 100
     })
@@ -139,20 +124,27 @@ export function generatePostRetirementProjections(
 }
 
 /**
- * Calculate total expenses at retirement age (first month, no inflation yet)
+ * Calculate total expenses at retirement month (first month, no inflation yet)
  */
 export function calculateInitialMonthlyExpenses(
   expenses: RetirementExpense[],
   retirementAge: number,
   currentAge: number
 ): number {
+  const currentYear = new Date().getFullYear()
+  const currentMonth = new Date().getMonth() + 1
+  const monthsToRetirement = (retirementAge - currentAge) * 12
+  const retirementYear = currentYear + Math.floor((currentMonth - 1 + monthsToRetirement) / 12)
+  const retirementMonth = ((currentMonth - 1 + monthsToRetirement) % 12) + 1
+  const retirementMonthStr = `${retirementYear}-${String(retirementMonth).padStart(2, '0')}`
+
   let total = 0
 
   expenses.forEach(expense => {
-    const startAge = expense.startAge ?? currentAge
-    const endAge = expense.endAge ?? Infinity
+    const startDateStr = expense.startDate || `${currentYear}-${String(currentMonth).padStart(2, '0')}`
+    const endDateStr = expense.endDate || `9999-12`
 
-    if (retirementAge >= startAge && retirementAge < endAge) {
+    if (retirementMonthStr >= startDateStr && retirementMonthStr < endDateStr) {
       total += expense.monthlyAmount
     }
   })

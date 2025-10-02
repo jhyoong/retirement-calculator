@@ -29,9 +29,8 @@ export const useRetirementStore = defineStore('retirement', () => {
       // Phase 2: Include income sources if they exist
       incomeSources: incomeStore.incomeSources.length > 0 ? incomeStore.incomeSources : undefined,
       oneOffReturns: incomeStore.oneOffReturns.length > 0 ? incomeStore.oneOffReturns : undefined,
-      // Phase 4: Include expenses and withdrawal config if they exist
-      expenses: expenseStore.expenses.length > 0 ? expenseStore.expenses : undefined,
-      withdrawalConfig: expenseStore.expenses.length > 0 ? expenseStore.withdrawalConfig : undefined
+      // Phase 4: Include expenses if they exist
+      expenses: expenseStore.expenses.length > 0 ? expenseStore.expenses : undefined
     }
   })
 
@@ -98,11 +97,9 @@ export const useRetirementStore = defineStore('retirement', () => {
       incomeStore.resetToDefaults()
     }
 
-    // Phase 4: Load expenses and withdrawal config
+    // Phase 4: Load expenses
     const expenseStore = useExpenseStore()
-    if (data.expenses && data.withdrawalConfig) {
-      expenseStore.loadData(data.expenses, data.withdrawalConfig)
-    } else if (data.expenses) {
+    if (data.expenses) {
       expenseStore.loadData(data.expenses)
     } else {
       // If no expenses in imported data, load empty array (don't reset to defaults)

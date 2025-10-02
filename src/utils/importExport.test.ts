@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { exportData, validateImportedData } from './importExport'
 import type { UserData, RetirementData } from '@/types'
 
-describe('Import/Export with Phase 2 support', () => {
+describe('Import/Export', () => {
   describe('exportData', () => {
-    it('exports Phase 1 data with version 2.0.0', () => {
+    it('exports basic data', () => {
       const userData: UserData = {
         currentAge: 30,
         retirementAge: 65,
@@ -16,12 +16,11 @@ describe('Import/Export with Phase 2 support', () => {
 
       const exported = exportData(userData)
 
-      expect(exported.version).toBe('3.0.0') // Updated for Phase 4
       expect(exported.user).toEqual(userData)
       expect(exported.exportDate).toBeDefined()
     })
 
-    it('exports Phase 2 data with income sources', () => {
+    it('exports data with income sources', () => {
       const userData: UserData = {
         currentAge: 30,
         retirementAge: 65,
@@ -47,16 +46,14 @@ describe('Import/Export with Phase 2 support', () => {
 
       const exported = exportData(userData)
 
-      expect(exported.version).toBe('3.0.0') // Updated for Phase 4
       expect(exported.user.incomeSources).toHaveLength(1)
       expect(exported.user.oneOffReturns).toHaveLength(1)
     })
   })
 
   describe('validateImportedData', () => {
-    it('validates Phase 1 data (v1.0.0 format)', () => {
+    it('validates basic data', () => {
       const data: RetirementData = {
-        version: '1.0.0',
         exportDate: '2025-01-01T00:00:00.000Z',
         user: {
           currentAge: 30,
@@ -71,9 +68,8 @@ describe('Import/Export with Phase 2 support', () => {
       expect(validateImportedData(data)).toBe(true)
     })
 
-    it('validates Phase 2 data with income sources', () => {
+    it('validates data with income sources', () => {
       const data: RetirementData = {
-        version: '2.0.0',
         exportDate: '2025-01-01T00:00:00.000Z',
         user: {
           currentAge: 30,
@@ -96,9 +92,8 @@ describe('Import/Export with Phase 2 support', () => {
       expect(validateImportedData(data)).toBe(true)
     })
 
-    it('validates Phase 2 data with one-off returns', () => {
+    it('validates data with one-off returns', () => {
       const data: RetirementData = {
-        version: '2.0.0',
         exportDate: '2025-01-01T00:00:00.000Z',
         user: {
           currentAge: 30,
@@ -119,9 +114,8 @@ describe('Import/Export with Phase 2 support', () => {
       expect(validateImportedData(data)).toBe(true)
     })
 
-    it('validates Phase 2 data with both income sources and one-off returns', () => {
+    it('validates data with both income sources and one-off returns', () => {
       const data: RetirementData = {
-        version: '2.0.0',
         exportDate: '2025-01-01T00:00:00.000Z',
         user: {
           currentAge: 30,
@@ -152,7 +146,6 @@ describe('Import/Export with Phase 2 support', () => {
 
     it('rejects data with missing required fields', () => {
       const data = {
-        version: '2.0.0',
         exportDate: '2025-01-01T00:00:00.000Z',
         user: {
           currentAge: 30,
@@ -169,7 +162,6 @@ describe('Import/Export with Phase 2 support', () => {
 
     it('rejects data with invalid income sources structure', () => {
       const data = {
-        version: '2.0.0',
         exportDate: '2025-01-01T00:00:00.000Z',
         user: {
           currentAge: 30,
@@ -187,7 +179,6 @@ describe('Import/Export with Phase 2 support', () => {
 
     it('rejects data with invalid one-off returns structure', () => {
       const data = {
-        version: '2.0.0',
         exportDate: '2025-01-01T00:00:00.000Z',
         user: {
           currentAge: 30,
@@ -212,7 +203,6 @@ describe('Import/Export with Phase 2 support', () => {
 
     it('accepts empty income sources array', () => {
       const data: RetirementData = {
-        version: '2.0.0',
         exportDate: '2025-01-01T00:00:00.000Z',
         user: {
           currentAge: 30,

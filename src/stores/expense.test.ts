@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useExpenseStore } from './expense'
-import type { RetirementExpense, WithdrawalConfig } from '@/types'
+import type { RetirementExpense } from '@/types'
 
 describe('Expense Store', () => {
   beforeEach(() => {
@@ -17,13 +17,6 @@ describe('Expense Store', () => {
       expect(store.expenses[0].category).toBe('living')
       expect(store.expenses[0].monthlyAmount).toBe(3000)
       expect(store.expenses[0].inflationRate).toBe(0.03)
-    })
-
-    it('should have default withdrawal config with fixed strategy', () => {
-      const store = useExpenseStore()
-
-      expect(store.withdrawalConfig.strategy).toBe('fixed')
-      expect(store.withdrawalConfig.fixedAmount).toBe(3000)
     })
   })
 
@@ -138,7 +131,7 @@ describe('Expense Store', () => {
       expect(added?.monthlyAmount).toBe(500)
     })
 
-    it('should add expense with optional age fields', () => {
+    it('should add expense with optional date fields', () => {
       const store = useExpenseStore()
 
       const id = store.addExpense({
@@ -146,13 +139,13 @@ describe('Expense Store', () => {
         category: 'healthcare',
         monthlyAmount: 800,
         inflationRate: 0.06,
-        startAge: 65,
-        endAge: 70
+        startDate: '2025-01',
+        endDate: '2030-01'
       })
 
       const added = store.expenses.find(e => e.id === id)
-      expect(added?.startAge).toBe(65)
-      expect(added?.endAge).toBe(70)
+      expect(added?.startDate).toBe('2025-01')
+      expect(added?.endDate).toBe('2030-01')
     })
 
     it('should generate unique ids for multiple expenses', () => {
@@ -281,52 +274,6 @@ describe('Expense Store', () => {
     })
   })
 
-  describe('Actions: updateWithdrawalConfig', () => {
-    it('should update withdrawal config for fixed strategy', () => {
-      const store = useExpenseStore()
-
-      const newConfig: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 5000
-      }
-
-      store.updateWithdrawalConfig(newConfig)
-
-      expect(store.withdrawalConfig.strategy).toBe('fixed')
-      expect(store.withdrawalConfig.fixedAmount).toBe(5000)
-    })
-
-    it('should update withdrawal config for percentage strategy', () => {
-      const store = useExpenseStore()
-
-      const newConfig: WithdrawalConfig = {
-        strategy: 'percentage',
-        percentage: 0.04
-      }
-
-      store.updateWithdrawalConfig(newConfig)
-
-      expect(store.withdrawalConfig.strategy).toBe('percentage')
-      expect(store.withdrawalConfig.percentage).toBe(0.04)
-    })
-
-    it('should update withdrawal config for combined strategy', () => {
-      const store = useExpenseStore()
-
-      const newConfig: WithdrawalConfig = {
-        strategy: 'combined',
-        fixedAmount: 2000,
-        percentage: 0.03
-      }
-
-      store.updateWithdrawalConfig(newConfig)
-
-      expect(store.withdrawalConfig.strategy).toBe('combined')
-      expect(store.withdrawalConfig.fixedAmount).toBe(2000)
-      expect(store.withdrawalConfig.percentage).toBe(0.03)
-    })
-  })
-
   describe('Actions: loadData', () => {
     it('should load expenses data', () => {
       const store = useExpenseStore()
@@ -352,50 +299,6 @@ describe('Expense Store', () => {
 
       expect(store.expenses).toEqual(testExpenses)
     })
-
-    it('should load expenses and withdrawal config', () => {
-      const store = useExpenseStore()
-
-      const testExpenses: RetirementExpense[] = [
-        {
-          id: '1',
-          name: 'Loaded',
-          category: 'living',
-          monthlyAmount: 2000,
-          inflationRate: 0.03
-        }
-      ]
-
-      const testConfig: WithdrawalConfig = {
-        strategy: 'percentage',
-        percentage: 0.04
-      }
-
-      store.loadData(testExpenses, testConfig)
-
-      expect(store.expenses).toEqual(testExpenses)
-      expect(store.withdrawalConfig).toEqual(testConfig)
-    })
-
-    it('should load expenses without config', () => {
-      const store = useExpenseStore()
-      const originalConfig = { ...store.withdrawalConfig }
-
-      const testExpenses: RetirementExpense[] = [
-        {
-          id: '1',
-          name: 'Loaded',
-          category: 'living',
-          monthlyAmount: 2000,
-          inflationRate: 0.03
-        }
-      ]
-
-      store.loadData(testExpenses)
-
-      expect(store.expenses).toEqual(testExpenses)
-      expect(store.withdrawalConfig).toEqual(originalConfig) // Unchanged
-    })
   })
 
   describe('Actions: resetToDefaults', () => {
@@ -410,11 +313,6 @@ describe('Expense Store', () => {
         inflationRate: 0.03
       })
 
-      store.updateWithdrawalConfig({
-        strategy: 'percentage',
-        percentage: 0.05
-      })
-
       // Reset
       store.resetToDefaults()
 
@@ -422,9 +320,6 @@ describe('Expense Store', () => {
       expect(store.expenses[0].name).toBe('Living Expenses')
       expect(store.expenses[0].category).toBe('living')
       expect(store.expenses[0].monthlyAmount).toBe(3000)
-
-      expect(store.withdrawalConfig.strategy).toBe('fixed')
-      expect(store.withdrawalConfig.fixedAmount).toBe(3000)
     })
 
     it('should generate new ids on reset', () => {

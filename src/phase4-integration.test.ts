@@ -3,8 +3,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import { useRetirementStore } from './stores/retirement'
 import { useExpenseStore } from './stores/expense'
 import { exportData, validateImportedData } from './utils/importExport'
-import { migrateV1ToV2, migrateV2ToV3, needsMigration } from './utils/migration'
-import type { RetirementData, RetirementExpense, WithdrawalConfig } from './types'
+import type { RetirementExpense } from './types'
 
 describe('Phase 4 Integration Tests', () => {
   beforeEach(() => {
@@ -40,20 +39,12 @@ describe('Phase 4 Integration Tests', () => {
       }
       expenseStore.addExpense(expense)
 
-      // Configure withdrawal
-      const config: WithdrawalConfig = {
-        strategy: 'fixed',
-        fixedAmount: 4000
-      }
-      expenseStore.updateWithdrawalConfig(config)
-
       // Check that userData includes expenses
       const userData = retirementStore.userData
       expect(userData.expenses).toHaveLength(1)
       expect(userData.expenses![0].name).toBe(expense.name)
       expect(userData.expenses![0].category).toBe(expense.category)
       expect(userData.expenses![0].monthlyAmount).toBe(expense.monthlyAmount)
-      expect(userData.withdrawalConfig).toEqual(config)
 
       // Check results include Phase 4 metrics
       const results = retirementStore.results
@@ -62,47 +53,7 @@ describe('Phase 4 Integration Tests', () => {
       expect(results).toHaveProperty('sustainabilityWarning')
     })
 
-    it('should apply withdrawal config to calculations', () => {
-      const retirementStore = useRetirementStore()
-      const expenseStore = useExpenseStore()
-
-      // Set up retirement data
-      retirementStore.currentAge = 60
-      retirementStore.retirementAge = 65
-      retirementStore.currentSavings = 500000
-      retirementStore.expectedReturnRate = 0.05
-      retirementStore.inflationRate = 0.03
-
-      // Add modest expenses
-      expenseStore.addExpense({
-        id: '1',
-        name: 'Living',
-        category: 'living',
-        monthlyAmount: 2000,
-        inflationRate: 0.03
-      })
-
-      // Test different withdrawal strategies
-      expenseStore.updateWithdrawalConfig({
-        strategy: 'percentage',
-        percentage: 0.04
-      })
-
-      let results = retirementStore.results
-      expect(results).toBeDefined()
-
-      // Change to combined strategy
-      expenseStore.updateWithdrawalConfig({
-        strategy: 'combined',
-        fixedAmount: 1000,
-        percentage: 0.02
-      })
-
-      results = retirementStore.results
-      expect(results).toBeDefined()
-    })
-
-    it('should detect unsustainable withdrawal rates', () => {
+    it('should detect unsustainable expense rates', () => {
       const retirementStore = useRetirementStore()
       const expenseStore = useExpenseStore()
 
@@ -112,6 +63,11 @@ describe('Phase 4 Integration Tests', () => {
       retirementStore.expectedReturnRate = 0.04
       retirementStore.inflationRate = 0.03
 
+      // Clear default expenses
+      while (expenseStore.expenses.length > 0) {
+        expenseStore.removeExpense(expenseStore.expenses[0].id)
+      }
+
       // Add high expenses
       expenseStore.addExpense({
         id: '1',
@@ -119,11 +75,6 @@ describe('Phase 4 Integration Tests', () => {
         category: 'living',
         monthlyAmount: 5000,
         inflationRate: 0.03
-      })
-
-      expenseStore.updateWithdrawalConfig({
-        strategy: 'fixed',
-        fixedAmount: 5000
       })
 
       const results = retirementStore.results
@@ -138,6 +89,11 @@ describe('Phase 4 Integration Tests', () => {
       retirementStore.retirementAge = 65
       retirementStore.currentSavings = 1000000
       retirementStore.expectedReturnRate = 0.06
+
+      // Clear default expenses
+      while (expenseStore.expenses.length > 0) {
+        expenseStore.removeExpense(expenseStore.expenses[0].id)
+      }
 
       // Add expense that only applies later
       expenseStore.addExpense({
@@ -154,13 +110,8 @@ describe('Phase 4 Integration Tests', () => {
         category: 'healthcare',
         monthlyAmount: 2000,
         inflationRate: 0.06,
-        startAge: 75, // Only starts at 75
-        endAge: 85
-      })
-
-      expenseStore.updateWithdrawalConfig({
-        strategy: 'percentage',
-        percentage: 0.04
+        startDate: '2040-01', // Only starts 10 years after retirement
+        endDate: '2050-01'
       })
 
       const results = retirementStore.results
@@ -213,8 +164,8 @@ describe('Phase 4 Integration Tests', () => {
     })
   })
 
-  describe('Import/export v3 format', () => {
-    it('should export data with expenses and withdrawal config', () => {
+  describe('Import/export v4 format', () => {
+    it('should export data with expenses', () => {
       const retirementStore = useRetirementStore()
       const expenseStore = useExpenseStore()
 
@@ -235,24 +186,14 @@ describe('Phase 4 Integration Tests', () => {
         inflationRate: 0.03
       })
 
-      expenseStore.updateWithdrawalConfig({
-        strategy: 'fixed',
-        fixedAmount: 4000
-      })
-
       const exported = exportData(retirementStore.userData)
 
-      expect(exported.version).toBe('3.0.0')
       expect(exported.user.expenses).toHaveLength(1)
       expect(exported.user.expenses![0].name).toBe('Living')
-      expect(exported.user.withdrawalConfig).toBeDefined()
-      expect(exported.user.withdrawalConfig!.strategy).toBe('fixed')
-      expect(exported.user.withdrawalConfig!.fixedAmount).toBe(4000)
     })
 
-    it('should import v3 data successfully', () => {
-      const v3Data: RetirementData = {
-        version: '3.0.0',
+    it('should import data with expenses successfully', () => {
+      const data = {
         exportDate: new Date().toISOString(),
         user: {
           currentAge: 35,
@@ -269,20 +210,15 @@ describe('Phase 4 Integration Tests', () => {
               monthlyAmount: 4000,
               inflationRate: 0.03
             }
-          ],
-          withdrawalConfig: {
-            strategy: 'percentage',
-            percentage: 0.04
-          }
+          ]
         }
       }
 
-      expect(validateImportedData(v3Data)).toBe(true)
+      expect(validateImportedData(data)).toBe(true)
     })
 
-    it('should validate v3 structure correctly', () => {
-      const validV3: RetirementData = {
-        version: '3.0.0',
+    it('should validate data structure correctly', () => {
+      const validData = {
         exportDate: '2025-01-01',
         user: {
           currentAge: 30,
@@ -298,19 +234,14 @@ describe('Phase 4 Integration Tests', () => {
               category: 'living',
               monthlyAmount: 3000,
               inflationRate: 0.03,
-              startAge: 65,
-              endAge: 85
+              startDate: '2020-01',
+              endDate: '2040-01'
             }
-          ],
-          withdrawalConfig: {
-            strategy: 'combined',
-            fixedAmount: 2000,
-            percentage: 0.02
-          }
+          ]
         }
       }
 
-      expect(validateImportedData(validV3)).toBe(true)
+      expect(validateImportedData(validData)).toBe(true)
     })
 
     it('should round-trip export/import without data loss', () => {
@@ -336,7 +267,7 @@ describe('Phase 4 Integration Tests', () => {
         category: 'living',
         monthlyAmount: 3500,
         inflationRate: 0.03,
-        startAge: 67
+        startDate: '2025-01'
       })
 
       expenseStore.addExpense({
@@ -345,14 +276,8 @@ describe('Phase 4 Integration Tests', () => {
         category: 'healthcare',
         monthlyAmount: 1200,
         inflationRate: 0.06,
-        startAge: 75,
-        endAge: 90
-      })
-
-      expenseStore.updateWithdrawalConfig({
-        strategy: 'combined',
-        fixedAmount: 3000,
-        percentage: 0.03
+        startDate: '2033-01',
+        endDate: '2048-01'
       })
 
       // Export
@@ -371,16 +296,12 @@ describe('Phase 4 Integration Tests', () => {
       expect(newExpenseStore.expenses).toHaveLength(2)
       expect(newExpenseStore.expenses[0].name).toBe('Living')
       expect(newExpenseStore.expenses[1].name).toBe('Healthcare')
-      expect(newExpenseStore.withdrawalConfig.strategy).toBe('combined')
-      expect(newExpenseStore.withdrawalConfig.fixedAmount).toBe(3000)
-      expect(newExpenseStore.withdrawalConfig.percentage).toBe(0.03)
     })
   })
 
-  describe('Migration v2 to v3', () => {
-    it('should migrate v2 data successfully', () => {
-      const v2Data: RetirementData = {
-        version: '2.0.0',
+  describe('Data compatibility', () => {
+    it('should import data with income sources', () => {
+      const data = {
         exportDate: '2024-01-01',
         user: {
           currentAge: 30,
@@ -402,95 +323,11 @@ describe('Phase 4 Integration Tests', () => {
         }
       }
 
-      const migrated = migrateV2ToV3(v2Data)
-
-      expect(migrated.version).toBe('3.0.0')
-      expect(migrated.user.incomeSources).toHaveLength(1)
-      expect(migrated.user.expenses).toBeUndefined()
-      expect(migrated.user.withdrawalConfig).toBeUndefined()
+      expect(validateImportedData(data)).toBe(true)
     })
 
-    it('should handle missing expenses field in v2 data', () => {
-      const v2Data: RetirementData = {
-        version: '2.0.0',
-        exportDate: '2024-01-01',
-        user: {
-          currentAge: 30,
-          retirementAge: 65,
-          currentSavings: 100000,
-          monthlyContribution: 1000,
-          expectedReturnRate: 0.06,
-          inflationRate: 0.03
-        }
-      }
-
-      const migrated = migrateV2ToV3(v2Data)
-
-      expect(migrated.version).toBe('3.0.0')
-      expect(migrated.user.expenses).toBeUndefined()
-      expect(migrated.user.withdrawalConfig).toBeUndefined()
-
-      // Should be valid for import
-      expect(validateImportedData(migrated)).toBe(true)
-    })
-
-    it('should handle missing withdrawal config field', () => {
-      const v2Data: RetirementData = {
-        version: '2.0.0',
-        exportDate: '2024-01-01',
-        user: {
-          currentAge: 30,
-          retirementAge: 65,
-          currentSavings: 100000,
-          monthlyContribution: 1000,
-          expectedReturnRate: 0.06,
-          inflationRate: 0.03
-        }
-      }
-
-      const migrated = migrateV2ToV3(v2Data)
-      expect(migrated.user.withdrawalConfig).toBeUndefined()
-
-      // Load into store
-      const retirementStore = useRetirementStore()
-      retirementStore.loadData(migrated.user)
-
-      // Should use default from expense store
-      const expenseStore = useExpenseStore()
-      expect(expenseStore.withdrawalConfig).toBeDefined()
-      expect(expenseStore.withdrawalConfig.strategy).toBeDefined()
-    })
-  })
-
-  describe('Backward compatibility', () => {
-    it('should import v1 data (via migration chain)', () => {
-      const v1Data: RetirementData = {
-        version: '1.0.0',
-        exportDate: '2023-01-01',
-        user: {
-          currentAge: 25,
-          retirementAge: 65,
-          currentSavings: 50000,
-          monthlyContribution: 800,
-          expectedReturnRate: 0.07,
-          inflationRate: 0.03
-        }
-      }
-
-      // Migrate v1 -> v2
-      const v2Data = migrateV1ToV2(v1Data)
-      expect(v2Data.version).toBe('2.0.0')
-
-      // Migrate v2 -> v3
-      const v3Data = migrateV2ToV3(v2Data)
-      expect(v3Data.version).toBe('3.0.0')
-
-      expect(validateImportedData(v3Data)).toBe(true)
-    })
-
-    it('should import v2 data without issues', () => {
-      const v2Data: RetirementData = {
-        version: '2.0.0',
+    it('should import data with all features', () => {
+      const data = {
         exportDate: '2024-06-01',
         user: {
           currentAge: 35,
@@ -520,18 +357,17 @@ describe('Phase 4 Integration Tests', () => {
         }
       }
 
-      expect(validateImportedData(v2Data)).toBe(true)
-      expect(needsMigration(v2Data)).toBe(true)
-
-      const v3Data = migrateV2ToV3(v2Data)
-      expect(v3Data.version).toBe('3.0.0')
-      expect(v3Data.user.incomeSources).toHaveLength(1)
-      expect(v3Data.user.oneOffReturns).toHaveLength(1)
+      expect(validateImportedData(data)).toBe(true)
     })
 
-    it('should preserve Phase 1-3 features with Phase 4 additions', () => {
+    it('should preserve all features with expenses', () => {
       const retirementStore = useRetirementStore()
       const expenseStore = useExpenseStore()
+
+      // Clear default expenses
+      while (expenseStore.expenses.length > 0) {
+        expenseStore.removeExpense(expenseStore.expenses[0].id)
+      }
 
       // Phase 1 data
       retirementStore.currentAge = 30
@@ -555,11 +391,6 @@ describe('Phase 4 Integration Tests', () => {
         inflationRate: 0.03
       })
 
-      expenseStore.updateWithdrawalConfig({
-        strategy: 'fixed',
-        fixedAmount: 4000
-      })
-
       // Phase 1 calculations should still work
       const resultsWithExpenses = retirementStore.results
       expect(resultsWithExpenses).toBeDefined()
@@ -572,39 +403,6 @@ describe('Phase 4 Integration Tests', () => {
   })
 
   describe('Edge cases and validation', () => {
-    it('should handle expenses without withdrawal config', () => {
-      const expenseStore = useExpenseStore()
-
-      expenseStore.addExpense({
-        id: '1',
-        name: 'Living',
-        category: 'living',
-        monthlyAmount: 3000,
-        inflationRate: 0.03
-      })
-
-      // Should have default withdrawal config
-      expect(expenseStore.withdrawalConfig).toBeDefined()
-      expect(expenseStore.withdrawalConfig.strategy).toBeDefined()
-    })
-
-    it('should handle withdrawal config without expenses', () => {
-      const expenseStore = useExpenseStore()
-
-      // Clear defaults
-      while (expenseStore.expenses.length > 0) {
-        expenseStore.removeExpense(expenseStore.expenses[0].id)
-      }
-
-      expenseStore.updateWithdrawalConfig({
-        strategy: 'percentage',
-        percentage: 0.04
-      })
-
-      expect(expenseStore.withdrawalConfig.strategy).toBe('percentage')
-      expect(expenseStore.expenses).toHaveLength(0)
-    })
-
     it('should validate expense amounts are positive', () => {
       const retirementStore = useRetirementStore()
 

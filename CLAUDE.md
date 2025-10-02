@@ -61,10 +61,10 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 
 **Expense Store** (`src/stores/expense.ts`):
 - Phase 4 addition for retirement expense tracking
-- Manages: `expenses` array, `withdrawalConfig` object
+- Manages: `expenses` array
 - Computed: `totalMonthlyExpenses`, `expensesByCategory`, `totalsByCategory`
 - Default: Single "Living Expenses" entry ($3000/month, 3% inflation)
-- Actions: add/remove/update methods for expenses, updateWithdrawalConfig
+- Actions: add/remove/update methods for expenses
 
 ### Calculation Logic
 
@@ -72,7 +72,7 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - `calculateFutureValue()` - Standard compound interest formula: FV = PV(1+r)^n + PMT × [((1+r)^n - 1) / r]
 - `calculateFutureValueWithIncomeSources()` - Month-by-month calculation for variable income streams
 - `calculateRetirement()` - Main entry point, auto-detects calculation method, includes Phase 4 sustainability metrics
-- `validateInputs()` - Comprehensive validation for all input types including expenses and withdrawal config
+- `validateInputs()` - Comprehensive validation for all input types including expenses
 
 **Monthly Projections** (`src/utils/monthlyProjections.ts`):
 - Phase 3 addition for chart and table visualizations
@@ -83,9 +83,8 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 **Post-Retirement Projections** (`src/utils/postRetirementProjections.ts`):
 - Phase 4 addition for retirement sustainability analysis
 - `generatePostRetirementProjections()` - Month-by-month simulation from retirement to depletion/max age
-- Implements 3 withdrawal strategies: fixed, percentage, combined
 - Applies category-specific inflation to expenses
-- Age-based expense filtering (startAge/endAge support)
+- Date-based expense filtering (startDate/endDate in YYYY-MM format)
 - Detects portfolio depletion for sustainability warnings
 
 **Calculation Behavior**:
@@ -110,10 +109,9 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Phase 2 components for varied income
 - Manage income store arrays
 
-**ExpenseForm.vue** & **WithdrawalStrategyConfig.vue**:
-- Phase 4 components for retirement expense tracking
-- ExpenseForm: Add/edit/remove expenses with category, amount, inflation, optional age ranges
-- WithdrawalStrategyConfig: Configure withdrawal strategy (fixed, percentage, or combined)
+**ExpenseForm.vue**:
+- Phase 4 component for retirement expense tracking
+- Add/edit/remove expenses with category, amount, inflation, optional date ranges (YYYY-MM format)
 - Displays validation errors inline
 
 **ResultsDisplay.vue**:
@@ -125,7 +123,7 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 **SustainabilityDisplay.vue**:
 - Phase 4 component showing retirement sustainability metrics
 - Green/red status based on portfolio depletion
-- Warning banner for high withdrawal rates (>5%)
+- Warning banner for high withdrawal rates
 - Displays years until depletion or "Sustainable" message
 
 **VisualizationsTab.vue**:
@@ -135,26 +133,13 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 
 **ImportExport.vue**:
 - Export data to JSON with versioning
-- Import with validation and migration support
+- Import with validation support
 
 ### Data Versioning & Migration
 
-**Current Version**: 3.0.0
-
-**Version History**:
-- v1.0.0: Basic calculator with `monthlyContribution` only
-- v2.0.0: Added `incomeSources` and `oneOffReturns` support
-- v3.0.0: Added `expenses` and `withdrawalConfig` support (Phase 4)
-
-**Migration** (`src/utils/migration.ts`):
-- `migrateV1ToV2()` - Migrates basic calculator to income sources format
-- `migrateV2ToV3()` - Migrates to include expense and withdrawal config structure
-- `convertMonthlyContributionToIncomeSource()` - Optional conversion of legacy field
-- `monthlyContribution` field maintained for backward compatibility
-
-**Import/Export** (`src/utils/importExport.ts`):
-- `exportData()` - Creates versioned RetirementData object (current: v3.0.0)
-- `validateImportedData()` - Validates structure for v1, v2, and v3 formats
+**Export/Import** (`src/utils/importExport.ts`):
+- `exportData()` - Creates RetirementData object with exportDate and user data
+- `validateImportedData()` - Validates structure for imported JSON
 - `parseImportedFile()` - Reads and validates JSON files
 
 ### Type System (`src/types/index.ts`)
@@ -176,17 +161,17 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
   - Includes: monthIndex, year, month, age, income, expenses, contributions, portfolioValue, growth
 
 **Phase 4 Types**:
-- `RetirementExpense` - Expense definition with category, amount, inflation, optional age ranges
-- `WithdrawalConfig` - Withdrawal strategy configuration (fixed/percentage/combined)
+- `RetirementExpense` - Expense definition with category, amount, inflation, optional date ranges (YYYY-MM format)
 - `PostRetirementDataPoint` - Post-retirement projection data
 - `ExpenseCategory`: 'living' | 'healthcare' | 'travel' | 'other'
-- `WithdrawalStrategy`: 'fixed' | 'percentage' | 'combined'
 
 ### Date Handling
 - All dates use YYYY-MM format strings (e.g., "2025-10")
 - Date validation via regex: `/^\d{4}-\d{2}$/`
 - Month calculations relative to current year/month baseline
-- End dates are optional (undefined = ongoing income)
+- End dates are optional (undefined = ongoing for income/expenses)
+- Income sources: startDate required, endDate optional
+- Expenses: both startDate and endDate optional (defaults: current month and ongoing)
 
 ## Development Notes
 
@@ -196,18 +181,10 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 3. Implement calculations in `src/utils/calculations.ts` with validation
 4. Create/update Vue components using `<script setup>` syntax
 5. Add unit tests (`.test.ts` files)
-6. Update migration logic if data model changes
-
-### Data Model Changes
-- Update `RetirementData` or `UserData` types
-- Update validation in `validateImportedData()`
-- Add migration function in `migration.ts`
-- Update version number in `importExport.ts`
-- Test import/export compatibility
 
 ### Vue Component Guidelines
 - Use Composition API with `<script setup lang="ts">`
-- Access stores via `useRetirementStore()` or `useIncomeStore()`
+- Access stores via `useRetirementStore()`, `useIncomeStore()`, or `useExpenseStore()`
 - Bind inputs to store refs directly (Pinia handles reactivity)
 - Use computed properties from stores for derived values
 - Tailwind CSS for all styling
@@ -217,7 +194,7 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Tests use Vitest with JSDOM environment
 - Test files excluded from build via tsconfig.json
 - Integration tests: `src/phase2-integration.test.ts`, `src/phase3-integration.test.ts`, `src/phase4-integration.test.ts`
-- Total: 239 tests across 12 test files covering all phases
+- Total: 207 tests across 11 test files covering all phases
 
 ### TypeScript Configuration
 - Strict mode enabled with all linting flags
