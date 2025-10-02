@@ -21,7 +21,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 35, // 5 years = 60 months
         currentSavings: 10000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03
       }
@@ -36,9 +35,16 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 32,
         currentSavings: 50000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
-        inflationRate: 0.03
+        inflationRate: 0.03,
+        incomeSources: [{
+          id: '1',
+          name: 'Monthly Contribution',
+          type: 'custom',
+          amount: 1000,
+          frequency: 'monthly',
+          startDate: getRelativeDate(0)
+        }]
       }
 
       const projections = generateMonthlyProjections(data)
@@ -65,7 +71,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 40,
         currentSavings: 25000,
-        monthlyContribution: 0, // Not used with income sources
         expectedReturnRate: 0.06,
         inflationRate: 0.02,
         incomeSources
@@ -85,9 +90,16 @@ describe('monthlyProjections', () => {
         currentAge: 25,
         retirementAge: 30,
         currentSavings: 10000,
-        monthlyContribution: 500,
         expectedReturnRate: 0,
-        inflationRate: 0
+        inflationRate: 0,
+        incomeSources: [{
+          id: '1',
+          name: 'Monthly Contribution',
+          type: 'custom',
+          amount: 500,
+          frequency: 'monthly',
+          startDate: getRelativeDate(0)
+        }]
       }
 
       const projections = generateMonthlyProjections(data)
@@ -115,7 +127,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 33,
         currentSavings: 0,
-        monthlyContribution: 0,
         expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources
@@ -148,7 +159,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 32,
         currentSavings: 0,
-        monthlyContribution: 0,
         expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources
@@ -178,7 +188,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 31,
         currentSavings: 0,
-        monthlyContribution: 0,
         expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources
@@ -204,7 +213,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 32,
         currentSavings: 0,
-        monthlyContribution: 0,
         expectedReturnRate: 0,
         inflationRate: 0,
         oneOffReturns
@@ -245,7 +253,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 31,
         currentSavings: 0,
-        monthlyContribution: 0,
         expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources
@@ -262,9 +269,16 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 31,
         currentSavings: 10000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0,
-        inflationRate: 0
+        inflationRate: 0,
+        incomeSources: [{
+          id: '1',
+          name: 'Monthly Contribution',
+          type: 'custom',
+          amount: 1000,
+          frequency: 'monthly',
+          startDate: getRelativeDate(0)
+        }]
       }
 
       const projections = generateMonthlyProjections(data)
@@ -279,7 +293,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 31,
         currentSavings: 10000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.12, // 1% monthly
         inflationRate: 0
       }
@@ -306,7 +319,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 31,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources,
@@ -353,7 +365,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 31,
         currentSavings: 10000,
-        monthlyContribution: 0,
         expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources,
@@ -388,7 +399,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 32,
         currentSavings: 5000,
-        monthlyContribution: 0,
         expectedReturnRate: 0,
         inflationRate: 0,
         expenses: [
@@ -417,7 +427,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 32,
         currentSavings: 10000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03
       }
@@ -438,7 +447,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 32,
         currentSavings: 10000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0
       }
@@ -458,7 +466,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 35,
         currentSavings: 10000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03
       }
@@ -489,7 +496,6 @@ describe('monthlyProjections', () => {
         currentAge: 30,
         retirementAge: 40,
         currentSavings: 25000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.06,
         inflationRate: 0.03,
         incomeSources

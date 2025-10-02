@@ -209,7 +209,6 @@ describe('Income-based Calculations', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0, // Should be ignored
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -230,77 +229,5 @@ describe('Income-based Calculations', () => {
       expect(result.investmentGrowth).toBeGreaterThan(0)
     })
 
-    it('falls back to monthlyContribution when no income sources', () => {
-      const userData: UserData = {
-        currentAge: 30,
-        retirementAge: 65,
-        currentSavings: 50000,
-        monthlyContribution: 1000,
-        expectedReturnRate: 0.07,
-        inflationRate: 0.03,
-        incomeSources: [],
-        oneOffReturns: []
-      }
-
-      const result = calculateRetirement(userData)
-
-      expect(result.futureValue).toBeGreaterThan(0)
-      expect(result.totalContributions).toBeGreaterThan(50000)
-    })
-
-    it('falls back to monthlyContribution when incomeSources is undefined', () => {
-      const userData: UserData = {
-        currentAge: 25,
-        retirementAge: 60,
-        currentSavings: 20000,
-        monthlyContribution: 2000,
-        expectedReturnRate: 0.08,
-        inflationRate: 0.025,
-      }
-
-      const result = calculateRetirement(userData)
-
-      expect(result.futureValue).toBeGreaterThan(0)
-      expect(result.yearsToRetirement).toBe(35)
-    })
-
-    it('produces consistent results for equivalent scenarios', () => {
-      // Scenario 1: Legacy monthly contribution
-      const legacy: UserData = {
-        currentAge: 30,
-        retirementAge: 40,
-        currentSavings: 10000,
-        monthlyContribution: 1000,
-        expectedReturnRate: 0.06,
-        inflationRate: 0.02,
-      }
-
-      // Scenario 2: Same as income source
-      const withIncome: UserData = {
-        currentAge: 30,
-        retirementAge: 40,
-        currentSavings: 10000,
-        monthlyContribution: 0,
-        expectedReturnRate: 0.06,
-        inflationRate: 0.02,
-        incomeSources: [{
-          id: '1',
-          name: 'Contribution',
-          type: 'custom',
-          amount: 1000,
-          frequency: 'monthly',
-          startDate: '2025-01',
-        }]
-      }
-
-      const legacyResult = calculateRetirement(legacy)
-      const incomeResult = calculateRetirement(withIncome)
-
-      // Results should be close (within 1% due to timing of contributions)
-      // Legacy assumes end-of-period contributions, income sources use beginning
-      const difference = Math.abs(incomeResult.futureValue - legacyResult.futureValue)
-      const percentDiff = difference / legacyResult.futureValue
-      expect(percentDiff).toBeLessThan(0.01) // Within 1%
-    })
   })
 })

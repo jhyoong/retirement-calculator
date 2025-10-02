@@ -1,50 +1,6 @@
 import type { UserData, CalculationResult, ValidationResult, ValidationError, IncomeStream, OneOffReturn } from '@/types'
 import { getLoanPaymentForMonth } from './loanCalculations'
 
-/**
- * Calculate future value using compound interest formula
- * FV = PV(1+r)^n + PMT × [((1+r)^n - 1) / r]
- *
- * @param principal - Initial investment amount
- * @param monthlyContribution - Monthly contribution amount
- * @param annualRate - Annual interest rate (as decimal, e.g., 0.07 for 7%)
- * @param years - Number of years
- * @returns Future value of the investment
- */
-export function calculateFutureValue(
-  principal: number,
-  monthlyContribution: number,
-  annualRate: number,
-  years: number
-): number {
-  const monthlyRate = annualRate / 12
-  const months = years * 12
-
-  // Handle edge case: zero interest rate
-  if (monthlyRate === 0) {
-    return principal + (monthlyContribution * months)
-  }
-
-  // Future value of principal
-  const fvPrincipal = principal * Math.pow(1 + monthlyRate, months)
-
-  // Future value of monthly contributions (annuity)
-  const fvContributions = monthlyContribution *
-    ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate)
-
-  return fvPrincipal + fvContributions
-}
-
-/**
- * Calculate total contributions over time
- */
-export function calculateTotalContributions(
-  initialSavings: number,
-  monthlyContribution: number,
-  years: number
-): number {
-  return initialSavings + (monthlyContribution * years * 12)
-}
 
 /**
  * Adjust value for inflation
@@ -375,14 +331,6 @@ export function validateInputs(data: UserData): ValidationResult {
     })
   }
 
-  // Monthly contribution validation
-  if (data.monthlyContribution < 0) {
-    errors.push({
-      field: 'monthlyContribution',
-      message: 'Monthly contribution cannot be negative'
-    })
-  }
-
   // Return rate validation
   if (data.expectedReturnRate < 0 || data.expectedReturnRate > 1) {
     errors.push({
@@ -695,7 +643,9 @@ export function checkSustainabilityWarning(
  * Helper: Find the actual age when all income stops
  */
 function findActualRetirementAge(data: UserData): number {
-  if (!data.incomeSources || data.incomeSources.length === 0) {
+  const incomeSources = data.incomeSources || []
+
+  if (incomeSources.length === 0) {
     return data.retirementAge
   }
 
@@ -704,7 +654,7 @@ function findActualRetirementAge(data: UserData): number {
 
   let latestIncomeAge = data.retirementAge
 
-  data.incomeSources.forEach(source => {
+  incomeSources.forEach(source => {
     if (source.endDate) {
       const [year, month] = source.endDate.split('-').map(Number)
       const monthsFromNow = (year - currentYear) * 12 + (month - currentMonth)
@@ -728,52 +678,27 @@ export function calculateRetirement(data: UserData): CalculationResult {
 
   const yearsToRetirement = data.retirementAge - data.currentAge
 
-  let futureValue: number
-  let totalContributions: number
+  // Calculate until actual end of income (may be beyond retirement age)
+  const actualRetirementAge = findActualRetirementAge(data)
+  const yearsToActualRetirement = actualRetirementAge - data.currentAge
 
-  // Use time-based calculation if income sources exist
-  if (data.incomeSources && data.incomeSources.length > 0) {
-    // Calculate until actual end of income (may be beyond retirement age)
-    const actualRetirementAge = findActualRetirementAge(data)
-    const yearsToActualRetirement = actualRetirementAge - data.currentAge
-
-    const result = calculateFutureValueWithIncomeSources(
-      data.currentSavings,
-      data.expectedReturnRate,
-      yearsToActualRetirement,
-      data.currentAge,
-      data.incomeSources,
-      data.oneOffReturns || [],
-      data.expenses,
-      data.loans,
-      data.oneTimeExpenses
-    )
-    futureValue = result.futureValue
-    totalContributions = result.totalContributions
-  } else {
-    // Fallback to legacy calculation with constant monthly contribution
-    futureValue = calculateFutureValue(
-      data.currentSavings,
-      data.monthlyContribution,
-      data.expectedReturnRate,
-      yearsToRetirement
-    )
-
-    totalContributions = calculateTotalContributions(
-      data.currentSavings,
-      data.monthlyContribution,
-      yearsToRetirement
-    )
-  }
+  const result = calculateFutureValueWithIncomeSources(
+    data.currentSavings,
+    data.expectedReturnRate,
+    yearsToActualRetirement,
+    data.currentAge,
+    data.incomeSources || [],
+    data.oneOffReturns || [],
+    data.expenses,
+    data.loans,
+    data.oneTimeExpenses
+  )
+  const futureValue = result.futureValue
+  const totalContributions = result.totalContributions
 
   const investmentGrowth = futureValue - totalContributions
 
   // Calculate inflation adjustment based on actual accumulation period
-  const actualRetirementAge = data.incomeSources && data.incomeSources.length > 0
-    ? findActualRetirementAge(data)
-    : data.retirementAge
-  const yearsToActualRetirement = actualRetirementAge - data.currentAge
-
   const inflationAdjustedValue = adjustForInflation(
     futureValue,
     data.inflationRate,

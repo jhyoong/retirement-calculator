@@ -48,7 +48,6 @@ export function validateImportedData(data: unknown): data is RetirementData {
   if (typeof user.currentAge !== 'number') return false
   if (typeof user.retirementAge !== 'number') return false
   if (typeof user.currentSavings !== 'number') return false
-  if (typeof user.monthlyContribution !== 'number') return false
   if (typeof user.expectedReturnRate !== 'number') return false
   if (typeof user.inflationRate !== 'number') return false
 

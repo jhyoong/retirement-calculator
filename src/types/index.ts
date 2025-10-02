@@ -4,7 +4,6 @@ export interface UserData {
   currentAge: number;
   retirementAge: number;
   currentSavings: number;
-  monthlyContribution: number; // Kept for backward compatibility
   expectedReturnRate: number;
   inflationRate: number;
   // Phase 2 additions

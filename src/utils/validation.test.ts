@@ -9,7 +9,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -32,7 +31,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -55,7 +53,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -78,7 +75,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -101,7 +97,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -125,7 +120,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -149,7 +143,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -173,7 +166,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -196,7 +188,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -220,7 +211,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 0,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [
@@ -254,7 +244,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         oneOffReturns: [{
@@ -274,7 +263,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         oneOffReturns: [{
@@ -295,7 +283,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         oneOffReturns: [{
@@ -316,7 +303,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         oneOffReturns: [{
@@ -337,7 +323,6 @@ describe('Phase 2 Validation', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         oneOffReturns: [{
@@ -354,35 +339,4 @@ describe('Phase 2 Validation', () => {
     })
   })
 
-  describe('Backward Compatibility', () => {
-    it('validates Phase 1 data without income sources', () => {
-      const userData: UserData = {
-        currentAge: 30,
-        retirementAge: 65,
-        currentSavings: 50000,
-        monthlyContribution: 1000,
-        expectedReturnRate: 0.07,
-        inflationRate: 0.03,
-      }
-
-      const result = validateInputs(userData)
-      expect(result.isValid).toBe(true)
-    })
-
-    it('validates with empty income sources array', () => {
-      const userData: UserData = {
-        currentAge: 30,
-        retirementAge: 65,
-        currentSavings: 50000,
-        monthlyContribution: 1000,
-        expectedReturnRate: 0.07,
-        inflationRate: 0.03,
-        incomeSources: [],
-        oneOffReturns: []
-      }
-
-      const result = validateInputs(userData)
-      expect(result.isValid).toBe(true)
-    })
-  })
 })

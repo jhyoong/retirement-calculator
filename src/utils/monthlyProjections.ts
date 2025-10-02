@@ -52,10 +52,6 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
 
   const projections: MonthlyDataPoint[] = []
 
-  // Determine if we use income sources or legacy monthly contribution
-  const hasIncomeSources = data.incomeSources && data.incomeSources.length > 0
-  const hasOneOffReturns = data.oneOffReturns && data.oneOffReturns.length > 0
-  const useIncomeSources = hasIncomeSources || hasOneOffReturns
   const incomeSources = data.incomeSources || []
   const oneOffReturns = data.oneOffReturns || []
 
@@ -76,36 +72,29 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     // Calculate income for this month
     let monthlyIncome = 0
 
-    if (useIncomeSources) {
-      // Phase 2: Variable income sources - respect their actual start/end dates
-      incomeSources.forEach((source: IncomeStream) => {
-        const startMonth = parseMonthDate(source.startDate, currentYear, currentMonth)
-        const endMonth = source.endDate
-          ? parseMonthDate(source.endDate, currentYear, currentMonth)
-          : totalMonths + 1 // Ongoing
+    // Variable income sources - respect their actual start/end dates
+    incomeSources.forEach((source: IncomeStream) => {
+      const startMonth = parseMonthDate(source.startDate, currentYear, currentMonth)
+      const endMonth = source.endDate
+        ? parseMonthDate(source.endDate, currentYear, currentMonth)
+        : totalMonths + 1 // Ongoing
 
-        if (monthIndex >= startMonth && monthIndex < endMonth) {
-          monthlyIncome += convertToMonthly(
-            source.amount,
-            source.frequency,
-            source.customFrequencyDays
-          )
-        }
-      })
-
-      // Add one-off returns
-      oneOffReturns.forEach((oneOff: OneOffReturn) => {
-        const returnMonth = parseMonthDate(oneOff.date, currentYear, currentMonth)
-        if (monthIndex === returnMonth) {
-          monthlyIncome += oneOff.amount
-        }
-      })
-    } else {
-      // Phase 1: Constant monthly contribution - only before retirement
-      if (age < data.retirementAge) {
-        monthlyIncome = data.monthlyContribution
+      if (monthIndex >= startMonth && monthIndex < endMonth) {
+        monthlyIncome += convertToMonthly(
+          source.amount,
+          source.frequency,
+          source.customFrequencyDays
+        )
       }
-    }
+    })
+
+    // Add one-off returns
+    oneOffReturns.forEach((oneOff: OneOffReturn) => {
+      const returnMonth = parseMonthDate(oneOff.date, currentYear, currentMonth)
+      if (monthIndex === returnMonth) {
+        monthlyIncome += oneOff.amount
+      }
+    })
 
     // Calculate expenses for this month
     let monthlyExpenses = 0

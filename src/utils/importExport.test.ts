@@ -9,7 +9,6 @@ describe('Import/Export', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03
       }
@@ -25,7 +24,6 @@ describe('Import/Export', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         incomeSources: [{
@@ -59,7 +57,6 @@ describe('Import/Export', () => {
           currentAge: 30,
           retirementAge: 65,
           currentSavings: 50000,
-          monthlyContribution: 1000,
           expectedReturnRate: 0.07,
           inflationRate: 0.03
         }
@@ -75,7 +72,6 @@ describe('Import/Export', () => {
           currentAge: 30,
           retirementAge: 65,
           currentSavings: 50000,
-          monthlyContribution: 1000,
           expectedReturnRate: 0.07,
           inflationRate: 0.03,
           incomeSources: [{
@@ -99,7 +95,6 @@ describe('Import/Export', () => {
           currentAge: 30,
           retirementAge: 65,
           currentSavings: 50000,
-          monthlyContribution: 1000,
           expectedReturnRate: 0.07,
           inflationRate: 0.03,
           oneOffReturns: [{
@@ -121,7 +116,6 @@ describe('Import/Export', () => {
           currentAge: 30,
           retirementAge: 65,
           currentSavings: 50000,
-          monthlyContribution: 1000,
           expectedReturnRate: 0.07,
           inflationRate: 0.03,
           incomeSources: [{
@@ -151,7 +145,6 @@ describe('Import/Export', () => {
           currentAge: 30,
           // Missing retirementAge
           currentSavings: 50000,
-          monthlyContribution: 1000,
           expectedReturnRate: 0.07,
           inflationRate: 0.03
         }
@@ -167,7 +160,6 @@ describe('Import/Export', () => {
           currentAge: 30,
           retirementAge: 65,
           currentSavings: 50000,
-          monthlyContribution: 1000,
           expectedReturnRate: 0.07,
           inflationRate: 0.03,
           incomeSources: 'not an array' // Invalid
@@ -184,7 +176,6 @@ describe('Import/Export', () => {
           currentAge: 30,
           retirementAge: 65,
           currentSavings: 50000,
-          monthlyContribution: 1000,
           expectedReturnRate: 0.07,
           inflationRate: 0.03,
           oneOffReturns: [
@@ -208,7 +199,6 @@ describe('Import/Export', () => {
           currentAge: 30,
           retirementAge: 65,
           currentSavings: 50000,
-          monthlyContribution: 1000,
           expectedReturnRate: 0.07,
           inflationRate: 0.03,
           incomeSources: [],
