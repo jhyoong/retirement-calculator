@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useRetirementStore } from './stores/retirement'
 import { useExpenseStore } from './stores/expense'
+import { useIncomeStore } from './stores/income'
 import { exportData, validateImportedData } from './utils/importExport'
 import type { RetirementExpense } from './types'
 
@@ -14,6 +15,7 @@ describe('Phase 4 Integration Tests', () => {
     it('should flow expense store data to retirement calculations', () => {
       const retirementStore = useRetirementStore()
       const expenseStore = useExpenseStore()
+      const incomeStore = useIncomeStore()
 
       // Clear default expenses
       expenseStore.resetToDefaults()
@@ -25,9 +27,18 @@ describe('Phase 4 Integration Tests', () => {
       retirementStore.currentAge = 30
       retirementStore.retirementAge = 65
       retirementStore.currentSavings = 100000
-      retirementStore.monthlyContribution = 1000
       retirementStore.expectedReturnRate = 0.06
       retirementStore.inflationRate = 0.03
+
+      // Add income source for monthly contribution
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Monthly Contribution',
+        type: 'custom',
+        amount: 1000,
+        frequency: 'monthly',
+        startDate: '2025-01'
+      })
 
       // Add expense
       const expense: RetirementExpense = {
@@ -56,6 +67,7 @@ describe('Phase 4 Integration Tests', () => {
     it('should detect unsustainable expense rates', () => {
       const retirementStore = useRetirementStore()
       const expenseStore = useExpenseStore()
+      const incomeStore = useIncomeStore()
 
       retirementStore.currentAge = 60
       retirementStore.retirementAge = 65
@@ -63,18 +75,29 @@ describe('Phase 4 Integration Tests', () => {
       retirementStore.expectedReturnRate = 0.04
       retirementStore.inflationRate = 0.03
 
+      // Add minimal income to build some portfolio
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Minimal Income',
+        type: 'custom',
+        amount: 500,
+        frequency: 'monthly',
+        startDate: '2025-01'
+      })
+
       // Clear default expenses
       while (expenseStore.expenses.length > 0) {
         expenseStore.removeExpense(expenseStore.expenses[0].id)
       }
 
-      // Add high expenses
+      // Add high expenses starting at retirement
       expenseStore.addExpense({
         id: '1',
         name: 'High Expenses',
         category: 'living',
         monthlyAmount: 5000,
-        inflationRate: 0.03
+        inflationRate: 0.03,
+        startDate: '2030-01' // Starts at/near retirement
       })
 
       const results = retirementStore.results
@@ -199,7 +222,6 @@ describe('Phase 4 Integration Tests', () => {
           currentAge: 35,
           retirementAge: 65,
           currentSavings: 200000,
-          monthlyContribution: 2000,
           expectedReturnRate: 0.07,
           inflationRate: 0.03,
           expenses: [
@@ -224,7 +246,6 @@ describe('Phase 4 Integration Tests', () => {
           currentAge: 30,
           retirementAge: 65,
           currentSavings: 100000,
-          monthlyContribution: 1000,
           expectedReturnRate: 0.06,
           inflationRate: 0.03,
           expenses: [
@@ -257,7 +278,6 @@ describe('Phase 4 Integration Tests', () => {
       retirementStore.currentAge = 40
       retirementStore.retirementAge = 67
       retirementStore.currentSavings = 250000
-      retirementStore.monthlyContribution = 1500
       retirementStore.expectedReturnRate = 0.065
       retirementStore.inflationRate = 0.025
 
@@ -307,7 +327,6 @@ describe('Phase 4 Integration Tests', () => {
           currentAge: 30,
           retirementAge: 65,
           currentSavings: 100000,
-          monthlyContribution: 1000,
           expectedReturnRate: 0.06,
           inflationRate: 0.03,
           incomeSources: [
@@ -333,7 +352,6 @@ describe('Phase 4 Integration Tests', () => {
           currentAge: 35,
           retirementAge: 65,
           currentSavings: 150000,
-          monthlyContribution: 1200,
           expectedReturnRate: 0.065,
           inflationRate: 0.025,
           incomeSources: [
@@ -363,6 +381,7 @@ describe('Phase 4 Integration Tests', () => {
     it('should preserve all features with expenses', () => {
       const retirementStore = useRetirementStore()
       const expenseStore = useExpenseStore()
+      const incomeStore = useIncomeStore()
 
       // Clear default expenses
       while (expenseStore.expenses.length > 0) {
@@ -373,9 +392,18 @@ describe('Phase 4 Integration Tests', () => {
       retirementStore.currentAge = 30
       retirementStore.retirementAge = 65
       retirementStore.currentSavings = 100000
-      retirementStore.monthlyContribution = 1000
       retirementStore.expectedReturnRate = 0.06
       retirementStore.inflationRate = 0.03
+
+      // Add income to cover expenses
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Income',
+        type: 'salary',
+        amount: 5000,
+        frequency: 'monthly',
+        startDate: '2025-01'
+      })
 
       // Verify Phase 1 still works
       const resultsWithoutExpenses = retirementStore.results
@@ -391,10 +419,10 @@ describe('Phase 4 Integration Tests', () => {
         inflationRate: 0.03
       })
 
-      // Phase 1 calculations should still work
+      // Portfolio value should be lower with expenses
       const resultsWithExpenses = retirementStore.results
       expect(resultsWithExpenses).toBeDefined()
-      expect(resultsWithExpenses?.futureValue).toBe(resultsWithoutExpenses?.futureValue)
+      expect(resultsWithExpenses?.futureValue).toBeLessThan(resultsWithoutExpenses?.futureValue)
 
       // Phase 4 calculations should be added
       expect(resultsWithExpenses?.yearsUntilDepletion).toBeDefined()

@@ -6,7 +6,7 @@
           Retirement Calculator
         </h1>
         <p class="text-gray-600">
-          Plan your financial future with confidence
+          Plan your financial future and cry
         </p>
       </header>
 

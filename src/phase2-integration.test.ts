@@ -86,38 +86,6 @@ describe('Phase 2 Integration Tests', () => {
     })
   })
 
-  describe('Backward Compatibility', () => {
-    it('handles Phase 1 data without income sources', () => {
-      const retirementStore = useRetirementStore()
-
-      // Use legacy monthlyContribution (no income sources)
-      const legacyResults = retirementStore.results
-
-      expect(legacyResults).not.toBeNull()
-      expect(legacyResults!.futureValue).toBeGreaterThan(0)
-      expect(legacyResults!.totalContributions).toBeGreaterThan(50000)
-    })
-
-    it('imports legacy data without income sources', () => {
-      const userData: UserData = {
-        currentAge: 28,
-        retirementAge: 60,
-        currentSavings: 30000,
-        monthlyContribution: 1500,
-        expectedReturnRate: 0.08,
-        inflationRate: 0.025
-      }
-
-      // Load into store
-      const retirementStore = useRetirementStore()
-      retirementStore.loadData(userData)
-
-      // Verify it still calculates correctly
-      const results = retirementStore.results
-      expect(results).not.toBeNull()
-      expect(results!.yearsToRetirement).toBe(32)
-    })
-  })
 
   describe('Complex Income Scenarios', () => {
     it('handles multiple income sources with different frequencies', () => {
@@ -269,40 +237,4 @@ describe('Phase 2 Integration Tests', () => {
     })
   })
 
-  describe('Calculation Consistency', () => {
-    it('produces consistent results for equivalent Phase 1 and Phase 2 scenarios', () => {
-      // Scenario 1: Phase 1 approach
-      const pinia1 = createPinia()
-      setActivePinia(pinia1)
-      const store1 = useRetirementStore()
-      const expense1 = useExpenseStore()
-      expense1.expenses = [] // Clear default expenses
-      store1.updateMonthlyContribution(3000)
-
-      const result1 = store1.results!
-
-      // Scenario 2: Phase 2 approach with equivalent income source
-      const pinia2 = createPinia()
-      setActivePinia(pinia2)
-      const store2 = useRetirementStore()
-      const income2 = useIncomeStore()
-      const expense2 = useExpenseStore()
-      expense2.expenses = [] // Clear default expenses
-
-      income2.addIncomeSource({
-        id: '1',
-        name: 'Contribution',
-        type: 'custom',
-        amount: 3000,
-        frequency: 'monthly',
-        startDate: '2025-01'
-      })
-
-      const result2 = store2.results!
-
-      // Results should be very close (within 1% due to timing differences)
-      const percentDiff = Math.abs(result2.futureValue - result1.futureValue) / result1.futureValue
-      expect(percentDiff).toBeLessThan(0.01)
-    })
-  })
 })

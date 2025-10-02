@@ -254,16 +254,15 @@ interface IrregularExpense {
 
 3. **CPF-Specific Features**:
    - Housing usage from OA
-   - Investment scheme options
-   - Top-up scenarios
    - Withdrawal rules at different ages
+   - SA conversion to RA
 
 ### Implementation Considerations
 - Create CPF rules engine based on current regulations
-- Annual update mechanism for CPF rates/rules
+- Update mechanism or config file for CPF rates/rules
 - Integration with income streams from Phase 2
 - CPF Life estimator (annuity calculations)
-- Alert system for CPF milestones
+- Integration with housing loans in expenses
 
 ### CPF Schema
 ```typescript

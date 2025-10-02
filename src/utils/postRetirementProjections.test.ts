@@ -7,7 +7,6 @@ describe('postRetirementProjections', () => {
     currentAge: 30,
     retirementAge: 65,
     currentSavings: 1000000, // Start with $1M at retirement
-    monthlyContribution: 0,
     expectedReturnRate: 0.06, // 6% annual
     inflationRate: 0.03
   }

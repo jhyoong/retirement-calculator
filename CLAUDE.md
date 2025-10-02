@@ -47,7 +47,7 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 
 **Retirement Store** (`src/stores/retirement.ts`):
 - Main store for basic retirement calculation inputs
-- Manages: currentAge, retirementAge, currentSavings, monthlyContribution, expectedReturnRate, inflationRate
+- Manages: currentAge, retirementAge, currentSavings, expectedReturnRate, inflationRate
 - Computed properties: `userData`, `validation`, `results`
 - Integrates with IncomeStore (Phase 2) and ExpenseStore (Phase 4)
 - Actions: update methods, loadData, resetToDefaults
@@ -60,25 +60,30 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Actions: add/remove/update methods for both income sources and one-off returns
 
 **Expense Store** (`src/stores/expense.ts`):
-- Phase 4 addition for retirement expense tracking
-- Manages: `expenses` array
+- Phase 4 addition for retirement expense tracking, Phase 5 addition for loans
+- Manages: `expenses` array, `loans` array (Phase 5), `oneTimeExpenses` array (Phase 5)
 - Computed: `totalMonthlyExpenses`, `expensesByCategory`, `totalsByCategory`
 - Default: Single "Living Expenses" entry ($3000/month, 3% inflation)
-- Actions: add/remove/update methods for expenses
+- Actions: add/remove/update methods for expenses, loans, and one-time expenses
 
 ### Calculation Logic
 
 **Core Calculations** (`src/utils/calculations.ts`):
-- `calculateFutureValue()` - Standard compound interest formula: FV = PV(1+r)^n + PMT × [((1+r)^n - 1) / r]
-- `calculateFutureValueWithIncomeSources()` - Month-by-month calculation for variable income streams
-- `calculateRetirement()` - Main entry point, auto-detects calculation method, includes Phase 4 sustainability metrics
-- `validateInputs()` - Comprehensive validation for all input types including expenses
+- `calculateFutureValueWithIncomeSources()` - Month-by-month calculation for variable income streams, expenses, loans, and one-time expenses
+- `calculateRetirement()` - Main entry point, uses month-by-month calculation with income sources, includes Phase 4 sustainability metrics
+- `validateInputs()` - Comprehensive validation for all input types including expenses, loans, and one-time expenses
+
+**Loan Calculations** (`src/utils/loanCalculations.ts`):
+- Phase 5 addition for loan amortization
+- `calculateLoanPayment()` - Calculate monthly payment using standard amortization formula
+- `getLoanPaymentForMonth()` - Get payment amount for specific month (0 if loan not active)
+- Handles extra payments for early repayment
 
 **Monthly Projections** (`src/utils/monthlyProjections.ts`):
 - Phase 3 addition for chart and table visualizations
 - `generateMonthlyProjections()` - Month-by-month data from current age to retirement
 - Returns array of `MonthlyDataPoint` with income, expenses, contributions, portfolio value, growth
-- Handles both income sources and legacy monthlyContribution
+- Handles income sources, income sources, expenses, loans, and one-time expenses
 
 **Post-Retirement Projections** (`src/utils/postRetirementProjections.ts`):
 - Phase 4 addition for retirement sustainability analysis
@@ -88,9 +93,10 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Detects portfolio depletion for sustainability warnings
 
 **Calculation Behavior**:
-- If `incomeSources` exist: uses time-based month-by-month calculation
-- Otherwise: falls back to legacy constant `monthlyContribution` formula
+- Always uses month-by-month calculation with income sources (no legacy calculation path)
+- Contributions come from income sources minus expenses (no separate monthlyContribution field)
 - Phase 4: Calculates `yearsUntilDepletion` and `sustainabilityWarning` when expenses exist
+- Phase 5: Includes loan payments and one-time expenses in month-by-month calculations
 - Handles edge cases: zero interest rate, date validation, frequency conversions
 - All monetary values rounded to 2 decimal places
 
@@ -98,12 +104,13 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 
 **App.vue**:
 - Root component with tab navigation
-- 7 tabs: Basic Info, Income Sources, One-Off Returns, Expenses, Results, Visualizations, Import/Export
+- 9 tabs: Basic Info, Income Sources, One-Off Returns, Expenses, Loans, One-Time Expenses, Results, Visualizations, Import/Export
 - Uses `v-show` for tab content (all rendered, visibility toggled)
 
 **RetirementForm.vue**:
-- Basic inputs: ages, savings, contribution, rates
+- Basic inputs: ages, savings, rates (return rate and inflation rate)
 - Binds to retirement store using Pinia
+- Note: Monthly contributions are now handled via Income Sources tab
 
 **IncomeSourceForm.vue** & **OneOffReturnForm.vue**:
 - Phase 2 components for varied income
@@ -113,6 +120,15 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Phase 4 component for retirement expense tracking
 - Add/edit/remove expenses with category, amount, inflation, optional date ranges (YYYY-MM format)
 - Displays validation errors inline
+
+**LoanForm.vue**:
+- Phase 5 component for loan tracking
+- Add/edit/remove loans with principal, interest rate, term, start date, and optional extra payments
+- Displays calculated monthly payment
+
+**OneTimeExpenseForm.vue**:
+- Phase 5 component for one-time expense tracking
+- Add/edit/remove one-time expenses with amount, date, category, and description
 
 **ResultsDisplay.vue**:
 - Displays calculated results from store
@@ -145,9 +161,9 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 ### Type System (`src/types/index.ts`)
 
 **Core Types**:
-- `UserData` - All user inputs (Phase 1-4 fields)
+- `UserData` - All user inputs (Phase 1-5 fields)
 - `RetirementData` - Export format with version and exportDate
-- `CalculationResult` - Calculation outputs (includes Phase 4: yearsUntilDepletion, sustainabilityWarning)
+- `CalculationResult` - Calculation outputs (includes Phase 4: yearsUntilDepletion, sustainabilityWarning, depletionAge)
 - `ValidationResult` & `ValidationError` - Validation system
 
 **Phase 2 Types**:
@@ -165,6 +181,11 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - `PostRetirementDataPoint` - Post-retirement projection data
 - `ExpenseCategory`: 'living' | 'healthcare' | 'travel' | 'other'
 
+**Phase 5 Types**:
+- `Loan` - Loan definition with principal, interest rate, term, start date, and optional extra payments
+- `ExtraPayment` - Extra payment definition with date and amount
+- `OneTimeExpense` - One-time expense definition with name, amount, date, category, and description
+
 ### Date Handling
 - All dates use YYYY-MM format strings (e.g., "2025-10")
 - Date validation via regex: `/^\d{4}-\d{2}$/`
@@ -172,6 +193,8 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - End dates are optional (undefined = ongoing for income/expenses)
 - Income sources: startDate required, endDate optional
 - Expenses: both startDate and endDate optional (defaults: current month and ongoing)
+- Loans: startDate required (YYYY-MM format)
+- One-time expenses: date required (YYYY-MM format)
 
 ## Development Notes
 
@@ -193,8 +216,8 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Unit tests for all utils and stores
 - Tests use Vitest with JSDOM environment
 - Test files excluded from build via tsconfig.json
-- Integration tests: `src/phase2-integration.test.ts`, `src/phase3-integration.test.ts`, `src/phase4-integration.test.ts`
-- Total: 207 tests across 11 test files covering all phases
+- Integration tests: `src/phase2-integration.test.ts`, `src/phase3-integration.test.ts`, `src/phase4-integration.test.ts`, `src/phase5-integration.test.ts`
+- Total: 222 tests across 13 test files covering all phases (1-5)
 
 ### TypeScript Configuration
 - Strict mode enabled with all linting flags
@@ -202,3 +225,25 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Bundler module resolution
 - Path alias: `@/*` maps to `src/*`
 - `.test.ts` files excluded from compilation
+
+## Architecture Decisions
+
+### Removal of monthlyContribution Field (Completed)
+The legacy `monthlyContribution` field has been completely removed from the codebase in favor of using income sources exclusively:
+
+**Rationale**:
+- Eliminates dual calculation paths (legacy vs. income sources)
+- Provides more flexibility for users (variable income, multiple sources, different frequencies)
+- Simplifies codebase maintenance and reduces potential bugs
+- Better aligns with real-world financial scenarios
+
+**Migration**:
+- All calculations now use `calculateFutureValueWithIncomeSources()` month-by-month approach
+- Monthly contributions should be added as income sources in the Income Sources tab
+- Legacy `calculateFutureValue()` and `calculateTotalContributions()` functions removed
+- All 222 tests updated to use income sources instead of monthlyContribution
+- UserData type no longer includes monthlyContribution field
+
+**For New Features**:
+- Always use income sources for any contribution-related functionality
+- Do not add monthlyContribution field back - use income sources instead

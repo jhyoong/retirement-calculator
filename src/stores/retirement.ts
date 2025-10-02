@@ -10,7 +10,6 @@ export const useRetirementStore = defineStore('retirement', () => {
   const currentAge = ref(30)
   const retirementAge = ref(65)
   const currentSavings = ref(50000)
-  const monthlyContribution = ref(1000)
   const expectedReturnRate = ref(0.07) // 7%
   const inflationRate = ref(0.03) // 3%
 
@@ -23,7 +22,6 @@ export const useRetirementStore = defineStore('retirement', () => {
       currentAge: currentAge.value,
       retirementAge: retirementAge.value,
       currentSavings: currentSavings.value,
-      monthlyContribution: monthlyContribution.value,
       expectedReturnRate: expectedReturnRate.value,
       inflationRate: inflationRate.value,
       // Phase 2: Include income sources if they exist
@@ -68,10 +66,6 @@ export const useRetirementStore = defineStore('retirement', () => {
     currentSavings.value = value
   }
 
-  function updateMonthlyContribution(value: number) {
-    monthlyContribution.value = value
-  }
-
   function updateExpectedReturnRate(value: number) {
     expectedReturnRate.value = value
   }
@@ -84,7 +78,6 @@ export const useRetirementStore = defineStore('retirement', () => {
     currentAge.value = data.currentAge
     retirementAge.value = data.retirementAge
     currentSavings.value = data.currentSavings
-    monthlyContribution.value = data.monthlyContribution
     expectedReturnRate.value = data.expectedReturnRate
     inflationRate.value = data.inflationRate
 
@@ -119,7 +112,6 @@ export const useRetirementStore = defineStore('retirement', () => {
     currentAge.value = 30
     retirementAge.value = 65
     currentSavings.value = 50000
-    monthlyContribution.value = 1000
     expectedReturnRate.value = 0.07
     inflationRate.value = 0.03
 
@@ -137,7 +129,6 @@ export const useRetirementStore = defineStore('retirement', () => {
     currentAge,
     retirementAge,
     currentSavings,
-    monthlyContribution,
     expectedReturnRate,
     inflationRate,
     // Computed
@@ -148,7 +139,6 @@ export const useRetirementStore = defineStore('retirement', () => {
     updateCurrentAge,
     updateRetirementAge,
     updateCurrentSavings,
-    updateMonthlyContribution,
     updateExpectedReturnRate,
     updateInflationRate,
     loadData,

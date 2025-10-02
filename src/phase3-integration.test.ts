@@ -28,13 +28,23 @@ describe('Phase 3 Integration Tests', () => {
   describe('End-to-end flow: Basic inputs to visualizations', () => {
     it('should generate monthly projections from store data (legacy mode)', () => {
       const store = useRetirementStore()
+      const incomeStore = useIncomeStore()
 
       store.updateCurrentAge(30)
       store.updateRetirementAge(35)
       store.updateCurrentSavings(10000)
-      store.updateMonthlyContribution(1000)
       store.updateExpectedReturnRate(0.07)
       store.updateInflationRate(0.03)
+
+      // Add income source for monthly contribution
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Monthly Contribution',
+        type: 'custom',
+        amount: 1000,
+        frequency: 'monthly',
+        startDate: getRelativeDate(0)
+      })
 
       const projections = generateMonthlyProjections(store.userData)
 
@@ -124,13 +134,23 @@ describe('Phase 3 Integration Tests', () => {
   describe('Toggle between nominal and inflation-adjusted', () => {
     it('should maintain data integrity when toggling', () => {
       const store = useRetirementStore()
+      const incomeStore = useIncomeStore()
 
       store.updateCurrentAge(25)
       store.updateRetirementAge(40)
       store.updateCurrentSavings(20000)
-      store.updateMonthlyContribution(1500)
       store.updateExpectedReturnRate(0.06)
       store.updateInflationRate(0.025)
+
+      // Add income source for monthly contribution
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Monthly Contribution',
+        type: 'custom',
+        amount: 1500,
+        frequency: 'monthly',
+        startDate: getRelativeDate(0)
+      })
 
       const nominal = generateMonthlyProjections(store.userData)
       const adjusted = applyInflationAdjustment(nominal, store.userData.inflationRate)
@@ -149,13 +169,23 @@ describe('Phase 3 Integration Tests', () => {
 
     it('should show no difference with zero inflation', () => {
       const store = useRetirementStore()
+      const incomeStore = useIncomeStore()
 
       store.updateCurrentAge(30)
       store.updateRetirementAge(35)
       store.updateCurrentSavings(10000)
-      store.updateMonthlyContribution(1000)
       store.updateExpectedReturnRate(0.07)
       store.updateInflationRate(0) // Zero inflation
+
+      // Add income source for monthly contribution
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Monthly Contribution',
+        type: 'custom',
+        amount: 1000,
+        frequency: 'monthly',
+        startDate: getRelativeDate(0)
+      })
 
       const nominal = generateMonthlyProjections(store.userData)
       const adjusted = applyInflationAdjustment(nominal, 0)
@@ -175,7 +205,6 @@ describe('Phase 3 Integration Tests', () => {
       store.updateCurrentAge(64)
       store.updateRetirementAge(65)
       store.updateCurrentSavings(500000)
-      store.updateMonthlyContribution(0)
       store.updateExpectedReturnRate(0.05)
       store.updateInflationRate(0.02)
 
@@ -188,13 +217,23 @@ describe('Phase 3 Integration Tests', () => {
 
     it('should handle very long retirement timeline (40 years)', () => {
       const store = useRetirementStore()
+      const incomeStore = useIncomeStore()
 
       store.updateCurrentAge(25)
       store.updateRetirementAge(65)
       store.updateCurrentSavings(5000)
-      store.updateMonthlyContribution(500)
       store.updateExpectedReturnRate(0.07)
       store.updateInflationRate(0.03)
+
+      // Add income source for monthly contribution
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Monthly Contribution',
+        type: 'custom',
+        amount: 500,
+        frequency: 'monthly',
+        startDate: getRelativeDate(0)
+      })
 
       const projections = generateMonthlyProjections(store.userData)
 
@@ -205,13 +244,23 @@ describe('Phase 3 Integration Tests', () => {
 
     it('should handle zero interest rate', () => {
       const store = useRetirementStore()
+      const incomeStore = useIncomeStore()
 
       store.updateCurrentAge(30)
       store.updateRetirementAge(35)
       store.updateCurrentSavings(10000)
-      store.updateMonthlyContribution(1000)
       store.updateExpectedReturnRate(0)
       store.updateInflationRate(0)
+
+      // Add income source for monthly contribution
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Monthly Contribution',
+        type: 'custom',
+        amount: 1000,
+        frequency: 'monthly',
+        startDate: getRelativeDate(0)
+      })
 
       const projections = generateMonthlyProjections(store.userData)
 

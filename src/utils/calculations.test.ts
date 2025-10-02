@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import {
-  calculateFutureValue,
-  calculateTotalContributions,
   adjustForInflation,
   validateInputs,
   calculateRetirement,
@@ -9,51 +7,6 @@ import {
   checkSustainabilityWarning
 } from './calculations'
 import type { UserData, RetirementExpense } from '@/types'
-
-describe('calculateFutureValue', () => {
-  it('calculates correctly with principal and contributions', () => {
-    const result = calculateFutureValue(10000, 500, 0.07, 30)
-    expect(result).toBeGreaterThan(10000)
-    expect(result).toBeCloseTo(691150, -2)
-  })
-
-  it('handles zero interest rate', () => {
-    const result = calculateFutureValue(10000, 500, 0, 30)
-    expect(result).toBe(10000 + (500 * 30 * 12))
-  })
-
-  it('handles zero monthly contribution', () => {
-    const result = calculateFutureValue(10000, 0, 0.07, 30)
-    expect(result).toBeCloseTo(81165, -2)
-  })
-
-  it('handles zero principal', () => {
-    const result = calculateFutureValue(0, 500, 0.07, 30)
-    expect(result).toBeCloseTo(609985, -2)
-  })
-
-  it('handles single year correctly', () => {
-    const result = calculateFutureValue(10000, 500, 0.07, 1)
-    expect(result).toBeGreaterThan(10000 + (500 * 12))
-  })
-})
-
-describe('calculateTotalContributions', () => {
-  it('calculates total contributions correctly', () => {
-    const result = calculateTotalContributions(10000, 500, 30)
-    expect(result).toBe(10000 + (500 * 30 * 12))
-  })
-
-  it('handles zero monthly contribution', () => {
-    const result = calculateTotalContributions(10000, 0, 30)
-    expect(result).toBe(10000)
-  })
-
-  it('handles zero initial savings', () => {
-    const result = calculateTotalContributions(0, 500, 30)
-    expect(result).toBe(500 * 30 * 12)
-  })
-})
 
 describe('adjustForInflation', () => {
   it('reduces value based on inflation', () => {
@@ -78,7 +31,6 @@ describe('validateInputs', () => {
     currentAge: 30,
     retirementAge: 65,
     currentSavings: 50000,
-    monthlyContribution: 1000,
     expectedReturnRate: 0.07,
     inflationRate: 0.03
   }
@@ -114,10 +66,6 @@ describe('validateInputs', () => {
     expect(result.isValid).toBe(false)
   })
 
-  it('rejects negative monthly contribution', () => {
-    const result = validateInputs({ ...validData, monthlyContribution: -100 })
-    expect(result.isValid).toBe(false)
-  })
 
   it('rejects return rate over 100%', () => {
     const result = validateInputs({ ...validData, expectedReturnRate: 1.5 })
@@ -133,7 +81,6 @@ describe('validateInputs', () => {
     const result = validateInputs({
       ...validData,
       currentSavings: 0,
-      monthlyContribution: 0,
       expectedReturnRate: 0,
       inflationRate: 0
     })
@@ -145,7 +92,6 @@ describe('validateInputs', () => {
       currentAge: 150,
       retirementAge: 30,
       currentSavings: -1000,
-      monthlyContribution: -500,
       expectedReturnRate: 2,
       inflationRate: -1
     })
@@ -160,16 +106,24 @@ describe('calculateRetirement', () => {
       currentAge: 30,
       retirementAge: 65,
       currentSavings: 50000,
-      monthlyContribution: 1000,
       expectedReturnRate: 0.07,
-      inflationRate: 0.03
+      inflationRate: 0.03,
+      incomeSources: [{
+        id: '1',
+        name: 'Monthly Contribution',
+        type: 'custom',
+        amount: 1000,
+        frequency: 'monthly',
+        startDate: '2025-01'
+        // No endDate - continues until retirement
+      }]
     }
 
     const result = calculateRetirement(data)
 
     expect(result.yearsToRetirement).toBe(35)
     expect(result.futureValue).toBeGreaterThan(1000000)
-    expect(result.totalContributions).toBe(50000 + (1000 * 35 * 12))
+    expect(result.totalContributions).toBeCloseTo(50000 + (1000 * 35 * 12), -2)
     expect(result.investmentGrowth).toBeGreaterThan(0)
     expect(result.inflationAdjustedValue).toBeLessThan(result.futureValue)
   })
@@ -179,7 +133,6 @@ describe('calculateRetirement', () => {
       currentAge: 65,
       retirementAge: 30,
       currentSavings: 50000,
-      monthlyContribution: 1000,
       expectedReturnRate: 0.07,
       inflationRate: 0.03
     }
@@ -192,9 +145,16 @@ describe('calculateRetirement', () => {
       currentAge: 30,
       retirementAge: 65,
       currentSavings: 50000,
-      monthlyContribution: 1000,
       expectedReturnRate: 0.07,
-      inflationRate: 0.03
+      inflationRate: 0.03,
+      incomeSources: [{
+        id: '1',
+        name: 'Salary',
+        type: 'salary',
+        amount: 1000,
+        frequency: 'monthly',
+        startDate: '2025-01'
+      }]
     }
 
     const result = calculateRetirement(data)
@@ -211,7 +171,6 @@ describe('calculateRetirement', () => {
       currentAge: 64,
       retirementAge: 65,
       currentSavings: 100000,
-      monthlyContribution: 500,
       expectedReturnRate: 0.07,
       inflationRate: 0.03
     }
@@ -227,7 +186,6 @@ describe('calculateRetirement', () => {
       currentAge: 30,
       retirementAge: 65,
       currentSavings: 50000,
-      monthlyContribution: 1000,
       expectedReturnRate: 0,
       inflationRate: 0
     }
@@ -512,8 +470,7 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         currentAge: 30,
         retirementAge: 45,
         currentSavings: 100000,
-        monthlyContribution: 1000,
-        expectedReturnRate: 0.05,
+          expectedReturnRate: 0.05,
         inflationRate: 0.03,
         incomeSources: [{
           id: "1",
@@ -619,7 +576,6 @@ describe('Phase 4: calculateRetirement with expenses', () => {
       currentAge: 30,
       retirementAge: 65,
       currentSavings: 50000,
-      monthlyContribution: 1000,
       expectedReturnRate: 0.07,
       inflationRate: 0.03,
       expenses
@@ -636,7 +592,6 @@ describe('Phase 4: calculateRetirement with expenses', () => {
       currentAge: 30,
       retirementAge: 65,
       currentSavings: 50000,
-      monthlyContribution: 1000,
       expectedReturnRate: 0.07,
       inflationRate: 0.03
     }
@@ -654,7 +609,8 @@ describe('Phase 4: calculateRetirement with expenses', () => {
         name: 'Expensive Living',
         category: 'living',
         monthlyAmount: 5000,
-        inflationRate: 0.03
+        inflationRate: 0.03,
+        startDate: '2030-01' // Starts at/near retirement
       }
     ]
 
@@ -662,9 +618,16 @@ describe('Phase 4: calculateRetirement with expenses', () => {
       currentAge: 60,
       retirementAge: 65,
       currentSavings: 50000,
-      monthlyContribution: 1000,
       expectedReturnRate: 0.05,
       inflationRate: 0.03,
+      incomeSources: [{
+        id: '1',
+        name: 'Minimal Income',
+        type: 'custom',
+        amount: 500,
+        frequency: 'monthly',
+        startDate: '2025-01'
+      }],
       expenses
     }
 
@@ -679,7 +642,6 @@ describe('Phase 4: Validation with expenses', () => {
     currentAge: 30,
     retirementAge: 65,
     currentSavings: 50000,
-    monthlyContribution: 1000,
     expectedReturnRate: 0.07,
     inflationRate: 0.03
   }
@@ -809,8 +771,7 @@ describe('Pre-retirement expenses', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 10000,
-        monthlyContribution: 500,
-        expectedReturnRate: 0.06,
+          expectedReturnRate: 0.06,
         inflationRate: 0.03,
         incomeSources: [{
           id: '1',
@@ -840,8 +801,7 @@ describe('Pre-retirement expenses', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 10000,
-        monthlyContribution: 500,
-        expectedReturnRate: 0.06,
+          expectedReturnRate: 0.06,
         inflationRate: 0.03,
         incomeSources: [{
           id: '1',
@@ -873,8 +833,7 @@ describe('Pre-retirement expenses', () => {
         currentAge: 30,
         retirementAge: 35,
         currentSavings: 100000,
-        monthlyContribution: 0,
-        expectedReturnRate: 0.06,
+          expectedReturnRate: 0.06,
         inflationRate: 0.03,
         incomeSources: [{
           id: '1',
@@ -914,8 +873,7 @@ describe('Pre-retirement expenses', () => {
         currentAge: 30,
         retirementAge: 35,
         currentSavings: 100000,
-        monthlyContribution: 0,
-        expectedReturnRate: 0,
+          expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources: [{
           id: '1',
@@ -952,8 +910,7 @@ describe('Pre-retirement expenses', () => {
         currentAge: 30,
         retirementAge: 40,
         currentSavings: 100000,
-        monthlyContribution: 0,
-        expectedReturnRate: 0,
+          expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources: [{
           id: '1',
@@ -986,8 +943,7 @@ describe('Pre-retirement expenses', () => {
         currentAge: 30,
         retirementAge: 40,
         currentSavings: 100000,
-        monthlyContribution: 0,
-        expectedReturnRate: 0,
+          expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources: [{
           id: '1',
@@ -1021,8 +977,7 @@ describe('Pre-retirement expenses', () => {
         currentAge: 30,
         retirementAge: 35,
         currentSavings: 100000,
-        monthlyContribution: 0,
-        expectedReturnRate: 0,
+          expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources: [{
           id: '1',
@@ -1075,8 +1030,7 @@ describe('Pre-retirement expenses', () => {
         currentAge: 30,
         retirementAge: 35,
         currentSavings: 10000,
-        monthlyContribution: 0,
-        expectedReturnRate: 0,
+          expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources: [{
           id: '1',
@@ -1111,8 +1065,7 @@ describe('Pre-retirement expenses', () => {
         currentAge: 30,
         retirementAge: 35,
         currentSavings: 100000,
-        monthlyContribution: 0,
-        expectedReturnRate: 0,
+          expectedReturnRate: 0,
         inflationRate: 0,
         incomeSources: [{
           id: '1',

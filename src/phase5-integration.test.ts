@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useRetirementStore } from './stores/retirement'
 import { useExpenseStore } from './stores/expense'
+import { useIncomeStore } from './stores/income'
 import type { UserData, Loan, OneTimeExpense } from './types'
 
 describe('Phase 5 Integration Tests', () => {
@@ -35,7 +36,6 @@ describe('Phase 5 Integration Tests', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         loans: [
@@ -104,7 +104,6 @@ describe('Phase 5 Integration Tests', () => {
         currentAge: 30,
         retirementAge: 65,
         currentSavings: 50000,
-        monthlyContribution: 1000,
         expectedReturnRate: 0.07,
         inflationRate: 0.03,
         oneTimeExpenses: [
@@ -149,6 +148,7 @@ describe('Phase 5 Integration Tests', () => {
     it('should reduce portfolio balance with loan payments', () => {
       const retirementStore = useRetirementStore()
       const expenseStore = useExpenseStore()
+      const incomeStore = useIncomeStore()
 
       // Clear default expenses
       expenseStore.loadData([], [], [])
@@ -156,8 +156,17 @@ describe('Phase 5 Integration Tests', () => {
       retirementStore.updateCurrentAge(30)
       retirementStore.updateRetirementAge(35)
       retirementStore.updateCurrentSavings(100000)
-      retirementStore.updateMonthlyContribution(2000)
       retirementStore.updateExpectedReturnRate(0.06)
+
+      // Add income source for monthly contribution
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Monthly Contribution',
+        type: 'custom',
+        amount: 2000,
+        frequency: 'monthly',
+        startDate: new Date().toISOString().slice(0, 7)
+      })
 
       // Add a loan
       const loan: Loan = {
@@ -183,6 +192,7 @@ describe('Phase 5 Integration Tests', () => {
     it('should deduct one-time expenses from portfolio at specific dates', () => {
       const retirementStore = useRetirementStore()
       const expenseStore = useExpenseStore()
+      const incomeStore = useIncomeStore()
 
       // Clear default expenses
       expenseStore.loadData([], [], [])
@@ -190,7 +200,16 @@ describe('Phase 5 Integration Tests', () => {
       retirementStore.updateCurrentAge(30)
       retirementStore.updateRetirementAge(35)
       retirementStore.updateCurrentSavings(100000)
-      retirementStore.updateMonthlyContribution(2000)
+
+      // Add income source for monthly contribution
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Monthly Contribution',
+        type: 'custom',
+        amount: 2000,
+        frequency: 'monthly',
+        startDate: new Date().toISOString().slice(0, 7)
+      })
 
       // Add one-time expense
       const expense: OneTimeExpense = {
@@ -211,6 +230,7 @@ describe('Phase 5 Integration Tests', () => {
     it('should handle combination of loans and one-time expenses', () => {
       const retirementStore = useRetirementStore()
       const expenseStore = useExpenseStore()
+      const incomeStore = useIncomeStore()
 
       // Clear default expenses
       expenseStore.loadData([], [], [])
@@ -218,8 +238,17 @@ describe('Phase 5 Integration Tests', () => {
       retirementStore.updateCurrentAge(30)
       retirementStore.updateRetirementAge(40)
       retirementStore.updateCurrentSavings(100000)
-      retirementStore.updateMonthlyContribution(3000)
       retirementStore.updateExpectedReturnRate(0.07)
+
+      // Add income source for monthly contribution
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Monthly Contribution',
+        type: 'custom',
+        amount: 3000,
+        frequency: 'monthly',
+        startDate: new Date().toISOString().slice(0, 7)
+      })
 
       // Add loan
       expenseStore.addLoan({
