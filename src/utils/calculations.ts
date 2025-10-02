@@ -427,15 +427,17 @@ export function calculateFutureValueWithIncomeSources(
       })
     }
 
-    // Add contribution to balance
-    balance += monthlyContribution
+    // Calculate net cash flow
+    const netContribution = monthlyContribution - monthlyExpenses
 
-    // Subtract expenses from balance
-    balance -= monthlyExpenses
+    // Add net cash flow to balance
+    balance += netContribution
 
-    // Update total contributions (income - expenses)
-    totalContributions += monthlyContribution
-    totalContributions -= monthlyExpenses
+    // Update total contributions
+    // Only add to contributions when net is positive (money flowing IN)
+    // When expenses exceed income, we're withdrawing, not contributing
+    const positiveContribution = Math.max(0, netContribution)
+    totalContributions += positiveContribution
 
     // Apply interest
     balance = balance * (1 + monthlyRate)
@@ -449,15 +451,16 @@ export function calculateFutureValueWithIncomeSources(
 
 /**
  * Phase 4: Calculate post-retirement portfolio sustainability
- * Returns years until portfolio depletes, or null if sustainable
+ * Returns depletion info, or null values if sustainable
  */
 export function calculateYearsUntilDepletion(
   startingBalance: number,
   annualReturnRate: number,
   expenses: import('@/types').RetirementExpense[],
   retirementAge: number,
+  currentAge: number,
   maxAge: number = 95
-): number | null {
+): { yearsUntilDepletion: number | null; depletionAge: number | null } {
   const monthlyRate = annualReturnRate / 12
   let balance = startingBalance
   const maxMonths = (maxAge - retirementAge) * 12
@@ -465,7 +468,7 @@ export function calculateYearsUntilDepletion(
   const currentMonth = new Date().getMonth() + 1
 
   // Calculate months to retirement to establish the baseline for retirement month
-  const monthsToRetirement = retirementAge * 12 // Approximate
+  const monthsToRetirement = (retirementAge - currentAge) * 12
   const retirementYear = currentYear + Math.floor((currentMonth - 1 + monthsToRetirement) / 12)
   const retirementMonth = ((currentMonth - 1 + monthsToRetirement) % 12) + 1
 
@@ -473,15 +476,15 @@ export function calculateYearsUntilDepletion(
     // Calculate current date
     const yearOffset = Math.floor(monthIndex / 12)
     const monthOffset = monthIndex % 12
-    const year = retirementYear + yearOffset
-    const month = retirementMonth + monthOffset
+    const year = Math.floor(retirementYear) + yearOffset
+    const month = Math.round(retirementMonth) + monthOffset
 
     // Adjust if month exceeds 12
     const adjustedYear = month > 12 ? year + Math.floor((month - 1) / 12) : year
     const adjustedMonth = month > 12 ? ((month - 1) % 12) + 1 : month
 
     // Format current month as YYYY-MM
-    const currentMonthStr = `${adjustedYear}-${String(adjustedMonth).padStart(2, '0')}`
+    const currentMonthStr = `${Math.floor(adjustedYear)}-${String(Math.round(adjustedMonth)).padStart(2, '0')}`
 
     // Calculate total expenses for this month with inflation-adjusted amounts
     let monthlyExpenses = 0
@@ -507,8 +510,10 @@ export function calculateYearsUntilDepletion(
 
     // Check if balance can cover expenses
     if (balance < monthlyExpenses) {
-      // Portfolio depleted
-      return Math.round((monthIndex / 12) * 100) / 100
+      // Portfolio depleted - calculate exact age
+      const yearsFromRetirement = Math.round((monthIndex / 12) * 100) / 100
+      const depletionAge = Math.round((currentAge + ((retirementAge - currentAge) * 12 + monthIndex) / 12) * 100) / 100
+      return { yearsUntilDepletion: yearsFromRetirement, depletionAge }
     }
 
     // Withdraw expenses from portfolio
@@ -519,12 +524,15 @@ export function calculateYearsUntilDepletion(
 
     // Stop if balance goes negative
     if (balance <= 0) {
-      return Math.round((monthIndex / 12) * 100) / 100
+      // Portfolio depleted - calculate exact age
+      const yearsFromRetirement = Math.round((monthIndex / 12) * 100) / 100
+      const depletionAge = Math.round((currentAge + ((retirementAge - currentAge) * 12 + monthIndex) / 12) * 100) / 100
+      return { yearsUntilDepletion: yearsFromRetirement, depletionAge }
     }
   }
 
   // Portfolio lasted until max age - sustainable
-  return null
+  return { yearsUntilDepletion: null, depletionAge: null }
 }
 
 /**
@@ -628,18 +636,22 @@ export function calculateRetirement(data: UserData): CalculationResult {
 
   // Phase 4: Calculate post-retirement sustainability if expenses are defined
   let yearsUntilDepletion: number | null = null
+  let depletionAge: number | null = null
   let sustainabilityWarning = false
 
   if (data.expenses && data.expenses.length > 0) {
     // Use actual retirement age (when income truly stops)
     const actualRetirementAge = findActualRetirementAge(data)
 
-    yearsUntilDepletion = calculateYearsUntilDepletion(
+    const depletionResult = calculateYearsUntilDepletion(
       futureValue,
       data.expectedReturnRate,
       data.expenses,
-      actualRetirementAge
+      actualRetirementAge,
+      data.currentAge
     )
+    yearsUntilDepletion = depletionResult.yearsUntilDepletion
+    depletionAge = depletionResult.depletionAge
 
     // Calculate annual expenses for warning check (at retirement age, before inflation)
     const currentYear = new Date().getFullYear()
@@ -669,6 +681,7 @@ export function calculateRetirement(data: UserData): CalculationResult {
     inflationAdjustedValue: Math.round(inflationAdjustedValue * 100) / 100,
     yearsToRetirement,
     yearsUntilDepletion,
+    depletionAge,
     sustainabilityWarning
   }
 }

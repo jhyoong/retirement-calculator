@@ -115,10 +115,10 @@ const isSustainable = computed(() => {
 })
 
 const depletionAge = computed(() => {
-  if (!store.results || store.results.yearsUntilDepletion === null) {
+  if (!store.results || store.results.depletionAge === null) {
     return null
   }
-  return store.retirementAge + store.results.yearsUntilDepletion
+  return store.results.depletionAge
 })
 
 const annualExpenses = computed(() => {

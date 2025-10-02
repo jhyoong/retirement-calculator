@@ -27,6 +27,7 @@ export interface CalculationResult {
   yearsToRetirement: number;
   // Phase 4 additions
   yearsUntilDepletion: number | null; // null means sustainable/never depletes
+  depletionAge: number | null; // exact age when portfolio depletes, null if sustainable
   sustainabilityWarning: boolean; // true if withdrawal rate is too high (>4-5%)
 }
 

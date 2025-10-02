@@ -264,16 +264,19 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         }
       ]
 
-      const years = calculateYearsUntilDepletion(
+      const result = calculateYearsUntilDepletion(
         500000, // $500k starting balance
         0.05,   // 5% return
         highExpenses,
-        65      // retirement age
+        65,     // retirement age
+        50      // current age
       )
 
-      expect(years).not.toBeNull()
-      expect(years!).toBeGreaterThan(0)
-      expect(years!).toBeLessThan(30)
+      expect(result.yearsUntilDepletion).not.toBeNull()
+      expect(result.yearsUntilDepletion!).toBeGreaterThan(0)
+      expect(result.yearsUntilDepletion!).toBeLessThan(30)
+      expect(result.depletionAge).not.toBeNull()
+      expect(result.depletionAge!).toBeGreaterThan(65)
     })
 
     it('returns null for sustainable low expenses', () => {
@@ -288,14 +291,16 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         }
       ]
 
-      const years = calculateYearsUntilDepletion(
+      const result = calculateYearsUntilDepletion(
         2000000, // Higher balance to make sustainable
         0.07,    // Higher return
         lowExpenses,
-        65
+        65,
+        50
       )
 
-      expect(years).toBeNull() // Sustainable
+      expect(result.yearsUntilDepletion).toBeNull() // Sustainable
+      expect(result.depletionAge).toBeNull()
     })
 
     it('handles immediate depletion scenario', () => {
@@ -309,15 +314,17 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         }
       ]
 
-      const years = calculateYearsUntilDepletion(
+      const result = calculateYearsUntilDepletion(
         50000, // Small balance
         0.05,
         extremeExpenses,
-        65
+        65,
+        50
       )
 
-      expect(years).not.toBeNull()
-      expect(years!).toBeLessThan(1)
+      expect(result.yearsUntilDepletion).not.toBeNull()
+      expect(result.yearsUntilDepletion!).toBeLessThan(1)
+      expect(result.depletionAge).not.toBeNull()
     })
   })
 
@@ -333,15 +340,17 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         }
       ]
 
-      const years = calculateYearsUntilDepletion(
+      const result = calculateYearsUntilDepletion(
         300000, // Lower balance
         0.04,   // Lower return
         highInflationExpenses,
-        65
+        65,
+        50
       )
 
-      expect(years).not.toBeNull()
-      expect(years!).toBeGreaterThan(0)
+      expect(result.yearsUntilDepletion).not.toBeNull()
+      expect(result.yearsUntilDepletion!).toBeGreaterThan(0)
+      expect(result.depletionAge).not.toBeNull()
     })
 
     it('handles multiple expenses with different inflation rates', () => {
@@ -369,15 +378,17 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         }
       ]
 
-      const years = calculateYearsUntilDepletion(
+      const result = calculateYearsUntilDepletion(
         600000,
         0.06,
         multiExpenses,
-        65
+        65,
+        50
       )
 
-      expect(years).not.toBeNull()
-      expect(years!).toBeGreaterThan(0)
+      expect(result.yearsUntilDepletion).not.toBeNull()
+      expect(result.yearsUntilDepletion!).toBeGreaterThan(0)
+      expect(result.depletionAge).not.toBeNull()
     })
   })
 
@@ -393,16 +404,18 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         }
       ]
 
-      const years = calculateYearsUntilDepletion(
+      const result = calculateYearsUntilDepletion(
         300000, // Lower balance
         0.04,   // Lower return
         expenses,
-        65
+        65,
+        50
       )
 
       // Should deplete with high expenses
-      expect(years).not.toBeNull()
-      expect(years!).toBeGreaterThan(0)
+      expect(result.yearsUntilDepletion).not.toBeNull()
+      expect(result.yearsUntilDepletion!).toBeGreaterThan(0)
+      expect(result.depletionAge).not.toBeNull()
     })
 
     it('handles expenses that start in the future', () => {
@@ -417,27 +430,31 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         }
       ]
 
-      const years = calculateYearsUntilDepletion(
+      const result = calculateYearsUntilDepletion(
         300000,
         0.05,
         futureExpenses,
-        65
+        65,
+        50
       )
 
-      expect(years).not.toBeNull()
+      expect(result.yearsUntilDepletion).not.toBeNull()
+      expect(result.depletionAge).not.toBeNull()
     })
   })
 
   describe('Edge cases', () => {
     it('handles zero starting balance', () => {
-      const years = calculateYearsUntilDepletion(
+      const result = calculateYearsUntilDepletion(
         0,
         0.05,
         basicExpenses,
-        65
+        65,
+        50
       )
 
-      expect(years).toBe(0)
+      expect(result.yearsUntilDepletion).toBe(0)
+      expect(result.depletionAge).toBe(65) // Depletes immediately at retirement age
     })
 
     it('handles zero return rate', () => {
@@ -451,30 +468,110 @@ describe('Phase 4: calculateYearsUntilDepletion', () => {
         }
       ]
 
-      const years = calculateYearsUntilDepletion(
+      const result = calculateYearsUntilDepletion(
         100000,
         0, // No returns
         noInflationExpenses,
-        65
+        65,
+        50
       )
 
-      expect(years).not.toBeNull()
+      expect(result.yearsUntilDepletion).not.toBeNull()
       // Expenses are 3000/month
       // So it should deplete in roughly 100000 / (3000 * 12) ~= 2.78 years
-      expect(years!).toBeGreaterThan(2)
-      expect(years!).toBeLessThan(4)
+      expect(result.yearsUntilDepletion!).toBeGreaterThan(2)
+      expect(result.yearsUntilDepletion!).toBeLessThan(4)
+      expect(result.depletionAge).not.toBeNull()
+      expect(result.depletionAge!).toBeGreaterThan(65)
+      expect(result.depletionAge!).toBeLessThan(69)
     })
 
     it('handles zero expenses', () => {
-      const years = calculateYearsUntilDepletion(
+      const result = calculateYearsUntilDepletion(
         200000, // Lower balance
         0.03,   // Lower return
         [], // No expenses
-        65
+        65,
+        50
       )
 
       // No expenses means no depletion
-      expect(years).toBeNull()
+      expect(result.yearsUntilDepletion).toBeNull()
+      expect(result.depletionAge).toBeNull()
+    })
+  })
+
+  describe('Real-world scenario: User reported bug', () => {
+    it('should detect depletion with multiple expenses starting before retirement', () => {
+      // This replicates user's actual scenario:
+      // - Current age: 30, Retirement: 45 (income ends)
+      // - Expenses start years before retirement
+      // - Should deplete around age 74
+
+      const userData: UserData = {
+        currentAge: 30,
+        retirementAge: 45,
+        currentSavings: 100000,
+        monthlyContribution: 1000,
+        expectedReturnRate: 0.05,
+        inflationRate: 0.03,
+        incomeSources: [{
+          id: "1",
+          name: "Job",
+          type: "salary",
+          amount: 10000,
+          frequency: "monthly",
+          startDate: "2025-10",
+          endDate: "2045-12"
+        }],
+        expenses: [
+          {
+            id: "1",
+            name: "Living Expenses",
+            category: "living",
+            monthlyAmount: 3000,
+            inflationRate: 0.03
+            // No startDate - will default to current date
+          },
+          {
+            id: "2",
+            name: "Loan",
+            category: "other",
+            monthlyAmount: 2500,
+            inflationRate: 0.03,
+            startDate: "2030-01",
+            endDate: "2045-12"
+          },
+          {
+            id: "3",
+            name: "Travel budget",
+            category: "travel",
+            monthlyAmount: 500,
+            inflationRate: 0.03,
+            startDate: "2026-01"
+          },
+          {
+            id: "4",
+            name: "Fun Budget",
+            category: "living",
+            monthlyAmount: 200,
+            inflationRate: 0.03,
+            startDate: "2026-01"
+          }
+        ]
+      }
+
+      const result = calculateRetirement(userData)
+
+      // The portfolio SHOULD deplete (not be sustainable)
+      // Based on user report, it depletes around age 74 (29 years after retirement)
+      expect(result.yearsUntilDepletion).not.toBeNull()
+
+      if (result.yearsUntilDepletion !== null) {
+        // Should deplete somewhere between 20-35 years
+        expect(result.yearsUntilDepletion).toBeGreaterThan(15)
+        expect(result.yearsUntilDepletion).toBeLessThan(40)
+      }
     })
   })
 })
@@ -1005,7 +1102,8 @@ describe('Pre-retirement expenses', () => {
       // Starting: 10000
       // Ending: 10000 - 60000 = -50000
       expect(result.futureValue).toBeLessThan(0)
-      expect(result.totalContributions).toBeLessThan(0)
+      // Contributions should stay at initial savings (no new money flowing in)
+      expect(result.totalContributions).toBe(10000)
     })
 
     it('should handle expense with no startDate (defaults to current date)', () => {
