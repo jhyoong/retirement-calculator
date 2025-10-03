@@ -14,6 +14,8 @@ export interface UserData {
   // Phase 5 additions
   loans?: Loan[];
   oneTimeExpenses?: OneTimeExpense[];
+  // Phase 6 additions
+  cpf?: CPFData;
 }
 
 export interface RetirementData {
@@ -128,4 +130,31 @@ export interface OneTimeExpense {
   date: string; // YYYY-MM format
   category: ExpenseCategory;
   description?: string;
+}
+
+// Phase 6 Type Definitions (CPF)
+
+export interface CPFAccounts {
+  ordinaryAccount: number;
+  specialAccount: number;
+  medisaveAccount: number;
+  retirementAccount: number;
+}
+
+export interface CPFContribution {
+  employee: number;
+  employer: number;
+  total: number;
+  allocation: {
+    toOA: number;
+    toSA: number;
+    toMA: number;
+    toRA: number;
+  };
+}
+
+export interface CPFData {
+  enabled: boolean;
+  currentBalances: CPFAccounts;
+  retirementSumTarget: 'basic' | 'full' | 'enhanced';
 }

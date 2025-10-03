@@ -4,6 +4,7 @@ import type { UserData, CalculationResult, ValidationResult } from '@/types'
 import { calculateRetirement, validateInputs } from '@/utils/calculations'
 import { useIncomeStore } from './income'
 import { useExpenseStore } from './expense'
+import { useCPFStore } from './cpf'
 
 export const useRetirementStore = defineStore('retirement', () => {
   // State with sensible defaults
@@ -17,6 +18,7 @@ export const useRetirementStore = defineStore('retirement', () => {
   const userData = computed((): UserData => {
     const incomeStore = useIncomeStore()
     const expenseStore = useExpenseStore()
+    const cpfStore = useCPFStore()
 
     return {
       currentAge: currentAge.value,
@@ -31,7 +33,9 @@ export const useRetirementStore = defineStore('retirement', () => {
       expenses: expenseStore.expenses.length > 0 ? expenseStore.expenses : undefined,
       // Phase 5: Include loans and one-time expenses if they exist
       loans: expenseStore.loans.length > 0 ? expenseStore.loans : undefined,
-      oneTimeExpenses: expenseStore.oneTimeExpenses.length > 0 ? expenseStore.oneTimeExpenses : undefined
+      oneTimeExpenses: expenseStore.oneTimeExpenses.length > 0 ? expenseStore.oneTimeExpenses : undefined,
+      // Phase 6: Include CPF data if enabled
+      cpf: cpfStore.enabled ? cpfStore.cpfData : undefined
     }
   })
 
@@ -106,6 +110,14 @@ export const useRetirementStore = defineStore('retirement', () => {
       // This maintains backward compatibility with Phase 1-3 data
       expenseStore.loadData([], [], [])
     }
+
+    // Phase 6: Load CPF data if present
+    const cpfStore = useCPFStore()
+    if (data.cpf) {
+      cpfStore.loadData(data.cpf)
+    } else {
+      cpfStore.resetToDefaults()
+    }
   }
 
   function resetToDefaults() {
@@ -122,6 +134,10 @@ export const useRetirementStore = defineStore('retirement', () => {
     // Phase 4: Reset expense data
     const expenseStore = useExpenseStore()
     expenseStore.resetToDefaults()
+
+    // Phase 6: Reset CPF data
+    const cpfStore = useCPFStore()
+    cpfStore.resetToDefaults()
   }
 
   return {
