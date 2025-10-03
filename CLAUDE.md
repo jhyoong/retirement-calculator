@@ -58,6 +58,7 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Computed: `totalMonthlyIncome` (normalizes all frequencies to monthly)
 - Helpers: `convertToMonthly()` - converts daily/weekly/yearly/custom frequencies to monthly amounts
 - Actions: add/remove/update methods for both income sources and one-off returns
+- Phase 6: Income sources can be marked as `cpfEligible` for CPF contribution calculations
 
 **Expense Store** (`src/stores/expense.ts`):
 - Phase 4 addition for retirement expense tracking, Phase 5 addition for loans
@@ -65,6 +66,13 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Computed: `totalMonthlyExpenses`, `expensesByCategory`, `totalsByCategory`
 - Default: Single "Living Expenses" entry ($3000/month, 3% inflation)
 - Actions: add/remove/update methods for expenses, loans, and one-time expenses
+
+**CPF Store** (`src/stores/cpf.ts`):
+- Phase 6 addition for Singapore CPF integration
+- Manages: CPF account balances (OA, SA, MA, RA), contribution settings, retirement sum preference
+- Tracks: Initial balances, housing usage from OA, user settings
+- Computed: `cpfEnabled` (whether CPF feature is active), `totalCPFBalance`
+- Actions: update methods for balances and settings, reset to defaults
 
 ### Calculation Logic
 
@@ -79,11 +87,21 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - `getLoanPaymentForMonth()` - Get payment amount for specific month (0 if loan not active)
 - Handles extra payments for early repayment
 
+**CPF Calculations** (`src/utils/cpfContributions.ts`, `cpfInterest.ts`, `cpfTransitions.ts`, `cpfLife.ts`):
+- Phase 6 addition for Singapore CPF system
+- `cpfConfig.ts` - Configuration data: contribution rates, allocation percentages, interest rates, wage ceilings, retirement sums
+- `cpfContributions.ts` - Calculate CPF contributions from salary (age-dependent rates, wage ceiling limits)
+- `cpfInterest.ts` - Calculate monthly interest with extra interest tiers (OA 2.5%, SMRA 4.0%, up to 6% extra)
+- `cpfTransitions.ts` - Age 55 transitions (SA closure, RA creation), retirement sum calculations (BRS/FRS/ERS)
+- `cpfLife.ts` - CPF Life annuity payout estimates for post-retirement income
+- All calculations based on 2025 CPF regulations (see CPF_INFO.md for detailed rules)
+
 **Monthly Projections** (`src/utils/monthlyProjections.ts`):
 - Phase 3 addition for chart and table visualizations
 - `generateMonthlyProjections()` - Month-by-month data from current age to retirement
 - Returns array of `MonthlyDataPoint` with income, expenses, contributions, portfolio value, growth
-- Handles income sources, income sources, expenses, loans, and one-time expenses
+- Handles income sources, expenses, loans, one-time expenses
+- Phase 6: Includes CPF monthly snapshots when CPF is enabled
 
 **Post-Retirement Projections** (`src/utils/postRetirementProjections.ts`):
 - Phase 4 addition for retirement sustainability analysis
@@ -91,12 +109,14 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Applies category-specific inflation to expenses
 - Date-based expense filtering (startDate/endDate in YYYY-MM format)
 - Detects portfolio depletion for sustainability warnings
+- Phase 6: Includes CPF Life monthly payouts as income when CPF is enabled
 
 **Calculation Behavior**:
 - Always uses month-by-month calculation with income sources (no legacy calculation path)
 - Contributions come from income sources minus expenses (no separate monthlyContribution field)
 - Phase 4: Calculates `yearsUntilDepletion` and `sustainabilityWarning` when expenses exist
 - Phase 5: Includes loan payments and one-time expenses in month-by-month calculations
+- Phase 6: CPF contributions deducted from salary income before portfolio contributions, CPF tracked separately with own interest rates
 - Handles edge cases: zero interest rate, date validation, frequency conversions
 - All monetary values rounded to 2 decimal places
 
@@ -104,7 +124,7 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 
 **App.vue**:
 - Root component with tab navigation
-- 9 tabs: Basic Info, Income Sources, One-Off Returns, Expenses, Loans, One-Time Expenses, Results, Visualizations, Import/Export
+- 8 tabs: Basic Info, Income, Expenses, CPF, Results, Visualizations, Import/Export
 - Uses `v-show` for tab content (all rendered, visibility toggled)
 
 **RetirementForm.vue**:
@@ -112,28 +132,29 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Binds to retirement store using Pinia
 - Note: Monthly contributions are now handled via Income Sources tab
 
-**IncomeSourceForm.vue** & **OneOffReturnForm.vue**:
+**IncomeTab.vue** (contains IncomeSourceForm.vue & OneOffReturnForm.vue):
 - Phase 2 components for varied income
 - Manage income store arrays
+- Phase 6: Income sources can be flagged as CPF-eligible for automatic contribution calculations
 
-**ExpenseForm.vue**:
-- Phase 4 component for retirement expense tracking
-- Add/edit/remove expenses with category, amount, inflation, optional date ranges (YYYY-MM format)
+**ExpenseTab.vue** (contains ExpenseForm.vue, LoanForm.vue, OneTimeExpenseForm.vue):
+- Phase 4: ExpenseForm for retirement expense tracking with category, amount, inflation, optional date ranges (YYYY-MM format)
+- Phase 5: LoanForm for loan tracking with principal, interest rate, term, start date, and optional extra payments
+- Phase 5: OneTimeExpenseForm for one-time expenses with amount, date, category, and description
 - Displays validation errors inline
 
-**LoanForm.vue**:
-- Phase 5 component for loan tracking
-- Add/edit/remove loans with principal, interest rate, term, start date, and optional extra payments
-- Displays calculated monthly payment
-
-**OneTimeExpenseForm.vue**:
-- Phase 5 component for one-time expense tracking
-- Add/edit/remove one-time expenses with amount, date, category, and description
+**CPFForm.vue**:
+- Phase 6 component for CPF account management
+- Input CPF account balances (OA, SA, MA, RA)
+- Configure CPF settings: retirement sum preference (BRS/FRS/ERS), housing usage
+- Enable/disable CPF feature
+- Displays CPF-related income sources and contribution breakdown
 
 **ResultsDisplay.vue**:
 - Displays calculated results from store
 - Shows: future value, total contributions, investment growth, inflation-adjusted value
 - Phase 4: Includes SustainabilityDisplay when expenses exist
+- Phase 6: Shows CPF account balances and retirement sum status when CPF is enabled
 - Shows validation errors with helpful navigation tips
 
 **SustainabilityDisplay.vue**:
@@ -146,10 +167,12 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Phase 3 component with chart and table views
 - PortfolioChart: Line chart showing portfolio growth over time using Chart.js
 - MonthlyBreakdownTable: Detailed month-by-month data table
+- Phase 6: Includes CPF account balance visualizations when CPF is enabled
 
 **ImportExport.vue**:
 - Export data to JSON with versioning
 - Import with validation support
+- Phase 6: Includes CPF data in export/import
 
 ### Data Versioning & Migration
 
@@ -186,6 +209,13 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - `ExtraPayment` - Extra payment definition with date and amount
 - `OneTimeExpense` - One-time expense definition with name, amount, date, category, and description
 
+**Phase 6 Types**:
+- `CPFData` - CPF configuration and balances
+- `CPFAccounts` - OA, SA, MA, RA account balances
+- `CPFMonthlySnapshot` - Monthly CPF state in projections (contributions, interest, balances)
+- `CPFRetirementSum`: 'BRS' | 'FRS' | 'ERS' - Retirement sum preference (Basic/Full/Enhanced)
+- See `cpfConfig.ts` for detailed configuration types (rates, limits, allocations)
+
 ### Date Handling
 - All dates use YYYY-MM format strings (e.g., "2025-10")
 - Date validation via regex: `/^\d{4}-\d{2}$/`
@@ -207,7 +237,7 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 
 ### Vue Component Guidelines
 - Use Composition API with `<script setup lang="ts">`
-- Access stores via `useRetirementStore()`, `useIncomeStore()`, or `useExpenseStore()`
+- Access stores via `useRetirementStore()`, `useIncomeStore()`, `useExpenseStore()`, or `useCPFStore()`
 - Bind inputs to store refs directly (Pinia handles reactivity)
 - Use computed properties from stores for derived values
 - Tailwind CSS for all styling
@@ -216,8 +246,8 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Unit tests for all utils and stores
 - Tests use Vitest with JSDOM environment
 - Test files excluded from build via tsconfig.json
-- Integration tests: `src/phase2-integration.test.ts`, `src/phase3-integration.test.ts`, `src/phase4-integration.test.ts`, `src/phase5-integration.test.ts`
-- Total: 222 tests across 13 test files covering all phases (1-5)
+- Integration tests: `src/phase2-integration.test.ts`, `src/phase3-integration.test.ts`, `src/phase4-integration.test.ts`, `src/phase5-integration.test.ts`, `src/phase6-integration.test.ts`
+- Total: 374 tests across 21 test files covering all phases (1-6)
 
 ### TypeScript Configuration
 - Strict mode enabled with all linting flags
@@ -247,3 +277,35 @@ The legacy `monthlyContribution` field has been completely removed from the code
 **For New Features**:
 - Always use income sources for any contribution-related functionality
 - Do not add monthlyContribution field back - use income sources instead
+
+### CPF Integration (Phase 6)
+The CPF system models Singapore's Central Provident Fund with accurate 2025 regulations:
+
+**Architecture**:
+- CPF is optional and disabled by default (users must enable it in CPF tab)
+- Income sources can be flagged as `cpfEligible` (typically salary income)
+- CPF contributions are deducted from salary before calculating portfolio contributions
+- CPF accounts (OA, SA, MA, RA) are tracked separately with their own interest rates
+- Age-dependent contribution rates and allocation percentages (see `cpfConfig.ts`)
+- Age 55 transitions: SA closes and RA is created with retirement sum requirement
+
+**Key Regulations**:
+- Contribution rates: 5 age brackets (≤55, 55-60, 60-65, 65-70, >70)
+- Allocation percentages: 8 age brackets with different splits to OA/SA/MA/RA
+- Wage ceiling: $7,400/month, $37,740/year (2025 limits)
+- Interest rates: OA 2.5%, SA/MA/RA 4.0% (SMRA), extra interest up to 6% on first $60k
+- Retirement sums: BRS $106,500, FRS $213,000, ERS $426,000 (2025 values)
+- CPF Life payouts: Estimated monthly annuity based on RA balance at retirement
+
+**Data Source**:
+- All CPF rules and rates are documented in `CPF_INFO.md`
+- Configuration centralized in `src/utils/cpfConfig.ts`
+- When CPF regulations change, update `cpfConfig.ts` values
+
+**Known Issues (from next_phase.md)**:
+1. Performance: Calculations may have noticeable lag (consider deferring to button trigger)
+2. Table width: Not wide enough for all columns (focus on desktop, ignore mobile for now)
+3. Negative portfolio values: Needs CPF RA monthly payout implementation
+4. Interest calculation: May be too large - double-check math
+5. CPF breakdown: Income sources tagged with CPF need contribution breakdown display
+6. CPF tab enhancements: Show CPF-tagged income sources after calculation

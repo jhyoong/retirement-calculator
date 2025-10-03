@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { UserData, CalculationResult, ValidationResult } from '@/types'
+import type { UserData, CalculationResult, ValidationResult, MonthlyDataPoint } from '@/types'
 import { calculateRetirement, validateInputs } from '@/utils/calculations'
+import { generateMonthlyProjections } from '@/utils/monthlyProjections'
 import { useIncomeStore } from './income'
 import { useExpenseStore } from './expense'
 import { useCPFStore } from './cpf'
@@ -44,20 +45,35 @@ export const useRetirementStore = defineStore('retirement', () => {
     return validateInputs(userData.value)
   })
 
-  // Computed: calculation result (only if valid)
-  const results = computed((): CalculationResult | null => {
-    if (!validation.value.isValid) {
-      return null
-    }
-    try {
-      return calculateRetirement(userData.value)
-    } catch (error) {
-      console.error('Calculation error:', error)
-      return null
-    }
-  })
+  // State: calculation results (manually triggered)
+  const results = ref<CalculationResult | null>(null)
+  const monthlyProjections = ref<MonthlyDataPoint[]>([])
+  const isCalculating = ref(false)
 
   // Actions
+  function calculate() {
+    if (!validation.value.isValid) {
+      results.value = null
+      monthlyProjections.value = []
+      return
+    }
+
+    isCalculating.value = true
+    try {
+      // Calculate results
+      results.value = calculateRetirement(userData.value)
+
+      // Generate monthly projections for charts/tables
+      monthlyProjections.value = generateMonthlyProjections(userData.value)
+    } catch (error) {
+      console.error('Calculation error:', error)
+      results.value = null
+      monthlyProjections.value = []
+    } finally {
+      isCalculating.value = false
+    }
+  }
+
   function updateCurrentAge(value: number) {
     currentAge.value = value
   }
@@ -118,6 +134,10 @@ export const useRetirementStore = defineStore('retirement', () => {
     } else {
       cpfStore.resetToDefaults()
     }
+
+    // Clear cached results when loading new data
+    results.value = null
+    monthlyProjections.value = []
   }
 
   function resetToDefaults() {
@@ -138,6 +158,10 @@ export const useRetirementStore = defineStore('retirement', () => {
     // Phase 6: Reset CPF data
     const cpfStore = useCPFStore()
     cpfStore.resetToDefaults()
+
+    // Clear cached results when resetting
+    results.value = null
+    monthlyProjections.value = []
   }
 
   return {
@@ -147,11 +171,14 @@ export const useRetirementStore = defineStore('retirement', () => {
     currentSavings,
     expectedReturnRate,
     inflationRate,
+    results,
+    monthlyProjections,
+    isCalculating,
     // Computed
     userData,
     validation,
-    results,
     // Actions
+    calculate,
     updateCurrentAge,
     updateRetirementAge,
     updateCurrentSavings,

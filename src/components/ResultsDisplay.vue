@@ -32,7 +32,13 @@
       </div>
     </div>
 
-    <div v-else-if="store.results" class="space-y-4">
+    <div v-else-if="!store.results" class="text-center py-8">
+      <p class="text-gray-500">
+        Click the Calculate button to see your retirement projections.
+      </p>
+    </div>
+
+    <div v-else class="space-y-4">
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p class="text-sm text-blue-700 font-medium">
           Future Value at Retirement
@@ -233,7 +239,6 @@ import { useRetirementStore } from '@/stores/retirement'
 import { useExpenseStore } from '@/stores/expense'
 import { useCPFStore } from '@/stores/cpf'
 import SustainabilityDisplay from './SustainabilityDisplay.vue'
-import { generateMonthlyProjections } from '@/utils/monthlyProjections'
 import { estimateCPFLifePayout } from '@/utils/cpfLife'
 
 const store = useRetirementStore()
@@ -270,17 +275,14 @@ const cpfLifeEstimates = computed(() => {
   }
 })
 
-// Computed property to get CPF projection at retirement
+// Computed property to get CPF projection at retirement from cached projections
 const cpfAtRetirement = computed(() => {
-  if (!cpfStore.enabled || !store.validation.isValid) {
+  if (!cpfStore.enabled || !store.validation.isValid || store.monthlyProjections.length === 0) {
     return null
   }
 
   try {
-    const projections = generateMonthlyProjections(store.userData)
-    if (projections.length === 0) {
-      return null
-    }
+    const projections = store.monthlyProjections
 
     // Get last projection (at retirement)
     const lastMonth = projections[projections.length - 1]
@@ -316,7 +318,7 @@ const cpfAtRetirement = computed(() => {
       age55Completed
     }
   } catch (error) {
-    console.error('Error calculating CPF projections:', error)
+    console.error('Error reading CPF projections:', error)
     return null
   }
 })
