@@ -91,6 +91,23 @@
         </div>
       </div>
 
+      <!-- CPF Eligibility Checkbox -->
+      <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+        <label class="flex items-center cursor-pointer">
+          <input
+            v-model="newSource.cpfEligible"
+            type="checkbox"
+            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          />
+          <span class="ml-2 text-sm font-medium text-blue-900">
+            Subject to CPF contributions
+          </span>
+        </label>
+        <p class="mt-1 ml-6 text-xs text-blue-700">
+          Check this if this income is eligible for CPF contributions (typically salary/wages from Singapore employment)
+        </p>
+      </div>
+
       <button
         @click="addSource"
         class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -129,6 +146,9 @@
               </p>
               <p class="text-blue-600">
                 <strong>Monthly equivalent:</strong> ${{ calculateMonthlyEquivalent(source).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+              </p>
+              <p v-if="source.cpfEligible" class="text-purple-600 text-xs mt-1">
+                ✓ CPF contributions apply
               </p>
             </div>
           </div>
@@ -169,7 +189,8 @@ const newSource = ref({
   frequency: 'monthly' as IncomeFrequency,
   customFrequencyDays: undefined as number | undefined,
   startDate: new Date().toISOString().slice(0, 7), // YYYY-MM format
-  endDate: undefined as string | undefined
+  endDate: undefined as string | undefined,
+  cpfEligible: true // Default true for salary type
 })
 
 function addSource() {
@@ -181,7 +202,8 @@ function addSource() {
     frequency: newSource.value.frequency,
     customFrequencyDays: newSource.value.customFrequencyDays,
     startDate: newSource.value.startDate,
-    endDate: newSource.value.endDate || undefined
+    endDate: newSource.value.endDate || undefined,
+    cpfEligible: newSource.value.cpfEligible
   }
 
   incomeStore.addIncomeSource(source)
@@ -194,7 +216,8 @@ function addSource() {
     frequency: 'monthly',
     customFrequencyDays: undefined,
     startDate: new Date().toISOString().slice(0, 7),
-    endDate: undefined
+    endDate: undefined,
+    cpfEligible: true
   }
 }
 

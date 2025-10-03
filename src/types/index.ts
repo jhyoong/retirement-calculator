@@ -59,6 +59,7 @@ export interface IncomeStream {
   customFrequencyDays?: number; // Only used when frequency is 'custom'
   startDate: string; // YYYY-MM format
   endDate?: string; // YYYY-MM format or undefined for ongoing
+  cpfEligible?: boolean; // Whether this income is subject to CPF contributions (default: false, typically true for salary)
 }
 
 export interface OneOffReturn {
@@ -80,6 +81,7 @@ export interface MonthlyDataPoint {
   contributions: number; // Total net contributions up to this month (income - expenses)
   portfolioValue: number; // Portfolio value at end of month
   growth: number; // Growth this month (investment returns)
+  cpf?: CPFMonthlySnapshot; // CPF tracking (optional, only if CPF enabled)
 }
 
 // Phase 4 Type Definitions
@@ -108,9 +110,12 @@ export interface PostRetirementDataPoint {
 
 // Phase 5 Type Definitions
 
+export type LoanCategory = 'housing' | 'auto' | 'personal' | 'other';
+
 export interface Loan {
   id: string;
   name: string;
+  category: LoanCategory;
   principal: number; // Loan amount
   interestRate: number; // Annual interest rate as decimal (e.g., 0.05 for 5%)
   termMonths: number; // Loan term in months
@@ -157,4 +162,21 @@ export interface CPFData {
   enabled: boolean;
   currentBalances: CPFAccounts;
   retirementSumTarget: 'basic' | 'full' | 'enhanced';
+}
+
+export interface CPFMonthlySnapshot {
+  monthIndex: number;
+  age: number;
+  accounts: CPFAccounts;
+  monthlyContribution: CPFContribution;
+  monthlyInterest: {
+    oa: number;
+    sa: number;
+    ma: number;
+    ra: number;
+    extraInterest: number;
+    total: number;
+  };
+  housingUsage: number;
+  yearToDateContributions: number;
 }

@@ -77,10 +77,10 @@
         </p>
       </div>
 
-      <!-- Phase 6: CPF Summary -->
-      <div v-if="cpfStore.enabled" class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+      <!-- Phase 6: CPF Summary - Current Balances -->
+      <div v-if="cpfStore.enabled && !cpfAtRetirement" class="bg-purple-50 border border-purple-200 rounded-lg p-4">
         <h3 class="text-lg font-semibold text-purple-900 mb-3">
-          CPF Summary
+          CPF Current Balances
         </h3>
         <div class="space-y-2">
           <div class="flex justify-between items-center">
@@ -110,6 +110,77 @@
         </div>
       </div>
 
+      <!-- Phase 6: CPF Projection at Retirement -->
+      <div v-if="cpfStore.enabled && cpfAtRetirement" class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-purple-900 mb-3">
+          CPF at Retirement
+        </h3>
+
+        <div class="space-y-3">
+          <!-- Total CPF -->
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-purple-700 font-medium">Total CPF Balance at Retirement:</span>
+            <span class="text-2xl font-bold text-purple-900">{{ formatCurrencySGD(cpfAtRetirement.totalCPF) }}</span>
+          </div>
+
+          <!-- Account Breakdown -->
+          <div class="mt-3 pt-3 border-t border-purple-200">
+            <p class="text-xs text-purple-600 mb-2 font-medium">Account Balances:</p>
+            <div class="grid grid-cols-2 gap-2 text-sm text-purple-700">
+              <div>
+                <span class="font-medium">OA:</span> {{ formatCurrencySGD(cpfAtRetirement.accounts.ordinaryAccount) }}
+              </div>
+              <div v-if="!cpfAtRetirement.age55Completed">
+                <span class="font-medium">SA:</span> {{ formatCurrencySGD(cpfAtRetirement.accounts.specialAccount) }}
+              </div>
+              <div v-if="cpfAtRetirement.age55Completed">
+                <span class="font-medium">RA:</span> {{ formatCurrencySGD(cpfAtRetirement.accounts.retirementAccount) }}
+              </div>
+              <div>
+                <span class="font-medium">MA:</span> {{ formatCurrencySGD(cpfAtRetirement.accounts.medisaveAccount) }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Contributions & Interest -->
+          <div class="mt-3 pt-3 border-t border-purple-200">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div class="bg-white rounded p-2">
+                <p class="text-xs text-purple-600">Total Contributions</p>
+                <p class="text-lg font-bold text-purple-900">{{ formatCurrencySGD(cpfAtRetirement.totalContributions) }}</p>
+              </div>
+              <div class="bg-white rounded p-2">
+                <p class="text-xs text-purple-600">Total Interest Earned</p>
+                <p class="text-lg font-bold text-green-700">{{ formatCurrencySGD(cpfAtRetirement.totalInterest) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Age 55 Transition Status -->
+          <div v-if="cpfAtRetirement.age55Completed" class="mt-3 pt-3 border-t border-purple-200">
+            <div class="flex items-center text-sm text-purple-700">
+              <svg class="w-4 h-4 mr-2 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+              </svg>
+              <span>Age 55 transition completed - SA transferred to RA</span>
+            </div>
+          </div>
+
+          <!-- Housing Usage -->
+          <div v-if="cpfAtRetirement.housingUsage > 0" class="mt-3 pt-3 border-t border-purple-200">
+            <div class="text-sm text-purple-700">
+              <span class="font-medium">OA used for housing:</span> {{ formatCurrencySGD(cpfAtRetirement.housingUsage) }}
+            </div>
+          </div>
+
+          <!-- Retirement Sum Target Info -->
+          <div class="mt-3 pt-3 border-t border-purple-200">
+            <p class="text-xs text-purple-600 mb-1">Retirement Sum Target:</p>
+            <p class="text-sm font-semibold text-purple-900">{{ formatRetirementSumTarget(cpfStore.retirementSumTarget) }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Phase 4: Sustainability Analysis -->
       <div v-if="expenseStore.expenses.length > 0" class="col-span-full mt-6">
         <h3 class="text-xl font-bold text-gray-900 mb-4">
@@ -127,6 +198,7 @@ import { useRetirementStore } from '@/stores/retirement'
 import { useExpenseStore } from '@/stores/expense'
 import { useCPFStore } from '@/stores/cpf'
 import SustainabilityDisplay from './SustainabilityDisplay.vue'
+import { generateMonthlyProjections } from '@/utils/monthlyProjections'
 
 const store = useRetirementStore()
 const expenseStore = useExpenseStore()
@@ -138,6 +210,57 @@ const totalCPFBalance = computed(() => {
          balances.specialAccount +
          balances.medisaveAccount +
          balances.retirementAccount
+})
+
+// Computed property to get CPF projection at retirement
+const cpfAtRetirement = computed(() => {
+  if (!cpfStore.enabled || !store.validation.isValid) {
+    return null
+  }
+
+  try {
+    const projections = generateMonthlyProjections(store.userData)
+    if (projections.length === 0) {
+      return null
+    }
+
+    // Get last projection (at retirement)
+    const lastMonth = projections[projections.length - 1]
+    if (!lastMonth.cpf) {
+      return null
+    }
+
+    // Calculate total contributions and interest
+    let totalContributions = 0
+    let totalInterest = 0
+
+    projections.forEach(p => {
+      if (p.cpf) {
+        totalContributions += p.cpf.monthlyContribution.total
+        totalInterest += p.cpf.monthlyInterest.total
+      }
+    })
+
+    const totalCPF = lastMonth.cpf.accounts.ordinaryAccount +
+                     lastMonth.cpf.accounts.specialAccount +
+                     lastMonth.cpf.accounts.medisaveAccount +
+                     lastMonth.cpf.accounts.retirementAccount
+
+    const age55Completed = lastMonth.cpf.accounts.specialAccount === 0 &&
+                          lastMonth.cpf.accounts.retirementAccount > 0
+
+    return {
+      accounts: lastMonth.cpf.accounts,
+      totalCPF,
+      totalContributions,
+      totalInterest,
+      housingUsage: lastMonth.cpf.housingUsage,
+      age55Completed
+    }
+  } catch (error) {
+    console.error('Error calculating CPF projections:', error)
+    return null
+  }
 })
 
 function formatCurrency(value: number): string {

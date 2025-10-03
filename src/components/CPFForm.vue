@@ -133,10 +133,16 @@
 
       <!-- Information Box -->
       <div class="p-4 bg-blue-50 border border-blue-200 rounded-md">
-        <p class="text-sm text-blue-900">
-          <strong>Note:</strong> CPF contributions will be calculated automatically from your salary income sources.
-          Interest calculations and age 55 transitions will be implemented in future milestones.
+        <p class="text-sm text-blue-900 mb-2">
+          <strong>How CPF Integration Works:</strong>
         </p>
+        <ul class="list-disc list-inside text-sm text-blue-800 space-y-1">
+          <li>Mark income sources as CPF-eligible in the Income tab to calculate contributions</li>
+          <li>Monthly interest is calculated and applied to all accounts automatically</li>
+          <li>Age 55 transition (SA closes, RA opens) is handled when you reach retirement age</li>
+          <li>OA can be used for housing loan payments automatically</li>
+          <li>View your projected CPF balance at retirement in the Results tab</li>
+        </ul>
       </div>
     </div>
 

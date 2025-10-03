@@ -20,6 +20,19 @@
         </div>
 
         <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+          <select
+            v-model="newLoan.category"
+            class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="housing">Housing</option>
+            <option value="auto">Auto</option>
+            <option value="personal">Personal</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Principal Amount</label>
           <input
             v-model.number="newLoan.principal"
@@ -149,6 +162,7 @@ const expenseStore = useExpenseStore()
 
 const newLoan = ref({
   name: '',
+  category: 'other' as 'housing' | 'auto' | 'personal' | 'other',
   principal: 0,
   interestRatePercent: 5,
   termMonths: 360, // Default 30 years
@@ -158,6 +172,7 @@ const newLoan = ref({
 function addLoan() {
   const loan: Omit<Loan, 'id'> = {
     name: newLoan.value.name,
+    category: newLoan.value.category,
     principal: newLoan.value.principal,
     interestRate: newLoan.value.interestRatePercent / 100, // Convert % to decimal
     termMonths: newLoan.value.termMonths,
@@ -169,6 +184,7 @@ function addLoan() {
   // Reset form
   newLoan.value = {
     name: '',
+    category: 'other',
     principal: 0,
     interestRatePercent: 5,
     termMonths: 360,
