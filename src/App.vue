@@ -37,6 +37,7 @@
           <RetirementForm v-show="activeTab === 'basic'" />
           <IncomeTab v-show="activeTab === 'income'" />
           <ExpenseTab v-show="activeTab === 'expenses'" />
+          <CPFForm v-show="activeTab === 'cpf'" />
           <ResultsDisplay v-show="activeTab === 'results'" />
           <VisualizationsTab v-show="activeTab === 'visualizations'" />
           <ImportExport v-show="activeTab === 'data'" />
@@ -55,6 +56,7 @@ import { ref } from 'vue'
 import RetirementForm from '@/components/RetirementForm.vue'
 import IncomeTab from '@/components/IncomeTab.vue'
 import ExpenseTab from '@/components/ExpenseTab.vue'
+import CPFForm from '@/components/CPFForm.vue'
 import ResultsDisplay from '@/components/ResultsDisplay.vue'
 import VisualizationsTab from '@/components/VisualizationsTab.vue'
 import ImportExport from '@/components/ImportExport.vue'
@@ -63,6 +65,7 @@ const tabs = [
   { id: 'basic', label: 'Basic Info' },
   { id: 'income', label: 'Income' },
   { id: 'expenses', label: 'Expenses' },
+  { id: 'cpf', label: 'CPF' },
   { id: 'results', label: 'Results' },
   { id: 'visualizations', label: 'Visualizations' },
   { id: 'data', label: 'Import/Export' }
