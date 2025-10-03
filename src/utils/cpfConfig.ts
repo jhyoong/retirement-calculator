@@ -116,7 +116,18 @@ export const CPF_CONFIG_2025 = {
     ordinaryAccount: 0.025,
     specialAccount: 0.04,
     medisaveAccount: 0.04,
-    retirementAccount: 0.04
+    retirementAccount: 0.04,
+    extraInterest: {
+      under55: {
+        rate: 0.01,
+        balanceCap: 60000,
+        oaCap: 20000
+      },
+      age55Plus: {
+        firstTier: { rate: 0.02, cap: 30000 },
+        secondTier: { rate: 0.01, cap: 30000 }
+      }
+    }
   },
 
   // Wage ceilings and limits
