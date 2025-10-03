@@ -141,5 +141,12 @@ export const CPF_CONFIG_2025 = {
     basic: 106500,
     full: 213000,
     enhanced: 426000
+  },
+
+  // CPF Life payout estimates (for age 65 payouts)
+  cpfLifePayouts: {
+    basic: { min: 860, max: 930 },
+    full: { min: 1610, max: 1730 },
+    enhanced: { min: 3100, max: 3330 }
   }
 };

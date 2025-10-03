@@ -181,6 +181,41 @@
         </div>
       </div>
 
+      <!-- Phase 6: CPF Life Estimates -->
+      <div v-if="cpfLifeEstimates" class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-indigo-900 mb-3">
+          CPF Life Estimates
+        </h3>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-indigo-700 font-medium">RA Balance at Retirement:</span>
+            <span class="text-xl font-bold text-indigo-900">{{ formatCurrencySGD(cpfLifeEstimates.raBalance) }}</span>
+          </div>
+
+          <div class="flex justify-between items-center bg-white rounded p-3">
+            <span class="text-sm text-indigo-700 font-medium">Estimated Monthly Payout:</span>
+            <span class="text-2xl font-bold text-green-600">{{ formatCurrencySGD(cpfLifeEstimates.monthlyPayout) }}</span>
+          </div>
+
+          <div class="mt-3 pt-3 border-t border-indigo-200">
+            <div class="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p class="text-xs text-indigo-600 mb-1">CPF Life Plan:</p>
+                <p class="font-semibold text-indigo-900">{{ formatCPFLifePlan(cpfLifeEstimates.cpfLifePlan) }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-indigo-600 mb-1">Payout Start Age:</p>
+                <p class="font-semibold text-indigo-900">{{ cpfLifeEstimates.payoutAge }}</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-2 text-xs text-indigo-600 bg-white rounded p-2">
+            <p>Payouts are for life and guaranteed by the Singapore Government. Estimates based on 2025 CPF Life rates.</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Phase 4: Sustainability Analysis -->
       <div v-if="expenseStore.expenses.length > 0" class="col-span-full mt-6">
         <h3 class="text-xl font-bold text-gray-900 mb-4">
@@ -199,6 +234,7 @@ import { useExpenseStore } from '@/stores/expense'
 import { useCPFStore } from '@/stores/cpf'
 import SustainabilityDisplay from './SustainabilityDisplay.vue'
 import { generateMonthlyProjections } from '@/utils/monthlyProjections'
+import { estimateCPFLifePayout } from '@/utils/cpfLife'
 
 const store = useRetirementStore()
 const expenseStore = useExpenseStore()
@@ -210,6 +246,28 @@ const totalCPFBalance = computed(() => {
          balances.specialAccount +
          balances.medisaveAccount +
          balances.retirementAccount
+})
+
+// Computed property for CPF Life estimates
+const cpfLifeEstimates = computed(() => {
+  if (!cpfStore.enabled || !store.validation.isValid || !cpfAtRetirement.value) {
+    return null
+  }
+
+  const raBalance = cpfAtRetirement.value.accounts.retirementAccount
+  if (raBalance <= 0) {
+    return null
+  }
+
+  const cpfLifePlan = cpfStore.cpfLifePlan
+  const monthlyPayout = estimateCPFLifePayout(raBalance, cpfLifePlan)
+
+  return {
+    raBalance,
+    monthlyPayout,
+    cpfLifePlan,
+    payoutAge: 65
+  }
 })
 
 // Computed property to get CPF projection at retirement
@@ -288,6 +346,15 @@ function formatRetirementSumTarget(target: 'basic' | 'full' | 'enhanced'): strin
     enhanced: 'Enhanced (ERS) - $426,000'
   }
   return targetMap[target]
+}
+
+function formatCPFLifePlan(plan: 'standard' | 'basic' | 'escalating'): string {
+  const planMap = {
+    standard: 'Standard Plan',
+    basic: 'Basic Plan',
+    escalating: 'Escalating Plan'
+  }
+  return planMap[plan] || 'Standard Plan'
 }
 
 function formatFieldName(field: string): string {

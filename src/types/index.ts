@@ -104,6 +104,7 @@ export interface PostRetirementDataPoint {
   month: number; // 1-12
   age: number;
   expenses: number; // Total expenses this month (inflation-adjusted)
+  cpfLifeIncome?: number; // CPF Life income this month (from age 65)
   portfolioValue: number; // Portfolio value at end of month
   growth: number; // Investment growth this month
 }
@@ -161,7 +162,10 @@ export interface CPFContribution {
 export interface CPFData {
   enabled: boolean;
   currentBalances: CPFAccounts;
+  housingUsage: number;
   retirementSumTarget: 'basic' | 'full' | 'enhanced';
+  cpfLifePlan: 'standard' | 'basic' | 'escalating';
+  manualOverride: boolean;
 }
 
 export interface CPFMonthlySnapshot {

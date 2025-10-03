@@ -11,13 +11,19 @@ export const useCPFStore = defineStore('cpf', () => {
     medisaveAccount: 0,
     retirementAccount: 0
   });
+  const housingUsage = ref(0);
   const retirementSumTarget = ref<'basic' | 'full' | 'enhanced'>('full');
+  const cpfLifePlan = ref<'standard' | 'basic' | 'escalating'>('standard');
+  const manualOverride = ref(false);
 
   // Computed
   const cpfData = computed((): CPFData => ({
     enabled: enabled.value,
     currentBalances: currentBalances.value,
-    retirementSumTarget: retirementSumTarget.value
+    housingUsage: housingUsage.value,
+    retirementSumTarget: retirementSumTarget.value,
+    cpfLifePlan: cpfLifePlan.value,
+    manualOverride: manualOverride.value
   }));
 
   // Actions
@@ -33,6 +39,18 @@ export const useCPFStore = defineStore('cpf', () => {
     retirementSumTarget.value = target;
   }
 
+  function updateHousingUsage(amount: number) {
+    housingUsage.value = amount;
+  }
+
+  function updateCPFLifePlan(plan: 'standard' | 'basic' | 'escalating') {
+    cpfLifePlan.value = plan;
+  }
+
+  function updateManualOverride(value: boolean) {
+    manualOverride.value = value;
+  }
+
   function resetToDefaults() {
     enabled.value = false;
     currentBalances.value = {
@@ -41,26 +59,38 @@ export const useCPFStore = defineStore('cpf', () => {
       medisaveAccount: 0,
       retirementAccount: 0
     };
+    housingUsage.value = 0;
     retirementSumTarget.value = 'full';
+    cpfLifePlan.value = 'standard';
+    manualOverride.value = false;
   }
 
   function loadData(data: CPFData) {
     enabled.value = data.enabled;
     currentBalances.value = data.currentBalances;
+    housingUsage.value = data.housingUsage || 0;
     retirementSumTarget.value = data.retirementSumTarget;
+    cpfLifePlan.value = data.cpfLifePlan || 'standard';
+    manualOverride.value = data.manualOverride || false;
   }
 
   return {
     // State
     enabled,
     currentBalances,
+    housingUsage,
     retirementSumTarget,
+    cpfLifePlan,
+    manualOverride,
     // Computed
     cpfData,
     // Actions
     updateEnabled,
     updateBalances,
+    updateHousingUsage,
     updateRetirementSumTarget,
+    updateCPFLifePlan,
+    updateManualOverride,
     resetToDefaults,
     loadData
   };
