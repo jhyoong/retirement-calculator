@@ -23,6 +23,18 @@
             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               Contributions
             </th>
+            <th v-if="cpfStore.enabled" class="px-4 py-3 text-right text-xs font-medium text-purple-600 uppercase tracking-wider">
+              CPF Contrib
+            </th>
+            <th v-if="cpfStore.enabled" class="px-4 py-3 text-right text-xs font-medium text-purple-600 uppercase tracking-wider">
+              CPF OA
+            </th>
+            <th v-if="cpfStore.enabled" class="px-4 py-3 text-right text-xs font-medium text-purple-600 uppercase tracking-wider">
+              CPF SA/RA
+            </th>
+            <th v-if="cpfStore.enabled" class="px-4 py-3 text-right text-xs font-medium text-purple-600 uppercase tracking-wider">
+              CPF MA
+            </th>
             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
               Portfolio
             </th>
@@ -48,6 +60,18 @@
             <td class="px-4 py-2 whitespace-nowrap text-sm text-right text-gray-900">
               {{ formatCurrency(point.contributions) }}
             </td>
+            <td v-if="cpfStore.enabled" class="px-4 py-2 whitespace-nowrap text-sm text-right text-purple-700">
+              {{ formatCurrencySGD(point.cpf?.monthlyContribution.total || 0) }}
+            </td>
+            <td v-if="cpfStore.enabled" class="px-4 py-2 whitespace-nowrap text-sm text-right text-purple-700">
+              {{ formatCurrencySGD(point.cpf?.accounts.ordinaryAccount || 0) }}
+            </td>
+            <td v-if="cpfStore.enabled" class="px-4 py-2 whitespace-nowrap text-sm text-right text-purple-700">
+              {{ formatCurrencySGD((point.cpf?.accounts.specialAccount || 0) + (point.cpf?.accounts.retirementAccount || 0)) }}
+            </td>
+            <td v-if="cpfStore.enabled" class="px-4 py-2 whitespace-nowrap text-sm text-right text-purple-700">
+              {{ formatCurrencySGD(point.cpf?.accounts.medisaveAccount || 0) }}
+            </td>
             <td class="px-4 py-2 whitespace-nowrap text-sm text-right font-medium text-gray-900">
               {{ formatCurrency(point.portfolioValue) }}
             </td>
@@ -67,17 +91,28 @@
 
 <script setup lang="ts">
 import type { MonthlyDataPoint } from '@/types'
+import { useCPFStore } from '@/stores/cpf'
 
 interface Props {
   monthlyData: MonthlyDataPoint[]
 }
 
 defineProps<Props>()
+const cpfStore = useCPFStore()
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(value)
+}
+
+function formatCurrencySGD(value: number): string {
+  return new Intl.NumberFormat('en-SG', {
+    style: 'currency',
+    currency: 'SGD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(value)

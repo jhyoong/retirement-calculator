@@ -54,10 +54,14 @@
               type="number"
               min="0"
               step="1000"
-              class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              :disabled="retirementStore.currentAge >= 55"
+              class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
             <p class="mt-1 text-xs text-gray-500">
               For retirement (closes at age 55)
+            </p>
+            <p v-if="retirementStore.currentAge >= 55" class="mt-1 text-xs text-amber-600">
+              SA closes at age 55. Balance transferred to RA.
             </p>
           </div>
 
@@ -88,10 +92,14 @@
               type="number"
               min="0"
               step="1000"
-              class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+              :disabled="retirementStore.currentAge < 55"
+              class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
             <p class="mt-1 text-xs text-gray-500">
               Created at age 55 for retirement
+            </p>
+            <p v-if="retirementStore.currentAge < 55" class="mt-1 text-xs text-amber-600">
+              RA only available from age 55 onwards.
             </p>
           </div>
         </div>
@@ -102,6 +110,28 @@
             Total CPF Balance: {{ formatCurrency(totalCPFBalance) }}
           </p>
         </div>
+      </div>
+
+      <!-- Housing Usage -->
+      <div class="p-4 border border-gray-200 rounded-md">
+        <h3 class="text-lg font-semibold mb-4">Housing Usage</h3>
+
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Amount used from OA for housing
+        </label>
+
+        <input
+          v-model.number="cpfStore.housingUsage"
+          type="number"
+          min="0"
+          step="1000"
+          class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          placeholder="0"
+        />
+
+        <p class="mt-2 text-xs text-gray-600">
+          Track how much OA has been used for housing loans or property purchases. This helps monitor your available OA balance for retirement.
+        </p>
       </div>
 
       <!-- Retirement Sum Target -->
@@ -131,6 +161,63 @@
         </div>
       </div>
 
+      <!-- CPF Life Plan -->
+      <div class="p-4 border border-gray-200 rounded-md">
+        <h3 class="text-lg font-semibold mb-4">CPF Life Plan</h3>
+
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Select your CPF Life plan (for age 65 payouts)
+        </label>
+
+        <div class="space-y-3">
+          <label class="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+            :class="{ 'border-blue-500 bg-blue-50': cpfStore.cpfLifePlan === 'standard' }">
+            <input
+              type="radio"
+              value="standard"
+              v-model="cpfStore.cpfLifePlan"
+              class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+            />
+            <div class="ml-3">
+              <span class="block text-sm font-semibold text-gray-900">Standard Plan</span>
+              <span class="block text-xs text-gray-600">Stable monthly payouts throughout retirement</span>
+            </div>
+          </label>
+
+          <label class="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+            :class="{ 'border-blue-500 bg-blue-50': cpfStore.cpfLifePlan === 'basic' }">
+            <input
+              type="radio"
+              value="basic"
+              v-model="cpfStore.cpfLifePlan"
+              class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+            />
+            <div class="ml-3">
+              <span class="block text-sm font-semibold text-gray-900">Basic Plan</span>
+              <span class="block text-xs text-gray-600">~15% higher initial payouts, no annual increases</span>
+            </div>
+          </label>
+
+          <label class="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+            :class="{ 'border-blue-500 bg-blue-50': cpfStore.cpfLifePlan === 'escalating' }">
+            <input
+              type="radio"
+              value="escalating"
+              v-model="cpfStore.cpfLifePlan"
+              class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+            />
+            <div class="ml-3">
+              <span class="block text-sm font-semibold text-gray-900">Escalating Plan</span>
+              <span class="block text-xs text-gray-600">Lower initial payouts, increases 2% annually for inflation protection</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="mt-3 p-3 bg-gray-50 rounded-md text-xs text-gray-700">
+          <p><strong>Note:</strong> CPF Life payouts begin at age 65 and are guaranteed for life by the Singapore Government.</p>
+        </div>
+      </div>
+
       <!-- Information Box -->
       <div class="p-4 bg-blue-50 border border-blue-200 rounded-md">
         <p class="text-sm text-blue-900 mb-2">
@@ -156,8 +243,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useCPFStore } from '@/stores/cpf'
+import { useRetirementStore } from '@/stores/retirement'
 
 const cpfStore = useCPFStore()
+const retirementStore = useRetirementStore()
 
 const totalCPFBalance = computed(() => {
   const balances = cpfStore.currentBalances

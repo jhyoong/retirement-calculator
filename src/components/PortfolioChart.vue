@@ -24,6 +24,7 @@ import {
   type ChartOptions
 } from 'chart.js'
 import type { MonthlyDataPoint } from '@/types'
+import { useCPFStore } from '@/stores/cpf'
 
 // Register Chart.js components
 ChartJS.register(
@@ -41,6 +42,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const cpfStore = useCPFStore()
 
 const chartData = computed(() => {
   // Create labels showing Year-Month
@@ -49,19 +51,63 @@ const chartData = computed(() => {
     return `${point.year}-${monthStr}`
   })
 
-  return {
-    labels,
-    datasets: [
+  const datasets = [
+    {
+      label: 'Portfolio Value',
+      data: props.monthlyData.map((point) => point.portfolioValue),
+      borderColor: 'rgb(59, 130, 246)', // blue-500
+      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      borderWidth: 2,
+      pointRadius: 0, // Hide points for cleaner look with many data points
+      tension: 0.1
+    }
+  ]
+
+  // Add CPF account datasets if CPF is enabled
+  if (cpfStore.enabled) {
+    datasets.push(
       {
-        label: 'Portfolio Value',
-        data: props.monthlyData.map((point) => point.portfolioValue),
-        borderColor: 'rgb(59, 130, 246)', // blue-500
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        label: 'CPF OA',
+        data: props.monthlyData.map((point) => point.cpf?.accounts.ordinaryAccount || 0),
+        borderColor: 'rgb(251, 146, 60)', // orange-400
+        backgroundColor: 'rgba(251, 146, 60, 0.1)',
         borderWidth: 2,
-        pointRadius: 0, // Hide points for cleaner look with many data points
+        pointRadius: 0,
+        tension: 0.1
+      },
+      {
+        label: 'CPF SA',
+        data: props.monthlyData.map((point) => point.cpf?.accounts.specialAccount || 0),
+        borderColor: 'rgb(168, 85, 247)', // purple-500
+        backgroundColor: 'rgba(168, 85, 247, 0.1)',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.1
+      },
+      {
+        label: 'CPF MA',
+        data: props.monthlyData.map((point) => point.cpf?.accounts.medisaveAccount || 0),
+        borderColor: 'rgb(236, 72, 153)', // pink-500
+        backgroundColor: 'rgba(236, 72, 153, 0.1)',
+        borderWidth: 2,
+        pointRadius: 0,
+        tension: 0.1
+      },
+      {
+        label: 'CPF RA',
+        data: props.monthlyData.map((point) => point.cpf?.accounts.retirementAccount || 0),
+        borderColor: 'rgb(14, 165, 233)', // sky-500
+        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+        borderWidth: 2,
+        pointRadius: 0,
         tension: 0.1
       }
-    ]
+    )
+  }
+
+  return {
+    labels,
+    datasets
   }
 })
 
@@ -70,7 +116,8 @@ const chartOptions: ChartOptions<'line'> = {
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      display: false
+      display: true,
+      position: 'bottom'
     },
     tooltip: {
       mode: 'index',
@@ -78,7 +125,7 @@ const chartOptions: ChartOptions<'line'> = {
       callbacks: {
         label: (context) => {
           const value = context.parsed.y
-          return `Portfolio: $${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+          return `${context.dataset.label}: $${value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
         }
       }
     }
