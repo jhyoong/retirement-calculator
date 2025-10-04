@@ -48,6 +48,7 @@ describe('End-to-End Integration Tests', () => {
       expect(incomeStore.totalMonthlyIncome).toBe(8000)
 
       // Step 4: Calculate retirement
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).not.toBeNull()
       expect(results!.futureValue).toBeGreaterThan(0)
@@ -78,6 +79,7 @@ describe('End-to-End Integration Tests', () => {
       expect(newIncomeStore.totalMonthlyIncome).toBe(8000)
 
       // Step 9: Verify calculations are the same
+      newRetirementStore.calculate()
       const newResults = newRetirementStore.results
       expect(newResults!.futureValue).toBeCloseTo(results!.futureValue, -2)
     })
@@ -178,6 +180,7 @@ describe('End-to-End Integration Tests', () => {
       })
 
       // Verify calculations
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).not.toBeNull()
       expect(results!.futureValue).toBeGreaterThan(0)
@@ -238,6 +241,7 @@ describe('End-to-End Integration Tests', () => {
         startDate: '2025-01'
       })
 
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).not.toBeNull()
 
@@ -278,6 +282,7 @@ describe('End-to-End Integration Tests', () => {
         inflationRate: 0.02
       })
 
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).not.toBeNull()
       expect(results!.futureValue).toBeGreaterThan(1000000)

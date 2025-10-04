@@ -95,6 +95,7 @@ describe('Income Integration Tests', () => {
         startDate: '2027-02'
       })
 
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).not.toBeNull()
       expect(results!.futureValue).toBeGreaterThan(0)
@@ -122,6 +123,7 @@ describe('Income Integration Tests', () => {
         description: 'Year-end bonus'
       })
 
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).not.toBeNull()
       expect(results!.futureValue).toBeGreaterThan(0)

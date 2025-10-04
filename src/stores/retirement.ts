@@ -49,12 +49,14 @@ export const useRetirementStore = defineStore('retirement', () => {
   const results = ref<CalculationResult | null>(null)
   const monthlyProjections = ref<MonthlyDataPoint[]>([])
   const isCalculating = ref(false)
+  const cachedMaxAge = ref<number | undefined>(undefined)
 
   // Actions
-  function calculate() {
+  function calculate(maxAge?: number) {
     if (!validation.value.isValid) {
       results.value = null
       monthlyProjections.value = []
+      cachedMaxAge.value = undefined
       return
     }
 
@@ -64,11 +66,13 @@ export const useRetirementStore = defineStore('retirement', () => {
       results.value = calculateRetirement(userData.value)
 
       // Generate monthly projections for charts/tables
-      monthlyProjections.value = generateMonthlyProjections(userData.value)
+      monthlyProjections.value = generateMonthlyProjections(userData.value, maxAge)
+      cachedMaxAge.value = maxAge
     } catch (error) {
       console.error('Calculation error:', error)
       results.value = null
       monthlyProjections.value = []
+      cachedMaxAge.value = undefined
     } finally {
       isCalculating.value = false
     }
@@ -138,6 +142,7 @@ export const useRetirementStore = defineStore('retirement', () => {
     // Clear cached results when loading new data
     results.value = null
     monthlyProjections.value = []
+    cachedMaxAge.value = undefined
   }
 
   function resetToDefaults() {
@@ -162,6 +167,7 @@ export const useRetirementStore = defineStore('retirement', () => {
     // Clear cached results when resetting
     results.value = null
     monthlyProjections.value = []
+    cachedMaxAge.value = undefined
   }
 
   return {
@@ -174,6 +180,7 @@ export const useRetirementStore = defineStore('retirement', () => {
     results,
     monthlyProjections,
     isCalculating,
+    cachedMaxAge,
     // Computed
     userData,
     validation,

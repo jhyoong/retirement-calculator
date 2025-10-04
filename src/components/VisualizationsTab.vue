@@ -25,6 +25,15 @@
               </option>
             </select>
           </div>
+          <button
+            v-if="needsRecalculation"
+            @click="handleRecalculate"
+            :disabled="store.isCalculating"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span v-if="store.isCalculating">Calculating...</span>
+            <span v-else>Recalculate</span>
+          </button>
         </div>
       </div>
 
@@ -67,6 +76,21 @@ const availableAges = computed(() => {
   return ages
 })
 
+// Check if we need to recalculate (selected age exceeds cached data)
+const needsRecalculation = computed(() => {
+  if (!store.validation.isValid || !selectedMaxAge.value) {
+    return false
+  }
+
+  // Need recalculation if:
+  // 1. Selected age is beyond retirement age (post-retirement projections)
+  // 2. AND selected age differs from cached max age
+  const isPostRetirement = selectedMaxAge.value > store.userData.retirementAge
+  const isDifferentFromCached = selectedMaxAge.value !== store.cachedMaxAge
+
+  return isPostRetirement && isDifferentFromCached
+})
+
 // Use cached monthly projections from store, optionally filtered by max age
 const displayData = computed(() => {
   if (!store.validation.isValid || store.monthlyProjections.length === 0) {
@@ -83,4 +107,11 @@ const displayData = computed(() => {
   // Filter to selected max age
   return projections.filter(p => p.age <= selectedMaxAge.value!)
 })
+
+// Handle recalculation with new max age
+function handleRecalculate() {
+  if (selectedMaxAge.value) {
+    store.calculate(selectedMaxAge.value)
+  }
+}
 </script>

@@ -251,6 +251,9 @@ describe('Data Persistence Integration Tests', () => {
         description: 'Year-end bonus'
       })
 
+      retirementStore.calculate()
+      const oldResults = retirementStore.results
+
       const exported = exportData(retirementStore.userData)
 
       const newPinia = createPinia()
@@ -267,8 +270,8 @@ describe('Data Persistence Integration Tests', () => {
       expect(newIncomeStore.oneOffReturns).toHaveLength(1)
       expect(newIncomeStore.totalMonthlyIncome).toBe(8000)
 
+      newRetirementStore.calculate()
       const newResults = newRetirementStore.results
-      const oldResults = retirementStore.results
       expect(newResults!.futureValue).toBeCloseTo(oldResults!.futureValue, -2)
     })
 
@@ -375,6 +378,11 @@ describe('Data Persistence Integration Tests', () => {
         startDate: '2025-01'
       })
 
+      retirementStore.calculate()
+      const resultsWithoutExpenses = retirementStore.results
+      expect(resultsWithoutExpenses).toBeDefined()
+      expect(resultsWithoutExpenses?.futureValue).toBeGreaterThan(0)
+
       expenseStore.addExpense({
         id: '1',
         name: 'Living',
@@ -383,10 +391,7 @@ describe('Data Persistence Integration Tests', () => {
         inflationRate: 0.03
       })
 
-      const resultsWithoutExpenses = retirementStore.results
-      expect(resultsWithoutExpenses).toBeDefined()
-      expect(resultsWithoutExpenses?.futureValue).toBeGreaterThan(0)
-
+      retirementStore.calculate()
       const resultsWithExpenses = retirementStore.results
       expect(resultsWithExpenses).toBeDefined()
       expect(resultsWithExpenses?.yearsUntilDepletion).toBeDefined()
