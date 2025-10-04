@@ -192,7 +192,50 @@
         </div>
 
         <div class="mt-3 p-3 bg-gray-50 rounded-md text-xs text-gray-700">
-          <p><strong>Note:</strong> CPF Life payouts begin at age 65 and are guaranteed for life by the Singapore Government.</p>
+          <p><strong>Note:</strong> CPF Life payouts are guaranteed for life by the Singapore Government.</p>
+        </div>
+      </div>
+
+      <!-- CPF Life Payout Age -->
+      <div class="p-4 border border-gray-200 rounded-md">
+        <h3 class="text-lg font-semibold mb-4">CPF LIFE Payout Start Age</h3>
+
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          When do you want to start receiving CPF LIFE payouts?
+        </label>
+
+        <div class="space-y-3">
+          <label class="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+            :class="{ 'border-blue-500 bg-blue-50': cpfStore.cpfLifePayoutAge === 65 }">
+            <input
+              type="radio"
+              :value="65"
+              v-model.number="cpfStore.cpfLifePayoutAge"
+              class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+            />
+            <div class="ml-3">
+              <span class="block text-sm font-semibold text-gray-900">Age 65 (Standard)</span>
+              <span class="block text-xs text-gray-600">Start receiving payouts at the default age</span>
+            </div>
+          </label>
+
+          <label class="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
+            :class="{ 'border-blue-500 bg-blue-50': cpfStore.cpfLifePayoutAge === 70 }">
+            <input
+              type="radio"
+              :value="70"
+              v-model.number="cpfStore.cpfLifePayoutAge"
+              class="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+            />
+            <div class="ml-3">
+              <span class="block text-sm font-semibold text-gray-900">Age 70 (Deferred - Higher Payouts)</span>
+              <span class="block text-xs text-gray-600">~40% higher monthly payouts by deferring 5 years</span>
+            </div>
+          </label>
+        </div>
+
+        <div class="mt-3 p-3 bg-blue-50 rounded-md text-xs text-blue-700">
+          <p><strong>Deferment Benefit:</strong> Deferring from age 65 to 70 increases your monthly payout by approximately 7% per year (about 40% total increase). Your RA balance continues earning 4% interest during deferment.</p>
         </div>
       </div>
 

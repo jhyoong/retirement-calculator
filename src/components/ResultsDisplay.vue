@@ -258,13 +258,14 @@ const cpfLifeEstimates = computed(() => {
   }
 
   const cpfLifePlan = cpfStore.cpfLifePlan
-  const monthlyPayout = estimateCPFLifePayout(raBalance, cpfLifePlan)
+  const payoutAge = cpfStore.cpfLifePayoutAge || 65
+  const monthlyPayout = estimateCPFLifePayout(raBalance, cpfLifePlan, payoutAge)
 
   return {
     raBalance,
     monthlyPayout,
     cpfLifePlan,
-    payoutAge: 65
+    payoutAge
   }
 })
 

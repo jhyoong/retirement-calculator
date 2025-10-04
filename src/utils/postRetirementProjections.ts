@@ -4,7 +4,6 @@ import {
   MONTHS_PER_YEAR,
   roundToTwoDecimals,
   DEFAULT_MAX_AGE,
-  CPF_LIFE_AGE,
   DEFAULT_CPF_PLAN,
   DATE_DAY_SUFFIX,
   FAR_FUTURE_DATE,
@@ -68,12 +67,13 @@ export function generatePostRetirementProjections(
   const retirementYear = currentYear + Math.floor((currentMonth - 1 + monthsToRetirement) / MONTHS_PER_YEAR)
   const retirementMonth = ((currentMonth - 1 + monthsToRetirement) % MONTHS_PER_YEAR) + 1
 
-  // Initialize CPF Life payout (from age 65)
+  // Initialize CPF Life payout (from configured age, default 65)
   const cpfEnabled = data.cpf?.enabled || false
+  const cpfLifePayoutAge = data.cpf?.cpfLifePayoutAge || 65
   let cpfLifeMonthlyPayout = 0
   if (cpfEnabled && raBalanceAtRetirement > 0) {
     const cpfLifePlan = data.cpf?.cpfLifePlan || DEFAULT_CPF_PLAN
-    cpfLifeMonthlyPayout = estimateCPFLifePayout(raBalanceAtRetirement, cpfLifePlan)
+    cpfLifeMonthlyPayout = estimateCPFLifePayout(raBalanceAtRetirement, cpfLifePlan, cpfLifePayoutAge)
   }
 
   // Start with portfolio value at retirement (calculated from Phase 1-3)
@@ -113,12 +113,12 @@ export function generatePostRetirementProjections(
       currentMonth
     )
 
-    // Calculate CPF Life income if applicable (from age 65)
+    // Calculate CPF Life income if applicable (from configured payout age)
     let cpfLifeIncome = 0
-    if (cpfEnabled && age >= CPF_LIFE_AGE && cpfLifeMonthlyPayout > 0) {
-      const yearsFrom65 = Math.floor(age - CPF_LIFE_AGE)
+    if (cpfEnabled && age >= cpfLifePayoutAge && cpfLifeMonthlyPayout > 0) {
+      const yearsFromPayoutAge = Math.floor(age - cpfLifePayoutAge)
       const cpfLifePlan = data.cpf?.cpfLifePlan || DEFAULT_CPF_PLAN
-      cpfLifeIncome = getCPFLifePayoutForYear(cpfLifeMonthlyPayout, yearsFrom65, cpfLifePlan)
+      cpfLifeIncome = getCPFLifePayoutForYear(cpfLifeMonthlyPayout, yearsFromPayoutAge, cpfLifePlan)
     }
 
     // Store portfolio value before changes

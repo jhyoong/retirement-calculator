@@ -167,6 +167,7 @@ export interface CPFData {
   currentBalances: CPFAccounts;
   retirementSumTarget: 'basic' | 'full' | 'enhanced';
   cpfLifePlan: 'standard' | 'basic' | 'escalating';
+  cpfLifePayoutAge?: 65 | 70; // When CPF Life payouts begin (default: 65)
   manualOverride: boolean;
 }
 
