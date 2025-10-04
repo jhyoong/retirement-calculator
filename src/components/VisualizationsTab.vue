@@ -34,7 +34,13 @@
         </p>
       </div>
 
-      <div v-else-if="store.results" class="space-y-6">
+      <div v-else-if="!store.results" class="text-center py-8">
+        <p class="text-gray-500">
+          Click the Calculate button to generate visualizations.
+        </p>
+      </div>
+
+      <div v-else class="space-y-6">
         <PortfolioChart :monthly-data="displayData" />
         <MonthlyBreakdownTable :monthly-data="displayData" />
       </div>
@@ -45,7 +51,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRetirementStore } from '@/stores/retirement'
-import { generateMonthlyProjections } from '@/utils/monthlyProjections'
 import PortfolioChart from './PortfolioChart.vue'
 import MonthlyBreakdownTable from './MonthlyBreakdownTable.vue'
 
@@ -62,11 +67,20 @@ const availableAges = computed(() => {
   return ages
 })
 
-// Generate monthly projections from current user data
+// Use cached monthly projections from store, optionally filtered by max age
 const displayData = computed(() => {
-  if (!store.validation.isValid) {
+  if (!store.validation.isValid || store.monthlyProjections.length === 0) {
     return []
   }
-  return generateMonthlyProjections(store.userData, selectedMaxAge.value)
+
+  const projections = store.monthlyProjections
+
+  // If no max age selected, return all projections
+  if (!selectedMaxAge.value) {
+    return projections
+  }
+
+  // Filter to selected max age
+  return projections.filter(p => p.age <= selectedMaxAge.value!)
 })
 </script>

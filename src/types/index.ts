@@ -14,6 +14,8 @@ export interface UserData {
   // Phase 5 additions
   loans?: Loan[];
   oneTimeExpenses?: OneTimeExpense[];
+  // Phase 6 additions
+  cpf?: CPFData;
 }
 
 export interface RetirementData {
@@ -57,6 +59,7 @@ export interface IncomeStream {
   customFrequencyDays?: number; // Only used when frequency is 'custom'
   startDate: string; // YYYY-MM format
   endDate?: string; // YYYY-MM format or undefined for ongoing
+  cpfEligible?: boolean; // Whether this income is subject to CPF contributions (default: false, typically true for salary)
 }
 
 export interface OneOffReturn {
@@ -78,6 +81,7 @@ export interface MonthlyDataPoint {
   contributions: number; // Total net contributions up to this month (income - expenses)
   portfolioValue: number; // Portfolio value at end of month
   growth: number; // Growth this month (investment returns)
+  cpf?: CPFMonthlySnapshot; // CPF tracking (optional, only if CPF enabled)
 }
 
 // Phase 4 Type Definitions
@@ -100,15 +104,19 @@ export interface PostRetirementDataPoint {
   month: number; // 1-12
   age: number;
   expenses: number; // Total expenses this month (inflation-adjusted)
+  cpfLifeIncome?: number; // CPF Life income this month (from age 65)
   portfolioValue: number; // Portfolio value at end of month
   growth: number; // Investment growth this month
 }
 
 // Phase 5 Type Definitions
 
+export type LoanCategory = 'housing' | 'auto' | 'personal' | 'other';
+
 export interface Loan {
   id: string;
   name: string;
+  category: LoanCategory;
   principal: number; // Loan amount
   interestRate: number; // Annual interest rate as decimal (e.g., 0.05 for 5%)
   termMonths: number; // Loan term in months
@@ -128,4 +136,51 @@ export interface OneTimeExpense {
   date: string; // YYYY-MM format
   category: ExpenseCategory;
   description?: string;
+}
+
+// Phase 6 Type Definitions (CPF)
+
+export interface CPFAccounts {
+  ordinaryAccount: number;
+  specialAccount: number;
+  medisaveAccount: number;
+  retirementAccount: number;
+}
+
+export interface CPFContribution {
+  employee: number;
+  employer: number;
+  total: number;
+  allocation: {
+    toOA: number;
+    toSA: number;
+    toMA: number;
+    toRA: number;
+  };
+}
+
+export interface CPFData {
+  enabled: boolean;
+  currentBalances: CPFAccounts;
+  housingUsage: number;
+  retirementSumTarget: 'basic' | 'full' | 'enhanced';
+  cpfLifePlan: 'standard' | 'basic' | 'escalating';
+  manualOverride: boolean;
+}
+
+export interface CPFMonthlySnapshot {
+  monthIndex: number;
+  age: number;
+  accounts: CPFAccounts;
+  monthlyContribution: CPFContribution;
+  monthlyInterest: {
+    oa: number;
+    sa: number;
+    ma: number;
+    ra: number;
+    extraInterest: number;
+    total: number;
+  };
+  housingUsage: number;
+  yearToDateContributions: number;
 }

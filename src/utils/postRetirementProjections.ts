@@ -1,4 +1,5 @@
 import type { UserData, PostRetirementDataPoint, RetirementExpense } from '@/types'
+import { estimateCPFLifePayout, getCPFLifePayoutForYear } from './cpfLife'
 
 /**
  * Calculate total monthly expenses at a given month with inflation applied
@@ -39,7 +40,8 @@ function calculateMonthlyExpenses(
  */
 export function generatePostRetirementProjections(
   data: UserData,
-  maxAge: number = 95
+  maxAge: number = 95,
+  raBalanceAtRetirement: number = 0
 ): PostRetirementDataPoint[] {
   // If no expenses, return empty array
   if (!data.expenses || data.expenses.length === 0) {
@@ -54,6 +56,14 @@ export function generatePostRetirementProjections(
   const monthsToRetirement = yearsToRetirement * 12
   const retirementYear = currentYear + Math.floor((currentMonth - 1 + monthsToRetirement) / 12)
   const retirementMonth = ((currentMonth - 1 + monthsToRetirement) % 12) + 1
+
+  // Initialize CPF Life payout (from age 65)
+  const cpfEnabled = data.cpf?.enabled || false
+  let cpfLifeMonthlyPayout = 0
+  if (cpfEnabled && raBalanceAtRetirement > 0) {
+    const cpfLifePlan = data.cpf?.cpfLifePlan || 'standard'
+    cpfLifeMonthlyPayout = estimateCPFLifePayout(raBalanceAtRetirement, cpfLifePlan)
+  }
 
   // Start with portfolio value at retirement (calculated from Phase 1-3)
   // For now, we'll need this passed in or calculated
@@ -92,24 +102,33 @@ export function generatePostRetirementProjections(
       currentMonth
     )
 
+    // Calculate CPF Life income if applicable (from age 65)
+    let cpfLifeIncome = 0
+    if (cpfEnabled && age >= 65 && cpfLifeMonthlyPayout > 0) {
+      const yearsFrom65 = Math.floor(age - 65)
+      const cpfLifePlan = data.cpf?.cpfLifePlan || 'standard'
+      cpfLifeIncome = getCPFLifePayoutForYear(cpfLifeMonthlyPayout, yearsFrom65, cpfLifePlan)
+    }
+
     // Store portfolio value before changes
     const portfolioBeforeMonth = portfolioValue
 
-    // Subtract expenses
+    // Add CPF Life income and subtract expenses
+    portfolioValue += cpfLifeIncome
     portfolioValue -= monthlyExpenses
 
     // Apply investment growth on remaining balance
     portfolioValue = portfolioValue * (1 + monthlyRate)
 
     // Calculate growth this month
-    const growth = portfolioValue - portfolioBeforeMonth + monthlyExpenses
+    const growth = portfolioValue - portfolioBeforeMonth + monthlyExpenses - cpfLifeIncome
 
     // Ensure portfolio doesn't go negative
     if (portfolioValue < 0) {
       portfolioValue = 0
     }
 
-    projections.push({
+    const dataPoint: PostRetirementDataPoint = {
       monthIndex,
       year: adjustedYear,
       month: adjustedMonth,
@@ -117,7 +136,14 @@ export function generatePostRetirementProjections(
       expenses: Math.round(monthlyExpenses * 100) / 100,
       portfolioValue: Math.round(portfolioValue * 100) / 100,
       growth: Math.round(growth * 100) / 100
-    })
+    }
+
+    // Add CPF Life income if applicable
+    if (cpfLifeIncome > 0) {
+      dataPoint.cpfLifeIncome = Math.round(cpfLifeIncome * 100) / 100
+    }
+
+    projections.push(dataPoint)
   }
 
   return projections

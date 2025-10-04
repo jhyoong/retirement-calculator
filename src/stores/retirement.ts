@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { UserData, CalculationResult, ValidationResult } from '@/types'
+import type { UserData, CalculationResult, ValidationResult, MonthlyDataPoint } from '@/types'
 import { calculateRetirement, validateInputs } from '@/utils/calculations'
+import { generateMonthlyProjections } from '@/utils/monthlyProjections'
 import { useIncomeStore } from './income'
 import { useExpenseStore } from './expense'
+import { useCPFStore } from './cpf'
 
 export const useRetirementStore = defineStore('retirement', () => {
   // State with sensible defaults
@@ -17,6 +19,7 @@ export const useRetirementStore = defineStore('retirement', () => {
   const userData = computed((): UserData => {
     const incomeStore = useIncomeStore()
     const expenseStore = useExpenseStore()
+    const cpfStore = useCPFStore()
 
     return {
       currentAge: currentAge.value,
@@ -31,7 +34,9 @@ export const useRetirementStore = defineStore('retirement', () => {
       expenses: expenseStore.expenses.length > 0 ? expenseStore.expenses : undefined,
       // Phase 5: Include loans and one-time expenses if they exist
       loans: expenseStore.loans.length > 0 ? expenseStore.loans : undefined,
-      oneTimeExpenses: expenseStore.oneTimeExpenses.length > 0 ? expenseStore.oneTimeExpenses : undefined
+      oneTimeExpenses: expenseStore.oneTimeExpenses.length > 0 ? expenseStore.oneTimeExpenses : undefined,
+      // Phase 6: Include CPF data if enabled
+      cpf: cpfStore.enabled ? cpfStore.cpfData : undefined
     }
   })
 
@@ -40,20 +45,35 @@ export const useRetirementStore = defineStore('retirement', () => {
     return validateInputs(userData.value)
   })
 
-  // Computed: calculation result (only if valid)
-  const results = computed((): CalculationResult | null => {
-    if (!validation.value.isValid) {
-      return null
-    }
-    try {
-      return calculateRetirement(userData.value)
-    } catch (error) {
-      console.error('Calculation error:', error)
-      return null
-    }
-  })
+  // State: calculation results (manually triggered)
+  const results = ref<CalculationResult | null>(null)
+  const monthlyProjections = ref<MonthlyDataPoint[]>([])
+  const isCalculating = ref(false)
 
   // Actions
+  function calculate() {
+    if (!validation.value.isValid) {
+      results.value = null
+      monthlyProjections.value = []
+      return
+    }
+
+    isCalculating.value = true
+    try {
+      // Calculate results
+      results.value = calculateRetirement(userData.value)
+
+      // Generate monthly projections for charts/tables
+      monthlyProjections.value = generateMonthlyProjections(userData.value)
+    } catch (error) {
+      console.error('Calculation error:', error)
+      results.value = null
+      monthlyProjections.value = []
+    } finally {
+      isCalculating.value = false
+    }
+  }
+
   function updateCurrentAge(value: number) {
     currentAge.value = value
   }
@@ -106,6 +126,18 @@ export const useRetirementStore = defineStore('retirement', () => {
       // This maintains backward compatibility with Phase 1-3 data
       expenseStore.loadData([], [], [])
     }
+
+    // Phase 6: Load CPF data if present
+    const cpfStore = useCPFStore()
+    if (data.cpf) {
+      cpfStore.loadData(data.cpf)
+    } else {
+      cpfStore.resetToDefaults()
+    }
+
+    // Clear cached results when loading new data
+    results.value = null
+    monthlyProjections.value = []
   }
 
   function resetToDefaults() {
@@ -122,6 +154,14 @@ export const useRetirementStore = defineStore('retirement', () => {
     // Phase 4: Reset expense data
     const expenseStore = useExpenseStore()
     expenseStore.resetToDefaults()
+
+    // Phase 6: Reset CPF data
+    const cpfStore = useCPFStore()
+    cpfStore.resetToDefaults()
+
+    // Clear cached results when resetting
+    results.value = null
+    monthlyProjections.value = []
   }
 
   return {
@@ -131,11 +171,14 @@ export const useRetirementStore = defineStore('retirement', () => {
     currentSavings,
     expectedReturnRate,
     inflationRate,
+    results,
+    monthlyProjections,
+    isCalculating,
     // Computed
     userData,
     validation,
-    results,
     // Actions
+    calculate,
     updateCurrentAge,
     updateRetirementAge,
     updateCurrentSavings,

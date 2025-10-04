@@ -1,6 +1,9 @@
-import type { UserData, MonthlyDataPoint, IncomeStream, OneOffReturn, Loan, OneTimeExpense } from '@/types'
+import type { UserData, MonthlyDataPoint, IncomeStream, OneOffReturn, Loan, OneTimeExpense, CPFAccounts } from '@/types'
 import { adjustForInflation } from './calculations'
 import { getLoanPaymentForMonth } from './loanCalculations'
+import { calculateCPFContribution } from './cpfContributions'
+import { applyMonthlyInterest, calculateMonthlyInterest, calculateExtraInterest } from './cpfInterest'
+import { handleAge55Transition, applyPost55Contribution } from './cpfTransitions'
 
 /**
  * Helper: Convert frequency to monthly amount
@@ -55,6 +58,15 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
   const incomeSources = data.incomeSources || []
   const oneOffReturns = data.oneOffReturns || []
 
+  // CPF tracking (optional)
+  const cpfEnabled = data.cpf?.enabled ?? false
+  let cpfAccounts: CPFAccounts = cpfEnabled && data.cpf
+    ? { ...data.cpf.currentBalances }
+    : { ordinaryAccount: 0, specialAccount: 0, medisaveAccount: 0, retirementAccount: 0 }
+  let yearToDateCPFContributions = 0
+  let hasCompletedAge55Transition = cpfAccounts.retirementAccount > 0
+  let cumulativeHousingUsage = 0
+
   for (let monthIndex = 0; monthIndex < totalMonths; monthIndex++) {
     // Calculate current date
     const yearOffset = Math.floor(monthIndex / 12)
@@ -68,6 +80,20 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
 
     // Calculate age (fractional)
     const age = data.currentAge + (monthIndex / 12)
+
+    // CPF: Reset year-to-date contributions in January
+    if (cpfEnabled && monthIndex > 0) {
+      if (adjustedMonth === 1) {
+        yearToDateCPFContributions = 0
+      }
+    }
+
+    // CPF: Check for age 55 transition (happens once)
+    if (cpfEnabled && age >= 55 && !hasCompletedAge55Transition) {
+      const transition = handleAge55Transition(cpfAccounts, data.cpf!.retirementSumTarget)
+      cpfAccounts = transition.accounts
+      hasCompletedAge55Transition = true
+    }
 
     // Calculate income for this month
     let monthlyIncome = 0
@@ -96,6 +122,53 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
       }
     })
 
+    // CPF: Calculate CPF contribution from CPF-eligible income
+    let cpfContribution = {
+      employee: 0,
+      employer: 0,
+      total: 0,
+      allocation: { toOA: 0, toSA: 0, toMA: 0, toRA: 0 }
+    }
+    if (cpfEnabled) {
+      // Extract CPF-eligible income
+      let cpfEligibleIncome = 0
+      incomeSources.forEach(source => {
+        if (source.cpfEligible) {
+          const startMonth = parseMonthDate(source.startDate, currentYear, currentMonth)
+          const endMonth = source.endDate
+            ? parseMonthDate(source.endDate, currentYear, currentMonth)
+            : totalMonths + 1
+          if (monthIndex >= startMonth && monthIndex < endMonth) {
+            cpfEligibleIncome += convertToMonthly(
+              source.amount,
+              source.frequency,
+              source.customFrequencyDays
+            )
+          }
+        }
+      })
+
+      // Calculate CPF contribution if there's CPF-eligible income
+      if (cpfEligibleIncome > 0) {
+        cpfContribution = calculateCPFContribution(cpfEligibleIncome, Math.floor(age), yearToDateCPFContributions)
+
+        // Employee contribution reduces take-home pay
+        monthlyIncome -= cpfContribution.employee
+
+        // Track year-to-date contributions
+        yearToDateCPFContributions += cpfContribution.total
+
+        // Add contributions to CPF accounts
+        if (age >= 55) {
+          cpfAccounts = applyPost55Contribution(cpfAccounts, cpfContribution.allocation)
+        } else {
+          cpfAccounts.ordinaryAccount += cpfContribution.allocation.toOA
+          cpfAccounts.specialAccount += cpfContribution.allocation.toSA
+          cpfAccounts.medisaveAccount += cpfContribution.allocation.toMA
+        }
+      }
+    }
+
     // Calculate expenses for this month
     let monthlyExpenses = 0
     const expenses = data.expenses || []
@@ -119,11 +192,25 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     })
 
     // Phase 5: Add loan payments for this month
+    let housingLoanPayment = 0
     const loans = data.loans || []
     loans.forEach((loan: Loan) => {
       const payment = getLoanPaymentForMonth(loan, adjustedYear, adjustedMonth)
+      if (loan.category === 'housing') {
+        housingLoanPayment += payment
+      }
       monthlyExpenses += payment
     })
+
+    // CPF: Use OA for housing loan payment if available
+    if (cpfEnabled && housingLoanPayment > 0) {
+      const oaUsedForHousing = Math.min(cpfAccounts.ordinaryAccount, housingLoanPayment)
+      if (oaUsedForHousing > 0) {
+        cpfAccounts.ordinaryAccount -= oaUsedForHousing
+        monthlyExpenses -= oaUsedForHousing // Reduce cash expenses by OA usage
+        cumulativeHousingUsage += oaUsedForHousing
+      }
+    }
 
     // Phase 5: Add one-time expenses for this month
     const oneTimeExpenses = data.oneTimeExpenses || []
@@ -156,7 +243,19 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     // Calculate growth this month (interest earned)
     const growth = balance - balanceBeforeMonth - netContribution
 
-    projections.push({
+    // CPF: Apply monthly interest to CPF accounts and capture interest details
+    let cpfMonthlyInterest = { oa: 0, sa: 0, ma: 0, ra: 0, total: 0 }
+    let cpfExtraInterest = 0
+    if (cpfEnabled) {
+      // Calculate interest before applying (for snapshot)
+      cpfMonthlyInterest = calculateMonthlyInterest(cpfAccounts, Math.floor(age))
+      cpfExtraInterest = calculateExtraInterest(cpfAccounts, Math.floor(age))
+
+      // Apply interest to accounts
+      cpfAccounts = applyMonthlyInterest(cpfAccounts, Math.floor(age))
+    }
+
+    const dataPoint: MonthlyDataPoint = {
       monthIndex,
       year: adjustedYear,
       month: adjustedMonth,
@@ -166,7 +265,29 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
       contributions: Math.round(cumulativeContributions * 100) / 100,
       portfolioValue: Math.round(balance * 100) / 100,
       growth: Math.round(growth * 100) / 100
-    })
+    }
+
+    // Add CPF snapshot if enabled
+    if (cpfEnabled) {
+      dataPoint.cpf = {
+        monthIndex,
+        age: Math.floor(age),
+        accounts: { ...cpfAccounts },
+        monthlyContribution: cpfContribution,
+        monthlyInterest: {
+          oa: cpfMonthlyInterest.oa,
+          sa: cpfMonthlyInterest.sa,
+          ma: cpfMonthlyInterest.ma,
+          ra: cpfMonthlyInterest.ra,
+          extraInterest: cpfExtraInterest,
+          total: cpfMonthlyInterest.total + cpfExtraInterest
+        },
+        housingUsage: cumulativeHousingUsage,
+        yearToDateContributions: yearToDateCPFContributions
+      }
+    }
+
+    projections.push(dataPoint)
   }
 
   return projections
