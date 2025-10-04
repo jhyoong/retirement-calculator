@@ -6,14 +6,21 @@ import { generateMonthlyProjections } from '@/utils/monthlyProjections'
 import { useIncomeStore } from './income'
 import { useExpenseStore } from './expense'
 import { useCPFStore } from './cpf'
+import {
+  DEFAULT_CURRENT_AGE,
+  DEFAULT_RETIREMENT_AGE,
+  DEFAULT_SAVINGS,
+  DEFAULT_RETURN_RATE,
+  DEFAULT_INFLATION_RATE
+} from '@/utils/constants'
 
 export const useRetirementStore = defineStore('retirement', () => {
   // State with sensible defaults
-  const currentAge = ref(30)
-  const retirementAge = ref(65)
-  const currentSavings = ref(50000)
-  const expectedReturnRate = ref(0.05) // 7%
-  const inflationRate = ref(0.03) // 3%
+  const currentAge = ref(DEFAULT_CURRENT_AGE)
+  const retirementAge = ref(DEFAULT_RETIREMENT_AGE)
+  const currentSavings = ref(DEFAULT_SAVINGS)
+  const expectedReturnRate = ref(DEFAULT_RETURN_RATE)
+  const inflationRate = ref(DEFAULT_INFLATION_RATE)
 
   // Computed: get user data object
   const userData = computed((): UserData => {
@@ -146,11 +153,11 @@ export const useRetirementStore = defineStore('retirement', () => {
   }
 
   function resetToDefaults() {
-    currentAge.value = 30
-    retirementAge.value = 65
-    currentSavings.value = 50000
-    expectedReturnRate.value = 0.07
-    inflationRate.value = 0.03
+    currentAge.value = DEFAULT_CURRENT_AGE
+    retirementAge.value = DEFAULT_RETIREMENT_AGE
+    currentSavings.value = DEFAULT_SAVINGS
+    expectedReturnRate.value = DEFAULT_RETURN_RATE
+    inflationRate.value = DEFAULT_INFLATION_RATE
 
     // Phase 2: Reset income data
     const incomeStore = useIncomeStore()

@@ -5,6 +5,7 @@
 
 import { CPF_CONFIG_2025 } from './cpfConfig';
 import type { CPFAccounts } from '@/types';
+import { MONTHS_PER_YEAR, roundToTwoDecimals, CPF_AGE_55 } from './constants';
 
 /**
  * Calculate monthly interest for all CPF accounts
@@ -28,25 +29,25 @@ export function calculateMonthlyInterest(
   const { interestRates } = CPF_CONFIG_2025;
 
   // Monthly interest rate = annual rate / 12
-  const monthlyOARate = interestRates.ordinaryAccount / 12;
-  const monthlySMRARate = interestRates.specialAccount / 12; // Same for SA/MA/RA
+  const monthlyOARate = interestRates.ordinaryAccount / MONTHS_PER_YEAR;
+  const monthlySMRARate = interestRates.specialAccount / MONTHS_PER_YEAR; // Same for SA/MA/RA
 
   const oaInterest = accounts.ordinaryAccount * monthlyOARate;
 
   // SA only exists before age 55
-  const saInterest = age < 55 ? accounts.specialAccount * monthlySMRARate : 0;
+  const saInterest = age < CPF_AGE_55 ? accounts.specialAccount * monthlySMRARate : 0;
 
   const maInterest = accounts.medisaveAccount * monthlySMRARate;
 
   // RA only exists from age 55 onwards
-  const raInterest = age >= 55 ? accounts.retirementAccount * monthlySMRARate : 0;
+  const raInterest = age >= CPF_AGE_55 ? accounts.retirementAccount * monthlySMRARate : 0;
 
   return {
-    oa: Math.round(oaInterest * 100) / 100,
-    sa: Math.round(saInterest * 100) / 100,
-    ma: Math.round(maInterest * 100) / 100,
-    ra: Math.round(raInterest * 100) / 100,
-    total: Math.round((oaInterest + saInterest + maInterest + raInterest) * 100) / 100
+    oa: roundToTwoDecimals(oaInterest),
+    sa: roundToTwoDecimals(saInterest),
+    ma: roundToTwoDecimals(maInterest),
+    ra: roundToTwoDecimals(raInterest),
+    total: roundToTwoDecimals(oaInterest + saInterest + maInterest + raInterest)
   };
 }
 
@@ -65,7 +66,7 @@ export function calculateExtraInterest(
 ): number {
   const { extraInterest } = CPF_CONFIG_2025.interestRates;
 
-  if (age < 55) {
+  if (age < CPF_AGE_55) {
     return calculateExtraInterestUnder55(accounts, extraInterest.under55);
   } else {
     return calculateExtraInterestAge55Plus(accounts, extraInterest.age55Plus);
@@ -91,10 +92,10 @@ function calculateExtraInterestUnder55(
   const cappedEligible = Math.min(totalEligible, config.balanceCap);
 
   // Monthly extra interest = annual rate / 12
-  const monthlyExtraRate = config.rate / 12;
+  const monthlyExtraRate = config.rate / MONTHS_PER_YEAR;
   const extraInterest = cappedEligible * monthlyExtraRate;
 
-  return Math.round(extraInterest * 100) / 100;
+  return roundToTwoDecimals(extraInterest);
 }
 
 /**
@@ -114,17 +115,17 @@ function calculateExtraInterestAge55Plus(
 
   // First tier: +2% on first $30k
   const firstTierBalance = Math.min(totalBalance, config.firstTier.cap);
-  const firstTierRate = config.firstTier.rate / 12;
+  const firstTierRate = config.firstTier.rate / MONTHS_PER_YEAR;
   const firstTierInterest = firstTierBalance * firstTierRate;
 
   // Second tier: +1% on next $30k
   const remainingBalance = Math.max(0, totalBalance - config.firstTier.cap);
   const secondTierBalance = Math.min(remainingBalance, config.secondTier.cap);
-  const secondTierRate = config.secondTier.rate / 12;
+  const secondTierRate = config.secondTier.rate / MONTHS_PER_YEAR;
   const secondTierInterest = secondTierBalance * secondTierRate;
 
   const totalExtraInterest = firstTierInterest + secondTierInterest;
-  return Math.round(totalExtraInterest * 100) / 100;
+  return roundToTwoDecimals(totalExtraInterest);
 }
 
 /**
@@ -146,18 +147,18 @@ export function applyMonthlyInterest(
   const extraInterestAllocation = allocateExtraInterest(accounts, age, extraInterest);
 
   return {
-    ordinaryAccount: Math.round(
-      (accounts.ordinaryAccount + baseInterest.oa + extraInterestAllocation.oa) * 100
-    ) / 100,
-    specialAccount: Math.round(
-      (accounts.specialAccount + baseInterest.sa + extraInterestAllocation.sa) * 100
-    ) / 100,
-    medisaveAccount: Math.round(
-      (accounts.medisaveAccount + baseInterest.ma + extraInterestAllocation.ma) * 100
-    ) / 100,
-    retirementAccount: Math.round(
-      (accounts.retirementAccount + baseInterest.ra + extraInterestAllocation.ra) * 100
-    ) / 100
+    ordinaryAccount: roundToTwoDecimals(
+      accounts.ordinaryAccount + baseInterest.oa + extraInterestAllocation.oa
+    ),
+    specialAccount: roundToTwoDecimals(
+      accounts.specialAccount + baseInterest.sa + extraInterestAllocation.sa
+    ),
+    medisaveAccount: roundToTwoDecimals(
+      accounts.medisaveAccount + baseInterest.ma + extraInterestAllocation.ma
+    ),
+    retirementAccount: roundToTwoDecimals(
+      accounts.retirementAccount + baseInterest.ra + extraInterestAllocation.ra
+    )
   };
 }
 
@@ -180,7 +181,7 @@ function allocateExtraInterest(
     return { oa: 0, sa: 0, ma: 0, ra: 0 };
   }
 
-  if (age < 55) {
+  if (age < CPF_AGE_55) {
     return allocateExtraInterestUnder55(accounts, extraInterest);
   } else {
     return allocateExtraInterestAge55Plus(accounts, extraInterest);
@@ -284,7 +285,7 @@ export function getEffectiveInterestRate(
 
   // Calculate what 1 year of interest would be
   const yearlyBaseInterest = calculateAnnualInterest(accounts, age);
-  const yearlyExtraInterest = calculateExtraInterest(accounts, age) * 12;
+  const yearlyExtraInterest = calculateExtraInterest(accounts, age) * MONTHS_PER_YEAR;
 
   const totalBalance =
     accounts.ordinaryAccount +
@@ -309,9 +310,9 @@ function calculateAnnualInterest(accounts: CPFAccounts, age: number): number {
   const { interestRates } = CPF_CONFIG_2025;
 
   const oaInterest = accounts.ordinaryAccount * interestRates.ordinaryAccount;
-  const saInterest = age < 55 ? accounts.specialAccount * interestRates.specialAccount : 0;
+  const saInterest = age < CPF_AGE_55 ? accounts.specialAccount * interestRates.specialAccount : 0;
   const maInterest = accounts.medisaveAccount * interestRates.medisaveAccount;
-  const raInterest = age >= 55 ? accounts.retirementAccount * interestRates.retirementAccount : 0;
+  const raInterest = age >= CPF_AGE_55 ? accounts.retirementAccount * interestRates.retirementAccount : 0;
 
   return oaInterest + saInterest + maInterest + raInterest;
 }

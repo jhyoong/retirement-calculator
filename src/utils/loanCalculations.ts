@@ -1,4 +1,5 @@
 import type { Loan, ExtraPayment } from '@/types'
+import { MONTHS_PER_YEAR, roundToTwoDecimals, MIN_BALANCE_THRESHOLD } from './constants'
 
 // Re-export for convenience
 export type { ExtraPayment }
@@ -26,12 +27,12 @@ export function calculateMonthlyPayment(
     return principal / termMonths
   }
 
-  const monthlyRate = annualRate / 12
+  const monthlyRate = annualRate / MONTHS_PER_YEAR
   const payment = principal *
     (monthlyRate * Math.pow(1 + monthlyRate, termMonths)) /
     (Math.pow(1 + monthlyRate, termMonths) - 1)
 
-  return Math.round(payment * 100) / 100
+  return roundToTwoDecimals(payment)
 }
 
 /**
@@ -62,7 +63,7 @@ export function generateAmortizationSchedule(
 ): PaymentBreakdown[] {
   const schedule: PaymentBreakdown[] = []
   const monthlyPayment = calculateMonthlyPayment(loan.principal, loan.interestRate, loan.termMonths)
-  const monthlyRate = loan.interestRate / 12
+  const monthlyRate = loan.interestRate / MONTHS_PER_YEAR
 
   let balance = loan.principal
   let monthIndex = 0
@@ -72,7 +73,7 @@ export function generateAmortizationSchedule(
   if (loan.extraPayments) {
     loan.extraPayments.forEach(extra => {
       const [year, month] = extra.date.split('-').map(Number)
-      const monthsSinceStart = (year - startYear) * 12 + (month - startMonth)
+      const monthsSinceStart = (year - startYear) * MONTHS_PER_YEAR + (month - startMonth)
       if (monthsSinceStart >= 0 && monthsSinceStart < loan.termMonths) {
         const existing = extraPaymentMap.get(monthsSinceStart) || 0
         extraPaymentMap.set(monthsSinceStart, existing + extra.amount)
@@ -80,7 +81,7 @@ export function generateAmortizationSchedule(
     })
   }
 
-  while (balance > 0.01 && monthIndex < loan.termMonths) {
+  while (balance > MIN_BALANCE_THRESHOLD && monthIndex < loan.termMonths) {
     // Calculate interest on remaining balance
     const interestPayment = balance * monthlyRate
 
@@ -102,11 +103,11 @@ export function generateAmortizationSchedule(
     // Record payment breakdown
     schedule.push({
       monthIndex,
-      payment: Math.round((interestPayment + Math.min(principalPayment, balance + actualPrincipalPayment)) * 100) / 100,
-      principal: Math.round((actualPrincipalPayment - extraPayment) * 100) / 100,
-      interest: Math.round(interestPayment * 100) / 100,
-      extraPayment: Math.round(extraPayment * 100) / 100,
-      remainingBalance: Math.round(Math.max(0, balance) * 100) / 100
+      payment: roundToTwoDecimals(interestPayment + Math.min(principalPayment, balance + actualPrincipalPayment)),
+      principal: roundToTwoDecimals(actualPrincipalPayment - extraPayment),
+      interest: roundToTwoDecimals(interestPayment),
+      extraPayment: roundToTwoDecimals(extraPayment),
+      remainingBalance: roundToTwoDecimals(Math.max(0, balance))
     })
 
     monthIndex++
@@ -123,7 +124,7 @@ export function calculateTotalInterest(loan: Loan): number {
   const schedule = generateAmortizationSchedule(loan, year, month)
 
   const totalInterest = schedule.reduce((sum, payment) => sum + payment.interest, 0)
-  return Math.round(totalInterest * 100) / 100
+  return roundToTwoDecimals(totalInterest)
 }
 
 /**
@@ -138,7 +139,7 @@ export function getLoanPaymentForMonth(
   const [startYear, startMonth] = loan.startDate.split('-').map(Number)
 
   // Calculate months since loan start
-  const monthsSinceStart = (targetYear - startYear) * 12 + (targetMonth - startMonth)
+  const monthsSinceStart = (targetYear - startYear) * MONTHS_PER_YEAR + (targetMonth - startMonth)
 
   // Check if loan is active this month
   if (monthsSinceStart < 0) {

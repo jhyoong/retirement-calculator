@@ -5,6 +5,16 @@ import { calculateCPFContribution } from './cpfContributions'
 import { applyMonthlyInterest, calculateMonthlyInterest, calculateExtraInterest } from './cpfInterest'
 import { handleAge55Transition, applyPost55Contribution } from './cpfTransitions'
 import { estimateCPFLifePayout, getCPFLifePayoutForYear } from './cpfLife'
+import {
+  MONTHS_PER_YEAR,
+  WEEKS_PER_YEAR,
+  AVERAGE_DAYS_PER_MONTH,
+  DAYS_PER_YEAR,
+  roundToTwoDecimals,
+  CPF_AGE_55,
+  CPF_LIFE_AGE,
+  DEFAULT_CPF_PLAN
+} from './constants'
 
 /**
  * Helper: Convert frequency to monthly amount
@@ -16,16 +26,16 @@ function convertToMonthly(
 ): number {
   switch (frequency) {
     case 'daily':
-      return amount * 30.44
+      return amount * AVERAGE_DAYS_PER_MONTH
     case 'weekly':
-      return amount * 52 / 12
+      return amount * WEEKS_PER_YEAR / MONTHS_PER_YEAR
     case 'monthly':
       return amount
     case 'yearly':
-      return amount / 12
+      return amount / MONTHS_PER_YEAR
     case 'custom':
       if (!customDays || customDays <= 0) return 0
-      return (amount * 365.25) / customDays / 12
+      return (amount * DAYS_PER_YEAR) / customDays / MONTHS_PER_YEAR
     default:
       return 0
   }
@@ -36,17 +46,17 @@ function convertToMonthly(
  */
 function parseMonthDate(dateStr: string, baseYear: number, baseMonth: number): number {
   const [year, month] = dateStr.split('-').map(Number)
-  return (year - baseYear) * 12 + (month - baseMonth)
+  return (year - baseYear) * MONTHS_PER_YEAR + (month - baseMonth)
 }
 
 /**
  * Generate month-by-month projections from current age to retirement (or maxAge if specified)
  */
 export function generateMonthlyProjections(data: UserData, maxAge?: number): MonthlyDataPoint[] {
-  const monthlyRate = data.expectedReturnRate / 12
+  const monthlyRate = data.expectedReturnRate / MONTHS_PER_YEAR
   const endAge = maxAge ?? data.retirementAge
   const yearsToEnd = endAge - data.currentAge
-  const totalMonths = yearsToEnd * 12
+  const totalMonths = yearsToEnd * MONTHS_PER_YEAR
 
   const currentYear = new Date().getFullYear()
   const currentMonth = new Date().getMonth() + 1 // Current month (1-12)
@@ -73,17 +83,17 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
 
   for (let monthIndex = 0; monthIndex < totalMonths; monthIndex++) {
     // Calculate current date
-    const yearOffset = Math.floor(monthIndex / 12)
-    const monthOffset = monthIndex % 12
+    const yearOffset = Math.floor(monthIndex / MONTHS_PER_YEAR)
+    const monthOffset = monthIndex % MONTHS_PER_YEAR
     const year = currentYear + yearOffset
     const month = currentMonth + monthOffset
 
     // Adjust if month exceeds 12
-    const adjustedYear = month > 12 ? year + Math.floor((month - 1) / 12) : year
-    const adjustedMonth = month > 12 ? ((month - 1) % 12) + 1 : month
+    const adjustedYear = month > MONTHS_PER_YEAR ? year + Math.floor((month - 1) / MONTHS_PER_YEAR) : year
+    const adjustedMonth = month > MONTHS_PER_YEAR ? ((month - 1) % MONTHS_PER_YEAR) + 1 : month
 
     // Calculate age (fractional)
-    const age = data.currentAge + (monthIndex / 12)
+    const age = data.currentAge + (monthIndex / MONTHS_PER_YEAR)
 
     // CPF: Reset year-to-date contributions in January
     if (cpfEnabled && monthIndex > 0) {
@@ -93,15 +103,15 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     }
 
     // CPF: Check for age 55 transition (happens once)
-    if (cpfEnabled && age >= 55 && !hasCompletedAge55Transition) {
+    if (cpfEnabled && age >= CPF_AGE_55 && !hasCompletedAge55Transition) {
       const transition = handleAge55Transition(cpfAccounts, data.cpf!.retirementSumTarget)
       cpfAccounts = transition.accounts
       hasCompletedAge55Transition = true
     }
 
     // CPF Life: Start payouts at age 65 (happens once)
-    if (cpfEnabled && age >= 65 && !cpfLifeHasStarted) {
-      const cpfLifePlan = data.cpf?.cpfLifePlan || 'standard'
+    if (cpfEnabled && age >= CPF_LIFE_AGE && !cpfLifeHasStarted) {
+      const cpfLifePlan = data.cpf?.cpfLifePlan || DEFAULT_CPF_PLAN
       cpfLifeInitialPayout = estimateCPFLifePayout(cpfAccounts.retirementAccount, cpfLifePlan)
       cpfLifeHasStarted = true
     }
@@ -136,8 +146,8 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     // CPF Life: Add monthly payout if age >= 65
     let cpfLifeIncome = 0
     if (cpfEnabled && cpfLifeHasStarted && cpfLifeInitialPayout > 0) {
-      const yearsFrom65 = Math.max(0, age - 65)
-      const cpfLifePlan = data.cpf?.cpfLifePlan || 'standard'
+      const yearsFrom65 = Math.max(0, age - CPF_LIFE_AGE)
+      const cpfLifePlan = data.cpf?.cpfLifePlan || DEFAULT_CPF_PLAN
       cpfLifeIncome = getCPFLifePayoutForYear(cpfLifeInitialPayout, Math.floor(yearsFrom65), cpfLifePlan)
       monthlyIncome += cpfLifeIncome
     }
@@ -179,7 +189,7 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
         yearToDateCPFContributions += cpfContribution.total
 
         // Add contributions to CPF accounts
-        if (age >= 55) {
+        if (age >= CPF_AGE_55) {
           cpfAccounts = applyPost55Contribution(cpfAccounts, cpfContribution.allocation)
         } else {
           cpfAccounts.ordinaryAccount += cpfContribution.allocation.toOA
@@ -280,17 +290,17 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
       monthIndex,
       year: adjustedYear,
       month: adjustedMonth,
-      age: Math.round(age * 100) / 100,
-      income: Math.round(monthlyIncome * 100) / 100,
-      expenses: Math.round(monthlyExpenses * 100) / 100, // Show actual expenses
-      contributions: Math.round(cumulativeContributions * 100) / 100,
-      portfolioValue: Math.round(balance * 100) / 100,
-      growth: Math.round(growth * 100) / 100
+      age: roundToTwoDecimals(age),
+      income: roundToTwoDecimals(monthlyIncome),
+      expenses: roundToTwoDecimals(monthlyExpenses), // Show actual expenses
+      contributions: roundToTwoDecimals(cumulativeContributions),
+      portfolioValue: roundToTwoDecimals(balance),
+      growth: roundToTwoDecimals(growth)
     }
 
     // Add CPF Life income if applicable
     if (cpfLifeIncome > 0) {
-      dataPoint.cpfLifeIncome = Math.round(cpfLifeIncome * 100) / 100
+      dataPoint.cpfLifeIncome = roundToTwoDecimals(cpfLifeIncome)
     }
 
     // Add CPF snapshot if enabled
@@ -327,15 +337,15 @@ export function applyInflationAdjustment(
 ): MonthlyDataPoint[] {
   return projections.map((point) => {
     // Month index represents the END of that month, so add 1 before dividing
-    const yearsFromStart = (point.monthIndex + 1) / 12
+    const yearsFromStart = (point.monthIndex + 1) / MONTHS_PER_YEAR
 
     return {
       ...point,
-      income: Math.round(adjustForInflation(point.income, inflationRate, yearsFromStart) * 100) / 100,
-      expenses: Math.round(adjustForInflation(point.expenses, inflationRate, yearsFromStart) * 100) / 100,
-      contributions: Math.round(adjustForInflation(point.contributions, inflationRate, yearsFromStart) * 100) / 100,
-      portfolioValue: Math.round(adjustForInflation(point.portfolioValue, inflationRate, yearsFromStart) * 100) / 100,
-      growth: Math.round(adjustForInflation(point.growth, inflationRate, yearsFromStart) * 100) / 100
+      income: roundToTwoDecimals(adjustForInflation(point.income, inflationRate, yearsFromStart)),
+      expenses: roundToTwoDecimals(adjustForInflation(point.expenses, inflationRate, yearsFromStart)),
+      contributions: roundToTwoDecimals(adjustForInflation(point.contributions, inflationRate, yearsFromStart)),
+      portfolioValue: roundToTwoDecimals(adjustForInflation(point.portfolioValue, inflationRate, yearsFromStart)),
+      growth: roundToTwoDecimals(adjustForInflation(point.growth, inflationRate, yearsFromStart))
     }
   })
 }

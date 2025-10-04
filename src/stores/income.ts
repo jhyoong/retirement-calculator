@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { IncomeStream, OneOffReturn, IncomeFrequency } from '@/types'
+import {
+  MONTHS_PER_YEAR,
+  WEEKS_PER_YEAR,
+  AVERAGE_DAYS_PER_MONTH,
+  DAYS_PER_YEAR
+} from '@/utils/constants'
 
 export const useIncomeStore = defineStore('income', () => {
   // State
@@ -22,16 +28,16 @@ export const useIncomeStore = defineStore('income', () => {
   ): number {
     switch (frequency) {
       case 'daily':
-        return amount * 30.44 // Average days per month
+        return amount * AVERAGE_DAYS_PER_MONTH
       case 'weekly':
-        return amount * 52 / 12 // 52 weeks per year / 12 months
+        return amount * WEEKS_PER_YEAR / MONTHS_PER_YEAR
       case 'monthly':
         return amount
       case 'yearly':
-        return amount / 12
+        return amount / MONTHS_PER_YEAR
       case 'custom':
         if (!customDays || customDays <= 0) return 0
-        return (amount * 365.25) / customDays / 12
+        return (amount * DAYS_PER_YEAR) / customDays / MONTHS_PER_YEAR
       default:
         return 0
     }
