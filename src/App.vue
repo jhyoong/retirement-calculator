@@ -1,6 +1,9 @@
 <template>
   <div class="min-h-screen bg-gray-50">
-    <div class="container mx-auto px-4 py-8 max-w-4xl">
+    <div
+      class="container mx-auto px-4 py-8 transition-all duration-300"
+      :class="activeTab === 'visualizations' ? 'max-w-[95%]' : 'max-w-4xl'"
+    >
       <header class="mb-8">
         <h1 class="text-4xl font-bold text-gray-900 mb-2">
           Retirement Calculator
