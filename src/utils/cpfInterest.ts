@@ -142,8 +142,114 @@ export function applyMonthlyInterest(
   const baseInterest = calculateMonthlyInterest(accounts, age);
   const extraInterest = calculateExtraInterest(accounts, age);
 
-  // Distribute extra interest proportionally based on account balances
-  // (CPF distributes extra interest to accounts proportionally)
+  // Distribute extra interest based on which accounts contributed to eligible balance
+  const extraInterestAllocation = allocateExtraInterest(accounts, age, extraInterest);
+
+  return {
+    ordinaryAccount: Math.round(
+      (accounts.ordinaryAccount + baseInterest.oa + extraInterestAllocation.oa) * 100
+    ) / 100,
+    specialAccount: Math.round(
+      (accounts.specialAccount + baseInterest.sa + extraInterestAllocation.sa) * 100
+    ) / 100,
+    medisaveAccount: Math.round(
+      (accounts.medisaveAccount + baseInterest.ma + extraInterestAllocation.ma) * 100
+    ) / 100,
+    retirementAccount: Math.round(
+      (accounts.retirementAccount + baseInterest.ra + extraInterestAllocation.ra) * 100
+    ) / 100
+  };
+}
+
+/**
+ * Allocate extra interest to accounts based on their contribution to eligible balance
+ * Under 55: OA (up to $20k) + SA/MA (up to $40k)
+ * Age 55+: All accounts proportionally
+ */
+function allocateExtraInterest(
+  accounts: CPFAccounts,
+  age: number,
+  extraInterest: number
+): {
+  oa: number;
+  sa: number;
+  ma: number;
+  ra: number;
+} {
+  if (extraInterest === 0) {
+    return { oa: 0, sa: 0, ma: 0, ra: 0 };
+  }
+
+  if (age < 55) {
+    return allocateExtraInterestUnder55(accounts, extraInterest);
+  } else {
+    return allocateExtraInterestAge55Plus(accounts, extraInterest);
+  }
+}
+
+/**
+ * Allocate extra interest for under 55
+ * Eligible: OA (up to $20k) + SA/MA (up to $40k) = $60k total
+ */
+function allocateExtraInterestUnder55(
+  accounts: CPFAccounts,
+  extraInterest: number
+): {
+  oa: number;
+  sa: number;
+  ma: number;
+  ra: number;
+} {
+  const { extraInterest: config } = CPF_CONFIG_2025.interestRates;
+  const { oaCap, balanceCap } = config.under55;
+
+  // Calculate eligible amounts from each account
+  const oaEligible = Math.min(accounts.ordinaryAccount, oaCap);
+  const remainingCap = balanceCap - oaEligible;
+
+  // SA and MA compete for the remaining cap
+  const saPlusMA = accounts.specialAccount + accounts.medisaveAccount;
+  const smEligible = Math.min(saPlusMA, remainingCap);
+
+  // If both SA and MA have balances, split proportionally
+  let saEligible = 0;
+  let maEligible = 0;
+  if (saPlusMA > 0) {
+    const saRatio = accounts.specialAccount / saPlusMA;
+    const maRatio = accounts.medisaveAccount / saPlusMA;
+    saEligible = smEligible * saRatio;
+    maEligible = smEligible * maRatio;
+  }
+
+  const totalEligible = oaEligible + saEligible + maEligible;
+
+  if (totalEligible === 0) {
+    return { oa: 0, sa: 0, ma: 0, ra: 0 };
+  }
+
+  // Distribute extra interest proportionally to eligible amounts
+  return {
+    oa: (oaEligible / totalEligible) * extraInterest,
+    sa: (saEligible / totalEligible) * extraInterest,
+    ma: (maEligible / totalEligible) * extraInterest,
+    ra: 0 // RA doesn't exist before age 55
+  };
+}
+
+/**
+ * Allocate extra interest for age 55+
+ * Eligible: All accounts proportionally (first $30k at +2%, next $30k at +1%)
+ */
+function allocateExtraInterestAge55Plus(
+  accounts: CPFAccounts,
+  extraInterest: number
+): {
+  oa: number;
+  sa: number;
+  ma: number;
+  ra: number;
+} {
+  // For 55+, extra interest is distributed proportionally to all accounts
   const totalBalance =
     accounts.ordinaryAccount +
     accounts.specialAccount +
@@ -151,28 +257,14 @@ export function applyMonthlyInterest(
     accounts.retirementAccount;
 
   if (totalBalance === 0) {
-    return accounts; // No interest if no balance
+    return { oa: 0, sa: 0, ma: 0, ra: 0 };
   }
 
-  // Allocate extra interest proportionally
-  const oaShare = accounts.ordinaryAccount / totalBalance;
-  const saShare = accounts.specialAccount / totalBalance;
-  const maShare = accounts.medisaveAccount / totalBalance;
-  const raShare = accounts.retirementAccount / totalBalance;
-
   return {
-    ordinaryAccount: Math.round(
-      (accounts.ordinaryAccount + baseInterest.oa + extraInterest * oaShare) * 100
-    ) / 100,
-    specialAccount: Math.round(
-      (accounts.specialAccount + baseInterest.sa + extraInterest * saShare) * 100
-    ) / 100,
-    medisaveAccount: Math.round(
-      (accounts.medisaveAccount + baseInterest.ma + extraInterest * maShare) * 100
-    ) / 100,
-    retirementAccount: Math.round(
-      (accounts.retirementAccount + baseInterest.ra + extraInterest * raShare) * 100
-    ) / 100
+    oa: (accounts.ordinaryAccount / totalBalance) * extraInterest,
+    sa: (accounts.specialAccount / totalBalance) * extraInterest,
+    ma: (accounts.medisaveAccount / totalBalance) * extraInterest,
+    ra: (accounts.retirementAccount / totalBalance) * extraInterest
   };
 }
 

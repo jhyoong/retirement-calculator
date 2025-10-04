@@ -4,6 +4,7 @@ import { getLoanPaymentForMonth } from './loanCalculations'
 import { calculateCPFContribution } from './cpfContributions'
 import { applyMonthlyInterest, calculateMonthlyInterest, calculateExtraInterest } from './cpfInterest'
 import { handleAge55Transition, applyPost55Contribution } from './cpfTransitions'
+import { estimateCPFLifePayout, getCPFLifePayoutForYear } from './cpfLife'
 
 /**
  * Helper: Convert frequency to monthly amount
@@ -67,6 +68,10 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
   let hasCompletedAge55Transition = cpfAccounts.retirementAccount > 0
   let cumulativeHousingUsage = 0
 
+  // CPF Life payout tracking (from age 65)
+  let cpfLifeHasStarted = false
+  let cpfLifeInitialPayout = 0
+
   for (let monthIndex = 0; monthIndex < totalMonths; monthIndex++) {
     // Calculate current date
     const yearOffset = Math.floor(monthIndex / 12)
@@ -95,6 +100,13 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
       hasCompletedAge55Transition = true
     }
 
+    // CPF Life: Start payouts at age 65 (happens once)
+    if (cpfEnabled && age >= 65 && !cpfLifeHasStarted) {
+      const cpfLifePlan = data.cpf?.cpfLifePlan || 'standard'
+      cpfLifeInitialPayout = estimateCPFLifePayout(cpfAccounts.retirementAccount, cpfLifePlan)
+      cpfLifeHasStarted = true
+    }
+
     // Calculate income for this month
     let monthlyIncome = 0
 
@@ -121,6 +133,15 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
         monthlyIncome += oneOff.amount
       }
     })
+
+    // CPF Life: Add monthly payout if age >= 65
+    let cpfLifeIncome = 0
+    if (cpfEnabled && cpfLifeHasStarted && cpfLifeInitialPayout > 0) {
+      const yearsFrom65 = Math.max(0, age - 65)
+      const cpfLifePlan = data.cpf?.cpfLifePlan || 'standard'
+      cpfLifeIncome = getCPFLifePayoutForYear(cpfLifeInitialPayout, Math.floor(yearsFrom65), cpfLifePlan)
+      monthlyIncome += cpfLifeIncome
+    }
 
     // CPF: Calculate CPF contribution from CPF-eligible income
     let cpfContribution = {
@@ -265,6 +286,11 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
       contributions: Math.round(cumulativeContributions * 100) / 100,
       portfolioValue: Math.round(balance * 100) / 100,
       growth: Math.round(growth * 100) / 100
+    }
+
+    // Add CPF Life income if applicable
+    if (cpfLifeIncome > 0) {
+      dataPoint.cpfLifeIncome = Math.round(cpfLifeIncome * 100) / 100
     }
 
     // Add CPF snapshot if enabled
