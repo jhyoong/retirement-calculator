@@ -122,6 +122,8 @@ export interface Loan {
   termMonths: number; // Loan term in months
   startDate: string; // YYYY-MM format
   extraPayments?: ExtraPayment[]; // Optional early repayment
+  useCPF?: boolean; // Whether to use CPF OA for this loan payment (default: false for backward compatibility)
+  cpfPercentage?: number; // Percentage of payment to pay from CPF OA (0-100, default: 100)
 }
 
 export interface ExtraPayment {
@@ -162,7 +164,6 @@ export interface CPFContribution {
 export interface CPFData {
   enabled: boolean;
   currentBalances: CPFAccounts;
-  housingUsage: number;
   retirementSumTarget: 'basic' | 'full' | 'enhanced';
   cpfLifePlan: 'standard' | 'basic' | 'escalating';
   manualOverride: boolean;
@@ -181,6 +182,5 @@ export interface CPFMonthlySnapshot {
     extraInterest: number;
     total: number;
   };
-  housingUsage: number;
   yearToDateContributions: number;
 }

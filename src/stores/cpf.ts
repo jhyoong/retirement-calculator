@@ -11,7 +11,6 @@ export const useCPFStore = defineStore('cpf', () => {
     medisaveAccount: 0,
     retirementAccount: 0
   });
-  const housingUsage = ref(0);
   const retirementSumTarget = ref<'basic' | 'full' | 'enhanced'>('full');
   const cpfLifePlan = ref<'standard' | 'basic' | 'escalating'>('standard');
   const manualOverride = ref(false);
@@ -20,7 +19,6 @@ export const useCPFStore = defineStore('cpf', () => {
   const cpfData = computed((): CPFData => ({
     enabled: enabled.value,
     currentBalances: currentBalances.value,
-    housingUsage: housingUsage.value,
     retirementSumTarget: retirementSumTarget.value,
     cpfLifePlan: cpfLifePlan.value,
     manualOverride: manualOverride.value
@@ -39,10 +37,6 @@ export const useCPFStore = defineStore('cpf', () => {
     retirementSumTarget.value = target;
   }
 
-  function updateHousingUsage(amount: number) {
-    housingUsage.value = amount;
-  }
-
   function updateCPFLifePlan(plan: 'standard' | 'basic' | 'escalating') {
     cpfLifePlan.value = plan;
   }
@@ -59,7 +53,6 @@ export const useCPFStore = defineStore('cpf', () => {
       medisaveAccount: 0,
       retirementAccount: 0
     };
-    housingUsage.value = 0;
     retirementSumTarget.value = 'full';
     cpfLifePlan.value = 'standard';
     manualOverride.value = false;
@@ -68,17 +61,16 @@ export const useCPFStore = defineStore('cpf', () => {
   function loadData(data: CPFData) {
     enabled.value = data.enabled;
     currentBalances.value = data.currentBalances;
-    housingUsage.value = data.housingUsage || 0;
     retirementSumTarget.value = data.retirementSumTarget;
     cpfLifePlan.value = data.cpfLifePlan || 'standard';
     manualOverride.value = data.manualOverride || false;
+    // Note: Legacy 'housingUsage' field is ignored for backward compatibility
   }
 
   return {
     // State
     enabled,
     currentBalances,
-    housingUsage,
     retirementSumTarget,
     cpfLifePlan,
     manualOverride,
@@ -87,7 +79,6 @@ export const useCPFStore = defineStore('cpf', () => {
     // Actions
     updateEnabled,
     updateBalances,
-    updateHousingUsage,
     updateRetirementSumTarget,
     updateCPFLifePlan,
     updateManualOverride,

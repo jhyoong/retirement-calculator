@@ -70,9 +70,10 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 **CPF Store** (`src/stores/cpf.ts`):
 - Phase 6 addition for Singapore CPF integration
 - Manages: CPF account balances (OA, SA, MA, RA), contribution settings, retirement sum preference
-- Tracks: Initial balances, housing usage from OA, user settings
+- Tracks: Initial balances, user settings
 - Computed: `cpfEnabled` (whether CPF feature is active), `totalCPFBalance`
 - Actions: update methods for balances and settings, reset to defaults
+- Note: Housing loan CPF usage is now configured per-loan in the Expenses tab, not in CPF settings
 
 ### Calculation Logic
 
@@ -146,9 +147,10 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 **CPFForm.vue**:
 - Phase 6 component for CPF account management
 - Input CPF account balances (OA, SA, MA, RA)
-- Configure CPF settings: retirement sum preference (BRS/FRS/ERS), housing usage
+- Configure CPF settings: retirement sum preference (BRS/FRS/ERS)
 - Enable/disable CPF feature
 - Displays CPF-related income sources and contribution breakdown
+- Note: Housing loan CPF configuration moved to individual loans in Expenses tab
 
 **ResultsDisplay.vue**:
 - Displays calculated results from store
@@ -205,7 +207,9 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - `ExpenseCategory`: 'living' | 'healthcare' | 'travel' | 'other'
 
 **Phase 5 Types**:
-- `Loan` - Loan definition with principal, interest rate, term, start date, and optional extra payments
+- `Loan` - Loan definition with principal, interest rate, term, start date, optional extra payments, and CPF OA payment configuration
+  - `useCPF?: boolean` - Whether to use CPF OA for this loan payment (only for housing loans)
+  - `cpfPercentage?: number` - Percentage of payment to pay from CPF OA (0-100, default 100)
 - `ExtraPayment` - Extra payment definition with date and amount
 - `OneTimeExpense` - One-time expense definition with name, amount, date, category, and description
 

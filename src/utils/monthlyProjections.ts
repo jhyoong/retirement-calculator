@@ -66,7 +66,6 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     : { ordinaryAccount: 0, specialAccount: 0, medisaveAccount: 0, retirementAccount: 0 }
   let yearToDateCPFContributions = 0
   let hasCompletedAge55Transition = cpfAccounts.retirementAccount > 0
-  let cumulativeHousingUsage = 0
 
   // CPF Life payout tracking (from age 65)
   let cpfLifeHasStarted = false
@@ -213,25 +212,26 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
     })
 
     // Phase 5: Add loan payments for this month
-    let housingLoanPayment = 0
     const loans = data.loans || []
     loans.forEach((loan: Loan) => {
       const payment = getLoanPaymentForMonth(loan, adjustedYear, adjustedMonth)
-      if (loan.category === 'housing') {
-        housingLoanPayment += payment
-      }
-      monthlyExpenses += payment
-    })
 
-    // CPF: Use OA for housing loan payment if available
-    if (cpfEnabled && housingLoanPayment > 0) {
-      const oaUsedForHousing = Math.min(cpfAccounts.ordinaryAccount, housingLoanPayment)
-      if (oaUsedForHousing > 0) {
-        cpfAccounts.ordinaryAccount -= oaUsedForHousing
-        monthlyExpenses -= oaUsedForHousing // Reduce cash expenses by OA usage
-        cumulativeHousingUsage += oaUsedForHousing
+      // CPF: For housing loans with CPF enabled, pay portion from CPF OA
+      if (cpfEnabled && loan.useCPF && loan.category === 'housing' && payment > 0) {
+        const cpfPercentage = loan.cpfPercentage ?? 100 // Default to 100% if not specified
+        const cpfPortion = payment * (cpfPercentage / 100)
+        const oaUsedForLoan = Math.min(cpfAccounts.ordinaryAccount, cpfPortion)
+
+        if (oaUsedForLoan > 0) {
+          cpfAccounts.ordinaryAccount -= oaUsedForLoan
+          monthlyExpenses += payment - oaUsedForLoan // Only add cash portion to expenses
+        } else {
+          monthlyExpenses += payment // No CPF available, pay full amount from cash
+        }
+      } else {
+        monthlyExpenses += payment // Non-CPF loan or CPF not enabled
       }
-    }
+    })
 
     // Phase 5: Add one-time expenses for this month
     const oneTimeExpenses = data.oneTimeExpenses || []
@@ -308,7 +308,6 @@ export function generateMonthlyProjections(data: UserData, maxAge?: number): Mon
           extraInterest: cpfExtraInterest,
           total: cpfMonthlyInterest.total + cpfExtraInterest
         },
-        housingUsage: cumulativeHousingUsage,
         yearToDateContributions: yearToDateCPFContributions
       }
     }

@@ -112,28 +112,6 @@
         </div>
       </div>
 
-      <!-- Housing Usage -->
-      <div class="p-4 border border-gray-200 rounded-md">
-        <h3 class="text-lg font-semibold mb-4">Housing Usage</h3>
-
-        <label class="block text-sm font-medium text-gray-700 mb-2">
-          Amount used from OA for housing
-        </label>
-
-        <input
-          v-model.number="cpfStore.housingUsage"
-          type="number"
-          min="0"
-          step="1000"
-          class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          placeholder="0"
-        />
-
-        <p class="mt-2 text-xs text-gray-600">
-          Track how much OA has been used for housing loans or property purchases. This helps monitor your available OA balance for retirement.
-        </p>
-      </div>
-
       <!-- Retirement Sum Target -->
       <div class="p-4 border border-gray-200 rounded-md">
         <h3 class="text-lg font-semibold mb-4">Retirement Sum Target</h3>
