@@ -1,6 +1,13 @@
 /**
  * CPF Configuration for 2025
  * Contains official rates, limits, and retirement sums from CPF Board
+ *
+ * IMPORTANT: These are government-mandated CPF milestones and rules:
+ * - Age 55: Special Account (SA) closes, Retirement Account (RA) created
+ * - Age 65: Default CPF Life payout start age
+ * - Age 70: Maximum CPF Life payout deferral age
+ *
+ * These CPF ages are separate from a user's personal retirement age goal.
  */
 
 export const CPF_CONFIG_2025 = {

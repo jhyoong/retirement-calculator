@@ -13,6 +13,7 @@ export const useCPFStore = defineStore('cpf', () => {
   });
   const retirementSumTarget = ref<'basic' | 'full' | 'enhanced'>('full');
   const cpfLifePlan = ref<'standard' | 'basic' | 'escalating'>('standard');
+  const cpfLifePayoutAge = ref<65 | 70>(65);
   const manualOverride = ref(false);
 
   // Computed
@@ -21,6 +22,7 @@ export const useCPFStore = defineStore('cpf', () => {
     currentBalances: currentBalances.value,
     retirementSumTarget: retirementSumTarget.value,
     cpfLifePlan: cpfLifePlan.value,
+    cpfLifePayoutAge: cpfLifePayoutAge.value,
     manualOverride: manualOverride.value
   }));
 
@@ -41,6 +43,10 @@ export const useCPFStore = defineStore('cpf', () => {
     cpfLifePlan.value = plan;
   }
 
+  function updateCPFLifePayoutAge(age: 65 | 70) {
+    cpfLifePayoutAge.value = age;
+  }
+
   function updateManualOverride(value: boolean) {
     manualOverride.value = value;
   }
@@ -55,6 +61,7 @@ export const useCPFStore = defineStore('cpf', () => {
     };
     retirementSumTarget.value = 'full';
     cpfLifePlan.value = 'standard';
+    cpfLifePayoutAge.value = 65;
     manualOverride.value = false;
   }
 
@@ -63,6 +70,7 @@ export const useCPFStore = defineStore('cpf', () => {
     currentBalances.value = data.currentBalances;
     retirementSumTarget.value = data.retirementSumTarget;
     cpfLifePlan.value = data.cpfLifePlan || 'standard';
+    cpfLifePayoutAge.value = data.cpfLifePayoutAge || 65;
     manualOverride.value = data.manualOverride || false;
     // Note: Legacy 'housingUsage' field is ignored for backward compatibility
   }
@@ -73,6 +81,7 @@ export const useCPFStore = defineStore('cpf', () => {
     currentBalances,
     retirementSumTarget,
     cpfLifePlan,
+    cpfLifePayoutAge,
     manualOverride,
     // Computed
     cpfData,
@@ -81,6 +90,7 @@ export const useCPFStore = defineStore('cpf', () => {
     updateBalances,
     updateRetirementSumTarget,
     updateCPFLifePlan,
+    updateCPFLifePayoutAge,
     updateManualOverride,
     resetToDefaults,
     loadData

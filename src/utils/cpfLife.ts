@@ -16,19 +16,21 @@ import {
 
 /**
  * Estimate CPF Life monthly payout based on RA balance
- * Uses 2025 payout estimates for age 65
+ * Uses 2025 payout estimates for age 65, with deferment bonus for age 70
  *
  * @param raBalance - Retirement Account balance
  * @param plan - CPF Life plan: 'standard', 'basic', or 'escalating'
- * @returns Estimated monthly payout from age 65
+ * @param payoutAge - Age when payouts begin (65 or 70, default: 65)
+ * @returns Estimated monthly payout from payout age
  */
 export function estimateCPFLifePayout(
   raBalance: number,
-  plan: 'standard' | 'basic' | 'escalating' = 'standard'
+  plan: 'standard' | 'basic' | 'escalating' = 'standard',
+  payoutAge: 65 | 70 = 65
 ): number {
   const { cpfLifePayouts, retirementSums } = CPF_CONFIG_2025;
 
-  // Calculate payout based on proportion to retirement sums
+  // Calculate base payout based on proportion to retirement sums (for age 65)
   let basePayout: number;
 
   if (raBalance <= retirementSums.basic) {
@@ -44,6 +46,11 @@ export function estimateCPFLifePayout(
     const proportion = raBalance / retirementSums.enhanced;
     basePayout = ((cpfLifePayouts.enhanced.min + cpfLifePayouts.enhanced.max) / 2) * proportion;
   }
+
+  // Apply deferment bonus if starting at age 70
+  // Deferring from 65 to 70 gives ~7% per year compounded: 1.07^5 ≈ 1.403
+  const defermentMultiplier = payoutAge === 70 ? 1.403 : 1.0;
+  basePayout = basePayout * defermentMultiplier;
 
   // Adjust based on plan type
   const planMultiplier = getPlanMultiplier(plan);

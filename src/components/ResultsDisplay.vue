@@ -83,6 +83,33 @@
         </p>
       </div>
 
+      <!-- Retirement Age Summary (with CPF distinction if enabled) -->
+      <div v-if="cpfStore.enabled" class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-amber-900 mb-3">
+          Retirement Age Summary
+        </h3>
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-amber-700 font-medium">Your Target Retirement Age:</span>
+            <span class="text-2xl font-bold text-amber-900">{{ store.retirementAge }}</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-sm text-amber-700 font-medium">CPF LIFE Payout Start Age:</span>
+            <span class="text-2xl font-bold text-amber-900">{{ cpfStore.cpfLifePayoutAge || 65 }}</span>
+          </div>
+          <div v-if="ageGap > 0" class="mt-3 pt-3 border-t border-amber-300">
+            <p class="text-sm text-amber-800">
+              <strong>Note:</strong> There is a {{ ageGap }}-year gap between your retirement and CPF LIFE payouts. Ensure you have other income sources during this period.
+            </p>
+          </div>
+          <div v-else-if="ageGap < 0" class="mt-3 pt-3 border-t border-amber-300">
+            <p class="text-sm text-amber-800">
+              <strong>Note:</strong> You plan to work {{ Math.abs(ageGap) }} year(s) past the CPF LIFE payout start age.
+            </p>
+          </div>
+        </div>
+      </div>
+
       <!-- Phase 6: CPF Summary - Current Balances -->
       <div v-if="cpfStore.enabled && !cpfAtRetirement" class="bg-purple-50 border border-purple-200 rounded-lg p-4">
         <h3 class="text-lg font-semibold text-purple-900 mb-3">
@@ -246,6 +273,13 @@ const totalCPFBalance = computed(() => {
          balances.retirementAccount
 })
 
+// Computed property for age gap between retirement and CPF Life payout
+const ageGap = computed(() => {
+  if (!cpfStore.enabled) return 0
+  const cpfLifeAge = cpfStore.cpfLifePayoutAge || 65
+  return cpfLifeAge - store.retirementAge
+})
+
 // Computed property for CPF Life estimates
 const cpfLifeEstimates = computed(() => {
   if (!cpfStore.enabled || !store.validation.isValid || !cpfAtRetirement.value) {
@@ -258,13 +292,14 @@ const cpfLifeEstimates = computed(() => {
   }
 
   const cpfLifePlan = cpfStore.cpfLifePlan
-  const monthlyPayout = estimateCPFLifePayout(raBalance, cpfLifePlan)
+  const payoutAge = cpfStore.cpfLifePayoutAge || 65
+  const monthlyPayout = estimateCPFLifePayout(raBalance, cpfLifePlan, payoutAge)
 
   return {
     raBalance,
     monthlyPayout,
     cpfLifePlan,
-    payoutAge: 65
+    payoutAge
   }
 })
 

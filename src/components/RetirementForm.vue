@@ -16,10 +16,10 @@
 
         <InputField
           id="retirementAge"
-          label="Retirement Age"
+          label="Target Retirement Age"
           v-model="store.retirementAge"
           :error="getError('retirementAge')"
-          helpText="Age you plan to retire"
+          helpText="Age when you plan to stop working (your personal goal)"
         />
 
         <InputField

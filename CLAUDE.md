@@ -47,7 +47,8 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 
 **Retirement Store** (`src/stores/retirement.ts`):
 - Main store for basic retirement calculation inputs
-- Manages: currentAge, retirementAge, currentSavings, expectedReturnRate, inflationRate
+- Manages: currentAge, retirementAge (personal retirement goal), currentSavings, expectedReturnRate, inflationRate
+- **Important**: `retirementAge` is the user's personal target age to stop working, separate from CPF government milestones
 - Computed properties: `userData`, `validation`, `results`
 - Integrates with IncomeStore (Phase 2) and ExpenseStore (Phase 4)
 - Actions: update methods, loadData, resetToDefaults
@@ -69,8 +70,9 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 
 **CPF Store** (`src/stores/cpf.ts`):
 - Phase 6 addition for Singapore CPF integration
-- Manages: CPF account balances (OA, SA, MA, RA), contribution settings, retirement sum preference
-- Tracks: Initial balances, user settings
+- Manages: CPF account balances (OA, SA, MA, RA), contribution settings, retirement sum preference, CPF Life settings
+- Tracks: Initial balances, user settings, cpfLifePayoutAge (65 or 70)
+- **Important**: `cpfLifePayoutAge` is the government-mandated age for CPF Life payouts (65 or 70), separate from personal retirement age
 - Computed: `cpfEnabled` (whether CPF feature is active), `totalCPFBalance`
 - Actions: update methods for balances and settings, reset to defaults
 - Note: Housing loan CPF usage is now configured per-loan in the Expenses tab, not in CPF settings
@@ -229,6 +231,33 @@ This is a **Vue 3 + TypeScript + Pinia** retirement calculator built with Vite. 
 - Expenses: both startDate and endDate optional (defaults: current month and ongoing)
 - Loans: startDate required (YYYY-MM format)
 - One-time expenses: date required (YYYY-MM format)
+
+### Retirement Age Concepts
+
+**Important Distinction**: The application maintains a clear separation between personal retirement goals and government-mandated CPF milestones.
+
+**Personal Retirement Age** (`retirementAge` in UserData):
+- User's personal goal for when they plan to stop working
+- Can be any age (e.g., 50, 55, 62, 65, 70, etc.)
+- Used to determine when pre-retirement accumulation phase ends
+- This is a personal milestone, not a government requirement
+
+**Government CPF Ages** (hardcoded constants):
+- **Age 55** (`CPF_AGE_55`): Special Account closes, Retirement Account created
+- **Age 65** (`CPF_LIFE_AGE`): Default CPF Life payout start age
+- **Age 70** (`CPF_MAX_DEFERRAL_AGE`): Maximum CPF Life deferral age
+- These are government-mandated milestones that occur regardless of personal retirement age
+
+**CPF Life Payout Age** (`cpfLifePayoutAge` in CPFData):
+- User's choice of when to start CPF Life annuity payouts (65 or 70)
+- Government-mandated options only (cannot be customized)
+- Separate from personal retirement age
+- Deferring to 70 provides ~40% higher monthly payouts
+
+**Key Examples**:
+- User retires at 55, but CPF Life payouts don't start until 65 → 10-year gap requiring other income sources
+- User works until 70, but CPF age 55 transition still occurs at 55 → RA created while still working
+- User retires at 62, chooses CPF Life at 70 → RA balance grows with interest from 55 to 70 before annuitization
 
 ## Development Notes
 
