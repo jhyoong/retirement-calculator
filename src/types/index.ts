@@ -81,6 +81,7 @@ export interface MonthlyDataPoint {
   contributions: number; // Total net contributions up to this month (income - expenses)
   portfolioValue: number; // Portfolio value at end of month
   growth: number; // Growth this month (investment returns)
+  cpfLifeIncome?: number; // CPF Life income this month (from age 65, if CPF enabled)
   cpf?: CPFMonthlySnapshot; // CPF tracking (optional, only if CPF enabled)
 }
 
