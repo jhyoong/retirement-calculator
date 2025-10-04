@@ -1,10 +1,26 @@
 // Phase 1 Type Definitions
 
+/**
+ * User's financial and retirement planning data
+ */
 export interface UserData {
+  /** Current age of the user */
   currentAge: number;
+
+  /**
+   * Personal target retirement age - when the user plans to stop working.
+   * This is separate from government CPF milestones (age 55 for RA creation,
+   * age 65/70 for CPF Life payouts). See CPFData.cpfLifePayoutAge for CPF-specific age.
+   */
   retirementAge: number;
+
+  /** Current total savings/portfolio value */
   currentSavings: number;
+
+  /** Expected annual return rate (as decimal, e.g., 0.07 for 7%) */
   expectedReturnRate: number;
+
+  /** Expected annual inflation rate (as decimal, e.g., 0.03 for 3%) */
   inflationRate: number;
   // Phase 2 additions
   incomeSources?: IncomeStream[];
@@ -162,12 +178,30 @@ export interface CPFContribution {
   };
 }
 
+/**
+ * CPF (Central Provident Fund) configuration data for Singapore residents
+ */
 export interface CPFData {
+  /** Whether CPF integration is enabled */
   enabled: boolean;
+
+  /** Current balances in each CPF account */
   currentBalances: CPFAccounts;
+
+  /** Retirement sum target at age 55 (basic/full/enhanced) */
   retirementSumTarget: 'basic' | 'full' | 'enhanced';
+
+  /** CPF Life plan type (affects payout structure) */
   cpfLifePlan: 'standard' | 'basic' | 'escalating';
-  cpfLifePayoutAge?: 65 | 70; // When CPF Life payouts begin (default: 65)
+
+  /**
+   * Government-mandated age when CPF Life payouts begin (65 or 70).
+   * This is separate from the user's personal retirement age.
+   * Default: 65 (can be deferred to 70 for higher monthly payouts)
+   */
+  cpfLifePayoutAge?: 65 | 70;
+
+  /** Whether to use manual override for CPF calculations */
   manualOverride: boolean;
 }
 

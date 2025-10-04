@@ -48,13 +48,25 @@ export const MIN_AGE = 0;
 /** Maximum valid age for validation */
 export const MAX_AGE = 120;
 
-/** CPF age 55 transition (SA closes, RA created) */
+/**
+ * Government-mandated CPF age 55 transition
+ * At age 55, Special Account (SA) closes and Retirement Account (RA) is created.
+ * This is separate from a user's personal retirement age goal.
+ */
 export const CPF_AGE_55 = 55;
 
-/** CPF Life payout start age */
+/**
+ * Government-mandated CPF Life default payout start age
+ * This is the standard age when CPF Life annuity payouts begin.
+ * This is separate from a user's personal retirement age goal.
+ */
 export const CPF_LIFE_AGE = 65;
 
-/** Maximum CPF Life deferral age */
+/**
+ * Government-mandated maximum CPF Life deferral age
+ * Users can defer CPF Life payouts up to age 70 for higher monthly amounts.
+ * This is separate from a user's personal retirement age goal.
+ */
 export const CPF_MAX_DEFERRAL_AGE = 70;
 
 /** Default maximum age for projections */
@@ -120,8 +132,8 @@ export const DEFAULT_RETIREMENT_AGE = 65;
 /** Default current savings */
 export const DEFAULT_SAVINGS = 50000;
 
-/** Default expected return rate (7% annually) */
-export const DEFAULT_RETURN_RATE = 0.07;
+/** Default expected return rate (5% annually) */
+export const DEFAULT_RETURN_RATE = 0.05;
 
 /** Default inflation rate (3% annually) */
 export const DEFAULT_INFLATION_RATE = 0.03;

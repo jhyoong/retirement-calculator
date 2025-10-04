@@ -22,6 +22,17 @@
     </div>
 
     <div v-if="cpfStore.enabled" class="space-y-6">
+      <!-- Important: Personal vs Government Retirement Ages -->
+      <div class="p-4 bg-amber-50 border border-amber-200 rounded-md">
+        <h3 class="text-sm font-semibold text-amber-900 mb-2">Personal vs Government Retirement Ages</h3>
+        <p class="text-sm text-amber-800 mb-2">
+          Your <strong>target retirement age</strong> (set in Basic Info tab) is your personal goal for when you want to stop working.
+        </p>
+        <p class="text-sm text-amber-800">
+          <strong>CPF milestones</strong> are government-mandated ages: Age 55 (RA creation), Age 65/70 (CPF LIFE payouts). These are separate from your personal retirement goals.
+        </p>
+      </div>
+
       <!-- Current Account Balances -->
       <div class="p-4 border border-gray-200 rounded-md">
         <h3 class="text-lg font-semibold mb-4">Current Account Balances</h3>
@@ -201,7 +212,7 @@
         <h3 class="text-lg font-semibold mb-4">CPF LIFE Payout Start Age</h3>
 
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          When do you want to start receiving CPF LIFE payouts?
+          When do you want to start receiving CPF LIFE payouts? (Government-mandated options)
         </label>
 
         <div class="space-y-3">
