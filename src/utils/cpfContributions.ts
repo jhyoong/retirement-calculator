@@ -1,5 +1,6 @@
 import { CPF_CONFIG_2025 } from './cpfConfig';
 import type { CPFContribution } from '@/types';
+import { roundToTwoDecimals } from './constants';
 
 /**
  * Get contribution rate for a specific age
@@ -77,14 +78,14 @@ export function calculateCPFContribution(
 
   // Round to 2 decimal places
   return {
-    employee: Math.round(employeeContribution * 100) / 100,
-    employer: Math.round(employerContribution * 100) / 100,
-    total: Math.round(totalContribution * 100) / 100,
+    employee: roundToTwoDecimals(employeeContribution),
+    employer: roundToTwoDecimals(employerContribution),
+    total: roundToTwoDecimals(totalContribution),
     allocation: {
-      toOA: Math.round(toOA * 100) / 100,
-      toSA: Math.round(toSA * 100) / 100,
-      toMA: Math.round(toMA * 100) / 100,
-      toRA: Math.round(toRA * 100) / 100
+      toOA: roundToTwoDecimals(toOA),
+      toSA: roundToTwoDecimals(toSA),
+      toMA: roundToTwoDecimals(toMA),
+      toRA: roundToTwoDecimals(toRA)
     }
   };
 }

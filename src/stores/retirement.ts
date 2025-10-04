@@ -6,14 +6,21 @@ import { generateMonthlyProjections } from '@/utils/monthlyProjections'
 import { useIncomeStore } from './income'
 import { useExpenseStore } from './expense'
 import { useCPFStore } from './cpf'
+import {
+  DEFAULT_CURRENT_AGE,
+  DEFAULT_RETIREMENT_AGE,
+  DEFAULT_SAVINGS,
+  DEFAULT_RETURN_RATE,
+  DEFAULT_INFLATION_RATE
+} from '@/utils/constants'
 
 export const useRetirementStore = defineStore('retirement', () => {
   // State with sensible defaults
-  const currentAge = ref(30)
-  const retirementAge = ref(65)
-  const currentSavings = ref(50000)
-  const expectedReturnRate = ref(0.05) // 7%
-  const inflationRate = ref(0.03) // 3%
+  const currentAge = ref(DEFAULT_CURRENT_AGE)
+  const retirementAge = ref(DEFAULT_RETIREMENT_AGE)
+  const currentSavings = ref(DEFAULT_SAVINGS)
+  const expectedReturnRate = ref(DEFAULT_RETURN_RATE)
+  const inflationRate = ref(DEFAULT_INFLATION_RATE)
 
   // Computed: get user data object
   const userData = computed((): UserData => {
@@ -49,12 +56,14 @@ export const useRetirementStore = defineStore('retirement', () => {
   const results = ref<CalculationResult | null>(null)
   const monthlyProjections = ref<MonthlyDataPoint[]>([])
   const isCalculating = ref(false)
+  const cachedMaxAge = ref<number | undefined>(undefined)
 
   // Actions
-  function calculate() {
+  function calculate(maxAge?: number) {
     if (!validation.value.isValid) {
       results.value = null
       monthlyProjections.value = []
+      cachedMaxAge.value = undefined
       return
     }
 
@@ -64,11 +73,13 @@ export const useRetirementStore = defineStore('retirement', () => {
       results.value = calculateRetirement(userData.value)
 
       // Generate monthly projections for charts/tables
-      monthlyProjections.value = generateMonthlyProjections(userData.value)
+      monthlyProjections.value = generateMonthlyProjections(userData.value, maxAge)
+      cachedMaxAge.value = maxAge
     } catch (error) {
       console.error('Calculation error:', error)
       results.value = null
       monthlyProjections.value = []
+      cachedMaxAge.value = undefined
     } finally {
       isCalculating.value = false
     }
@@ -138,14 +149,15 @@ export const useRetirementStore = defineStore('retirement', () => {
     // Clear cached results when loading new data
     results.value = null
     monthlyProjections.value = []
+    cachedMaxAge.value = undefined
   }
 
   function resetToDefaults() {
-    currentAge.value = 30
-    retirementAge.value = 65
-    currentSavings.value = 50000
-    expectedReturnRate.value = 0.07
-    inflationRate.value = 0.03
+    currentAge.value = DEFAULT_CURRENT_AGE
+    retirementAge.value = DEFAULT_RETIREMENT_AGE
+    currentSavings.value = DEFAULT_SAVINGS
+    expectedReturnRate.value = DEFAULT_RETURN_RATE
+    inflationRate.value = DEFAULT_INFLATION_RATE
 
     // Phase 2: Reset income data
     const incomeStore = useIncomeStore()
@@ -162,6 +174,7 @@ export const useRetirementStore = defineStore('retirement', () => {
     // Clear cached results when resetting
     results.value = null
     monthlyProjections.value = []
+    cachedMaxAge.value = undefined
   }
 
   return {
@@ -174,6 +187,7 @@ export const useRetirementStore = defineStore('retirement', () => {
     results,
     monthlyProjections,
     isCalculating,
+    cachedMaxAge,
     // Computed
     userData,
     validation,

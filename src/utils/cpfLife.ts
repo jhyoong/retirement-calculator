@@ -1,4 +1,18 @@
 import { CPF_CONFIG_2025 } from './cpfConfig';
+import {
+  roundToTwoDecimals,
+  CPF_LIFE_AGE,
+  CPF_MAX_DEFERRAL_AGE,
+  MONTHS_PER_YEAR,
+  DEFAULT_LIFE_EXPECTANCY,
+  DEFAULT_CPF_INTEREST_RATE,
+  MAX_CALCULATION_MONTHS,
+  CPF_STANDARD_PLAN_MULTIPLIER,
+  CPF_BASIC_PLAN_MULTIPLIER,
+  CPF_ESCALATING_PLAN_MULTIPLIER,
+  CPF_ESCALATION_RATE,
+  INCOME_TARGET_THRESHOLD
+} from './constants';
 
 /**
  * Estimate CPF Life monthly payout based on RA balance
@@ -35,7 +49,7 @@ export function estimateCPFLifePayout(
   const planMultiplier = getPlanMultiplier(plan);
   const estimatedPayout = basePayout * planMultiplier;
 
-  return Math.round(estimatedPayout * 100) / 100;
+  return roundToTwoDecimals(estimatedPayout);
 }
 
 /**
@@ -47,13 +61,13 @@ export function estimateCPFLifePayout(
 function getPlanMultiplier(plan: 'standard' | 'basic' | 'escalating'): number {
   switch (plan) {
     case 'standard':
-      return 1.0;
+      return CPF_STANDARD_PLAN_MULTIPLIER;
     case 'basic':
-      return 1.15; // ~15% higher initial payout
+      return CPF_BASIC_PLAN_MULTIPLIER;
     case 'escalating':
-      return 0.85; // ~15% lower initial payout
+      return CPF_ESCALATING_PLAN_MULTIPLIER;
     default:
-      return 1.0;
+      return CPF_STANDARD_PLAN_MULTIPLIER;
   }
 }
 
@@ -72,8 +86,7 @@ export function getCPFLifePayoutForYear(
   plan: 'standard' | 'basic' | 'escalating'
 ): number {
   if (plan === 'escalating' && yearsFromAge65 > 0) {
-    const escalationRate = 0.02; // 2% per year
-    return Math.round(initialPayout * Math.pow(1 + escalationRate, yearsFromAge65) * 100) / 100;
+    return roundToTwoDecimals(initialPayout * Math.pow(1 + CPF_ESCALATION_RATE, yearsFromAge65));
   }
 
   return initialPayout;
@@ -84,14 +97,11 @@ export function getCPFLifePayoutForYear(
  * Typically age 65, but can defer up to age 70
  */
 export function getCPFLifePayoutAge(deferToAge?: number): number {
-  const defaultAge = 65;
-  const maxDeferralAge = 70;
-
-  if (deferToAge && deferToAge > defaultAge && deferToAge <= maxDeferralAge) {
+  if (deferToAge && deferToAge > CPF_LIFE_AGE && deferToAge <= CPF_MAX_DEFERRAL_AGE) {
     return deferToAge;
   }
 
-  return defaultAge;
+  return CPF_LIFE_AGE;
 }
 
 /**
@@ -106,20 +116,19 @@ export function getCPFLifePayoutAge(deferToAge?: number): number {
 export function calculateRADepletion(
   raBalance: number,
   monthlyWithdrawal: number,
-  annualInterestRate: number = 0.04
+  annualInterestRate: number = DEFAULT_CPF_INTEREST_RATE
 ): {
   monthsUntilDepletion: number;
   totalWithdrawn: number;
   totalInterestEarned: number;
 } {
-  const monthlyRate = annualInterestRate / 12;
+  const monthlyRate = annualInterestRate / MONTHS_PER_YEAR;
   let balance = raBalance;
   let months = 0;
   let totalWithdrawn = 0;
   let totalInterest = 0;
 
-  while (balance > 0 && months < 1200) {
-    // Max 100 years
+  while (balance > 0 && months < MAX_CALCULATION_MONTHS) {
     const interest = balance * monthlyRate;
     balance += interest;
     totalInterest += interest;
@@ -133,8 +142,8 @@ export function calculateRADepletion(
 
   return {
     monthsUntilDepletion: months,
-    totalWithdrawn: Math.round(totalWithdrawn * 100) / 100,
-    totalInterestEarned: Math.round(totalInterest * 100) / 100
+    totalWithdrawn: roundToTwoDecimals(totalWithdrawn),
+    totalInterestEarned: roundToTwoDecimals(totalInterest)
   };
 }
 
@@ -157,8 +166,8 @@ export function compareCPFLifeStrategies(
   };
   recommendation: string;
 } {
-  const lifeExpectancyYears = 90 - 65; // Assume living to 90
-  const lifeExpectancyMonths = lifeExpectancyYears * 12;
+  const lifeExpectancyYears = DEFAULT_LIFE_EXPECTANCY - CPF_LIFE_AGE;
+  const lifeExpectancyMonths = lifeExpectancyYears * MONTHS_PER_YEAR;
 
   // CPF Life option
   const cpfLifePayout = estimateCPFLifePayout(raBalance, 'standard');
@@ -169,7 +178,7 @@ export function compareCPFLifeStrategies(
 
   // Recommendation logic
   let recommendation = '';
-  if (cpfLifePayout >= targetMonthlyIncome * 0.9) {
+  if (cpfLifePayout >= targetMonthlyIncome * INCOME_TARGET_THRESHOLD) {
     recommendation = 'CPF Life recommended: Provides guaranteed lifetime income meeting your target.';
   } else if (manualResult.monthsUntilDepletion >= lifeExpectancyMonths) {
     recommendation =
@@ -180,9 +189,9 @@ export function compareCPFLifeStrategies(
 
   return {
     cpfLife: {
-      monthlyPayout: Math.round(cpfLifePayout * 100) / 100,
+      monthlyPayout: roundToTwoDecimals(cpfLifePayout),
       guaranteed: true,
-      totalLifetimePayout: Math.round(cpfLifeTotal * 100) / 100
+      totalLifetimePayout: roundToTwoDecimals(cpfLifeTotal)
     },
     manualWithdrawal: {
       monthlyWithdrawal: targetMonthlyIncome,

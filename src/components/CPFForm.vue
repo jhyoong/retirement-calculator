@@ -112,28 +112,6 @@
         </div>
       </div>
 
-      <!-- Housing Usage -->
-      <div class="p-4 border border-gray-200 rounded-md">
-        <h3 class="text-lg font-semibold mb-4">Housing Usage</h3>
-
-        <label class="block text-sm font-medium text-gray-700 mb-2">
-          Amount used from OA for housing
-        </label>
-
-        <input
-          v-model.number="cpfStore.housingUsage"
-          type="number"
-          min="0"
-          step="1000"
-          class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-          placeholder="0"
-        />
-
-        <p class="mt-2 text-xs text-gray-600">
-          Track how much OA has been used for housing loans or property purchases. This helps monitor your available OA balance for retirement.
-        </p>
-      </div>
-
       <!-- Retirement Sum Target -->
       <div class="p-4 border border-gray-200 rounded-md">
         <h3 class="text-lg font-semibold mb-4">Retirement Sum Target</h3>
@@ -231,6 +209,73 @@
           <li>View your projected CPF balance at retirement in the Results tab</li>
         </ul>
       </div>
+
+      <!-- CPF Contribution Breakdown -->
+      <div v-if="cpfEligibleIncomeSources.length > 0" class="p-4 border border-gray-200 rounded-md">
+        <h3 class="text-lg font-semibold mb-4">CPF Contribution Breakdown</h3>
+        <p class="text-sm text-gray-600 mb-4">
+          Based on your current age ({{ retirementStore.currentAge }}) and CPF-eligible income sources:
+        </p>
+
+        <div class="space-y-4">
+          <div
+            v-for="item in cpfEligibleIncomeSources"
+            :key="item.source.id"
+            class="p-4 bg-gray-50 rounded-md border border-gray-200"
+          >
+            <div class="mb-3">
+              <h4 class="font-semibold text-gray-900">{{ item.source.name }}</h4>
+              <p class="text-sm text-gray-600">
+                Monthly Amount: {{ formatCurrency(item.monthlyAmount) }}
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Employee & Employer Contributions -->
+              <div class="space-y-2">
+                <p class="text-xs font-medium text-gray-700 uppercase">Contributions</p>
+                <div class="space-y-1 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Employee ({{ formatPercentage(item.contribution.employee / item.monthlyAmount) }}):</span>
+                    <span class="font-medium">{{ formatCurrency(item.contribution.employee) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Employer ({{ formatPercentage(item.contribution.employer / item.monthlyAmount) }}):</span>
+                    <span class="font-medium">{{ formatCurrency(item.contribution.employer) }}</span>
+                  </div>
+                  <div class="flex justify-between pt-1 border-t border-gray-300">
+                    <span class="font-semibold text-gray-900">Total:</span>
+                    <span class="font-semibold text-gray-900">{{ formatCurrency(item.contribution.total) }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Account Allocation -->
+              <div class="space-y-2">
+                <p class="text-xs font-medium text-gray-700 uppercase">Account Allocation</p>
+                <div class="space-y-1 text-sm">
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Ordinary Account (OA):</span>
+                    <span class="font-medium">{{ formatCurrency(item.contribution.allocation.toOA) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Special Account (SA):</span>
+                    <span class="font-medium">{{ formatCurrency(item.contribution.allocation.toSA) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">MediSave Account (MA):</span>
+                    <span class="font-medium">{{ formatCurrency(item.contribution.allocation.toMA) }}</span>
+                  </div>
+                  <div class="flex justify-between">
+                    <span class="text-gray-600">Retirement Account (RA):</span>
+                    <span class="font-medium">{{ formatCurrency(item.contribution.allocation.toRA) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Disabled State Message -->
@@ -244,9 +289,12 @@
 import { computed } from 'vue'
 import { useCPFStore } from '@/stores/cpf'
 import { useRetirementStore } from '@/stores/retirement'
+import { useIncomeStore } from '@/stores/income'
+import { calculateCPFContribution } from '@/utils/cpfContributions'
 
 const cpfStore = useCPFStore()
 const retirementStore = useRetirementStore()
+const incomeStore = useIncomeStore()
 
 const totalCPFBalance = computed(() => {
   const balances = cpfStore.currentBalances
@@ -256,6 +304,24 @@ const totalCPFBalance = computed(() => {
          balances.retirementAccount
 })
 
+const cpfEligibleIncomeSources = computed(() => {
+  return incomeStore.incomeSources
+    .filter(source => source.cpfEligible)
+    .map(source => {
+      const monthlyAmount = incomeStore.convertToMonthly(
+        source.amount,
+        source.frequency,
+        source.customFrequencyDays
+      )
+      const contribution = calculateCPFContribution(monthlyAmount, retirementStore.currentAge)
+      return {
+        source,
+        monthlyAmount,
+        contribution
+      }
+    })
+})
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat('en-SG', {
     style: 'currency',
@@ -263,5 +329,9 @@ function formatCurrency(value: number): string {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(value)
+}
+
+function formatPercentage(value: number): string {
+  return `${(value * 100).toFixed(1)}%`
 }
 </script>

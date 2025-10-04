@@ -50,6 +50,7 @@ describe('Expense Integration Tests', () => {
       expect(userData.expenses).toHaveLength(1)
       expect(userData.expenses![0].name).toBe(expense.name)
 
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).toBeDefined()
       expect(results).toHaveProperty('yearsUntilDepletion')
@@ -129,6 +130,7 @@ describe('Expense Integration Tests', () => {
         endDate: '2050-01'
       })
 
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).toBeDefined()
       expect(results?.yearsUntilDepletion).toBeDefined()
@@ -169,6 +171,7 @@ describe('Expense Integration Tests', () => {
         startDate: '2030-01'
       })
 
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results?.sustainabilityWarning).toBe(true)
     })
@@ -227,6 +230,7 @@ describe('Expense Integration Tests', () => {
 
       expenseStore.addLoan(loan)
 
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).not.toBeNull()
       expect(results!.futureValue).toBeGreaterThan(0)
@@ -304,6 +308,7 @@ describe('Expense Integration Tests', () => {
 
       expenseStore.addOneTimeExpense(expense)
 
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).not.toBeNull()
       expect(results!.futureValue).toBeGreaterThan(0)
@@ -368,6 +373,7 @@ describe('Expense Integration Tests', () => {
         category: 'other'
       })
 
+      retirementStore.calculate()
       const results = retirementStore.results
       expect(results).not.toBeNull()
       expect(results!.futureValue).toBeGreaterThan(0)

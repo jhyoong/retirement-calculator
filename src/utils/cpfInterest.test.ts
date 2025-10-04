@@ -304,9 +304,9 @@ describe('CPF Interest', () => {
 
       // Base: OA 62.5, SA 100
       // Extra: Only 50k eligible (20k OA + 30k SA), 50k * 0.01 / 12 = 41.67
-      // Extra distributed: 50% to OA (20.84), 50% to SA (20.83)
-      expect(result.ordinaryAccount).toBe(30083.34); // 30000 + 62.5 + 20.84
-      expect(result.specialAccount).toBe(30120.84); // 30000 + 100 + 20.84
+      // Extra distributed proportionally to eligible: OA gets 40% (16.67), SA gets 60% (25.00)
+      expect(result.ordinaryAccount).toBe(30079.17); // 30000 + 62.5 + 16.67
+      expect(result.specialAccount).toBe(30125.00); // 30000 + 100 + 25.00
     });
 
     it('should update all account balances', () => {

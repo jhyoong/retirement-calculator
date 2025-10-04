@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { RetirementExpense, Loan, OneTimeExpense } from '@/types'
+import { DEFAULT_LIVING_EXPENSES, DEFAULT_INFLATION_RATE } from '@/utils/constants'
 
 export const useExpenseStore = defineStore('expense', () => {
   // State - Phase 4
@@ -10,8 +11,8 @@ export const useExpenseStore = defineStore('expense', () => {
       id: crypto.randomUUID(),
       name: 'Living Expenses',
       category: 'living',
-      monthlyAmount: 3000,
-      inflationRate: 0.03, // 3% annual inflation
+      monthlyAmount: DEFAULT_LIVING_EXPENSES,
+      inflationRate: DEFAULT_INFLATION_RATE
       // startDate and endDate are optional - undefined means start now and ongoing
     }
   ])
@@ -99,8 +100,8 @@ export const useExpenseStore = defineStore('expense', () => {
         id: crypto.randomUUID(),
         name: 'Living Expenses',
         category: 'living',
-        monthlyAmount: 3000,
-        inflationRate: 0.03,
+        monthlyAmount: DEFAULT_LIVING_EXPENSES,
+        inflationRate: DEFAULT_INFLATION_RATE
         // startDate and endDate are optional - undefined means start now and ongoing
       }
     ]

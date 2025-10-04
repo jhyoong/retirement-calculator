@@ -83,6 +83,50 @@
         </div>
       </div>
 
+      <!-- CPF Configuration (only for housing loans) -->
+      <div v-if="newLoan.category === 'housing'" class="mt-4 p-3 bg-purple-50 rounded-md border border-purple-200">
+        <h4 class="text-sm font-semibold text-purple-900 mb-3">CPF OA Payment Settings</h4>
+
+        <div class="mb-3">
+          <label class="flex items-center">
+            <input
+              v-model="newLoan.useCPF"
+              type="checkbox"
+              class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+            />
+            <span class="text-sm text-gray-700">Pay with CPF Ordinary Account (OA)</span>
+          </label>
+        </div>
+
+        <div v-if="newLoan.useCPF" class="mt-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            CPF Payment Percentage
+          </label>
+          <div class="flex items-center gap-2">
+            <input
+              v-model.number="newLoan.cpfPercentage"
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              class="flex-1"
+            />
+            <input
+              v-model.number="newLoan.cpfPercentage"
+              type="number"
+              min="0"
+              max="100"
+              step="5"
+              class="w-20 px-2 py-1 border rounded-md text-center"
+            />
+            <span class="text-sm text-gray-600">%</span>
+          </div>
+          <p class="mt-1 text-xs text-gray-600">
+            {{ newLoan.cpfPercentage }}% from CPF OA, {{ 100 - newLoan.cpfPercentage }}% from cash
+          </p>
+        </div>
+      </div>
+
       <button
         @click="addLoan"
         class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -132,6 +176,9 @@
                 <p>
                   <strong>Total Interest:</strong> ${{ calculateTotalInterest(loan).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
                 </p>
+                <p v-if="loan.useCPF && loan.category === 'housing'" class="mt-1 text-purple-700">
+                  <strong>CPF OA:</strong> {{ loan.cpfPercentage }}% from CPF, {{ 100 - (loan.cpfPercentage || 0) }}% from cash
+                </p>
               </div>
             </div>
 
@@ -162,11 +209,13 @@ const expenseStore = useExpenseStore()
 
 const newLoan = ref({
   name: '',
-  category: 'other' as 'housing' | 'auto' | 'personal' | 'other',
+  category: 'housing' as 'housing' | 'auto' | 'personal' | 'other', // Default to housing (most common)
   principal: 0,
   interestRatePercent: 5,
   termMonths: 360, // Default 30 years
-  startDate: new Date().toISOString().slice(0, 7) // YYYY-MM format
+  startDate: new Date().toISOString().slice(0, 7), // YYYY-MM format
+  useCPF: false,
+  cpfPercentage: 100
 })
 
 function addLoan() {
@@ -179,16 +228,24 @@ function addLoan() {
     startDate: newLoan.value.startDate
   }
 
+  // Add CPF fields only if category is housing and useCPF is true
+  if (newLoan.value.category === 'housing' && newLoan.value.useCPF) {
+    loan.useCPF = true
+    loan.cpfPercentage = newLoan.value.cpfPercentage
+  }
+
   expenseStore.addLoan(loan)
 
   // Reset form
   newLoan.value = {
     name: '',
-    category: 'other',
+    category: 'housing', // Default to housing (most common)
     principal: 0,
     interestRatePercent: 5,
     termMonths: 360,
-    startDate: new Date().toISOString().slice(0, 7)
+    startDate: new Date().toISOString().slice(0, 7),
+    useCPF: false,
+    cpfPercentage: 100
   }
 }
 

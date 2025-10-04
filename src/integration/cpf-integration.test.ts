@@ -329,7 +329,7 @@ describe('CPF Integration Tests', () => {
   })
 
   describe('Housing Loan OA Usage', () => {
-    it('should use OA for housing loan payments', () => {
+    it('should use OA for housing loan payments when useCPF is enabled', () => {
       const retirementStore = useRetirementStore()
       const incomeStore = useIncomeStore()
       const expenseStore = useExpenseStore()
@@ -355,7 +355,9 @@ describe('CPF Integration Tests', () => {
         principal: 300000,
         interestRate: 0.03,
         termMonths: 300,
-        startDate: '2025-01'
+        startDate: '2025-01',
+        useCPF: true,
+        cpfPercentage: 100
       })
 
       cpfStore.updateEnabled(true)
@@ -366,12 +368,9 @@ describe('CPF Integration Tests', () => {
       const projections = generateMonthlyProjections(retirementStore.userData)
 
       const month1 = projections[0]
-
-      // Housing usage should be tracked
-      expect(month1.cpf!.housingUsage).toBeGreaterThan(0)
-
-      // OA should be reduced
       const initialOA = 50000
+
+      // OA should be reduced (used for loan payment)
       const month1OA = month1.cpf!.accounts.ordinaryAccount
       expect(month1OA).toBeLessThan(initialOA)
     })
@@ -413,13 +412,122 @@ describe('CPF Integration Tests', () => {
       const projections = generateMonthlyProjections(retirementStore.userData)
 
       const month1 = projections[0]
+      const initialOA = 50000
 
-      // No housing usage for car loan
-      const initialOAContribution = month1.cpf!.monthlyContribution.allocation.toOA
+      // OA should only be affected by contributions and interest, not loan payment
+      // Since car loan is not housing, OA won't be used for it
       const finalOA = month1.cpf!.accounts.ordinaryAccount
 
-      // OA should only be affected by contributions and interest, not loan
-      expect(month1.cpf!.housingUsage).toBe(0)
+      // OA should increase (contributions + interest), not decrease
+      expect(finalOA).toBeGreaterThan(initialOA)
+
+      // Verify OA increased by approximately the right amount (contributions + interest)
+      const oaIncrease = finalOA - initialOA
+      const expectedMinIncrease = month1.cpf!.monthlyContribution.allocation.toOA // At minimum, contributions
+      expect(oaIncrease).toBeGreaterThanOrEqual(expectedMinIncrease)
+    })
+
+    it('should not use OA for housing loans when useCPF is disabled', () => {
+      const retirementStore = useRetirementStore()
+      const incomeStore = useIncomeStore()
+      const expenseStore = useExpenseStore()
+      const cpfStore = useCPFStore()
+
+      retirementStore.currentAge = 30
+      retirementStore.retirementAge = 31
+
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Salary',
+        type: 'salary',
+        amount: 5000,
+        frequency: 'monthly',
+        startDate: '2025-01',
+        cpfEligible: true
+      })
+
+      expenseStore.addLoan({
+        id: '1',
+        name: 'Housing Loan',
+        category: 'housing',
+        principal: 300000,
+        interestRate: 0.03,
+        termMonths: 300,
+        startDate: '2025-01',
+        useCPF: false // Explicitly disabled
+      })
+
+      cpfStore.updateEnabled(true)
+      cpfStore.updateBalances({
+        ordinaryAccount: 50000
+      })
+
+      const projections = generateMonthlyProjections(retirementStore.userData)
+
+      const month1 = projections[0]
+      const initialOA = 50000
+
+      // OA should not be used for loan, only contributions and interest
+      const finalOA = month1.cpf!.accounts.ordinaryAccount
+
+      // OA should increase (contributions + interest), not decrease
+      expect(finalOA).toBeGreaterThan(initialOA)
+
+      // Verify OA increased by approximately the right amount (contributions + interest)
+      const oaIncrease = finalOA - initialOA
+      const expectedMinIncrease = month1.cpf!.monthlyContribution.allocation.toOA // At minimum, contributions
+      expect(oaIncrease).toBeGreaterThanOrEqual(expectedMinIncrease)
+    })
+
+    it('should use percentage-based CPF payment for housing loans', () => {
+      const retirementStore = useRetirementStore()
+      const incomeStore = useIncomeStore()
+      const expenseStore = useExpenseStore()
+      const cpfStore = useCPFStore()
+
+      retirementStore.currentAge = 30
+      retirementStore.retirementAge = 31
+
+      incomeStore.addIncomeSource({
+        id: '1',
+        name: 'Salary',
+        type: 'salary',
+        amount: 5000,
+        frequency: 'monthly',
+        startDate: '2025-01',
+        cpfEligible: true
+      })
+
+      expenseStore.addLoan({
+        id: '1',
+        name: 'Housing Loan',
+        category: 'housing',
+        principal: 300000,
+        interestRate: 0.03,
+        termMonths: 300,
+        startDate: '2025-01',
+        useCPF: true,
+        cpfPercentage: 50 // 50% from CPF, 50% from cash
+      })
+
+      cpfStore.updateEnabled(true)
+      cpfStore.updateBalances({
+        ordinaryAccount: 50000
+      })
+
+      const projections = generateMonthlyProjections(retirementStore.userData)
+
+      const month1 = projections[0]
+      const initialOA = 50000
+
+      // OA should be reduced, but not by the full loan payment (only 50%)
+      const finalOA = month1.cpf!.accounts.ordinaryAccount
+      const oaChange = finalOA - initialOA
+      const expectedOAIncrease = month1.cpf!.monthlyContribution.allocation.toOA + month1.cpf!.monthlyInterest.oa
+
+      // OA change should be positive (contributions + interest) minus the CPF portion of loan payment
+      expect(oaChange).toBeLessThan(expectedOAIncrease) // Some OA was used for loan
+      expect(finalOA).toBeLessThan(initialOA + expectedOAIncrease) // Net OA is less than initial + contributions
     })
   })
 

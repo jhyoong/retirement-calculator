@@ -172,13 +172,6 @@
             </div>
           </div>
 
-          <!-- Housing Usage -->
-          <div v-if="cpfAtRetirement.housingUsage > 0" class="mt-3 pt-3 border-t border-purple-200">
-            <div class="text-sm text-purple-700">
-              <span class="font-medium">OA used for housing:</span> {{ formatCurrencySGD(cpfAtRetirement.housingUsage) }}
-            </div>
-          </div>
-
           <!-- Retirement Sum Target Info -->
           <div class="mt-3 pt-3 border-t border-purple-200">
             <p class="text-xs text-purple-600 mb-1">Retirement Sum Target:</p>
@@ -314,7 +307,6 @@ const cpfAtRetirement = computed(() => {
       totalCPF,
       totalContributions,
       totalInterest,
-      housingUsage: lastMonth.cpf.housingUsage,
       age55Completed
     }
   } catch (error) {
