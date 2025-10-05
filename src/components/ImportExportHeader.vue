@@ -16,6 +16,14 @@
       Import
     </button>
 
+    <button
+      @click="handleClear"
+      class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors"
+      title="Clear all data"
+    >
+      Clear
+    </button>
+
     <input
       ref="fileInput"
       type="file"
@@ -34,6 +42,7 @@
 import { ref, computed } from 'vue'
 import { useRetirementStore } from '@/stores/retirement'
 import { exportData, downloadJSON, parseImportedFile } from '@/utils/importExport'
+import { clearSessionData } from '@/plugins/sessionPersistence'
 
 const store = useRetirementStore()
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -90,6 +99,25 @@ async function handleImport(event: Event) {
     // Reset file input
     if (target) {
       target.value = ''
+    }
+  }
+}
+
+function handleClear() {
+  if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+    try {
+      store.clearAll()
+      clearSessionData()
+
+      message.value = 'Cleared!'
+      isError.value = false
+
+      setTimeout(() => {
+        message.value = ''
+      }, 3000)
+    } catch (error) {
+      message.value = 'Clear failed'
+      isError.value = true
     }
   }
 }

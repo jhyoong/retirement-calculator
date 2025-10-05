@@ -87,6 +87,12 @@ export const useIncomeStore = defineStore('income', () => {
     oneOffReturns.value = []
   }
 
+  // Action: Clear all data
+  function clearAll() {
+    incomeSources.value = []
+    oneOffReturns.value = []
+  }
+
   return {
     // State
     incomeSources,
@@ -103,6 +109,7 @@ export const useIncomeStore = defineStore('income', () => {
     removeOneOffReturn,
     updateOneOffReturn,
     loadData,
-    resetToDefaults
+    resetToDefaults,
+    clearAll
   }
 })

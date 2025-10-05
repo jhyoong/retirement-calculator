@@ -177,6 +177,29 @@ export const useRetirementStore = defineStore('retirement', () => {
     cachedMaxAge.value = undefined
   }
 
+  function clearAll() {
+    currentAge.value = 0
+    retirementAge.value = 0
+    currentSavings.value = 0
+    expectedReturnRate.value = 0
+    inflationRate.value = 0
+
+    // Clear all other stores
+    const incomeStore = useIncomeStore()
+    incomeStore.clearAll()
+
+    const expenseStore = useExpenseStore()
+    expenseStore.clearAll()
+
+    const cpfStore = useCPFStore()
+    cpfStore.clearAll()
+
+    // Clear cached results
+    results.value = null
+    monthlyProjections.value = []
+    cachedMaxAge.value = undefined
+  }
+
   return {
     // State
     currentAge,
@@ -199,6 +222,7 @@ export const useRetirementStore = defineStore('retirement', () => {
     updateExpectedReturnRate,
     updateInflationRate,
     loadData,
-    resetToDefaults
+    resetToDefaults,
+    clearAll
   }
 })
