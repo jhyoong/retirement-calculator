@@ -65,6 +65,20 @@ export const useCPFStore = defineStore('cpf', () => {
     manualOverride.value = false;
   }
 
+  function clearAll() {
+    enabled.value = false;
+    currentBalances.value = {
+      ordinaryAccount: 0,
+      specialAccount: 0,
+      medisaveAccount: 0,
+      retirementAccount: 0
+    };
+    retirementSumTarget.value = 'full';
+    cpfLifePlan.value = 'standard';
+    cpfLifePayoutAge.value = 65;
+    manualOverride.value = false;
+  }
+
   function loadData(data: CPFData) {
     enabled.value = data.enabled;
     currentBalances.value = data.currentBalances;
@@ -93,6 +107,7 @@ export const useCPFStore = defineStore('cpf', () => {
     updateCPFLifePayoutAge,
     updateManualOverride,
     resetToDefaults,
+    clearAll,
     loadData
   };
 });

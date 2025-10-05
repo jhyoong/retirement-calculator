@@ -5,12 +5,17 @@
       :class="activeTab === 'visualizations' ? 'max-w-[95%]' : 'max-w-4xl'"
     >
       <header class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 mb-2">
-          Retirement Calculator
-        </h1>
-        <p class="text-gray-600">
-          Plan your financial future and cry
-        </p>
+        <div class="flex items-start justify-between">
+          <div>
+            <h1 class="text-4xl font-bold text-gray-900 mb-2">
+              Retirement Calculator
+            </h1>
+            <p class="text-gray-600">
+              Plan your financial future and cry
+            </p>
+          </div>
+          <ImportExportHeader />
+        </div>
       </header>
 
       <main>
@@ -35,8 +40,8 @@
           </nav>
         </div>
 
-        <!-- Calculate Button (shown on input tabs) -->
-        <CalculateButton v-if="['basic', 'income', 'expenses', 'cpf'].includes(activeTab)" />
+        <!-- Calculate Button -->
+        <CalculateButton />
 
         <!-- Tab Content -->
         <div class="space-y-6">
@@ -46,7 +51,6 @@
           <CPFForm v-show="activeTab === 'cpf'" />
           <ResultsDisplay v-show="activeTab === 'results'" />
           <VisualizationsTab v-show="activeTab === 'visualizations'" />
-          <ImportExport v-show="activeTab === 'data'" />
         </div>
       </main>
 
@@ -65,7 +69,7 @@ import ExpenseTab from '@/components/ExpenseTab.vue'
 import CPFForm from '@/components/CPFForm.vue'
 import ResultsDisplay from '@/components/ResultsDisplay.vue'
 import VisualizationsTab from '@/components/VisualizationsTab.vue'
-import ImportExport from '@/components/ImportExport.vue'
+import ImportExportHeader from '@/components/ImportExportHeader.vue'
 import CalculateButton from '@/components/CalculateButton.vue'
 
 const tabs = [
@@ -74,8 +78,7 @@ const tabs = [
   { id: 'expenses', label: 'Expenses' },
   { id: 'cpf', label: 'CPF' },
   { id: 'results', label: 'Results' },
-  { id: 'visualizations', label: 'Visualizations' },
-  { id: 'data', label: 'Import/Export' }
+  { id: 'visualizations', label: 'Visualizations' }
 ]
 
 const activeTab = ref('basic')

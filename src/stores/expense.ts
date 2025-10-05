@@ -109,6 +109,12 @@ export const useExpenseStore = defineStore('expense', () => {
     oneTimeExpenses.value = []
   }
 
+  function clearAll() {
+    expenses.value = []
+    loans.value = []
+    oneTimeExpenses.value = []
+  }
+
   // Phase 5 Actions - Loans
   function addLoan(loan: Omit<Loan, 'id'>): string {
     const newLoan: Loan = {
@@ -180,6 +186,7 @@ export const useExpenseStore = defineStore('expense', () => {
     updateExpense,
     loadData,
     resetToDefaults,
+    clearAll,
     // Actions - Phase 5
     addLoan,
     removeLoan,
