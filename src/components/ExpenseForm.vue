@@ -14,7 +14,7 @@
 
     <!-- Add Expense Form -->
     <div class="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
-      <h3 class="text-lg font-semibold mb-4">Add Expense</h3>
+      <h3 class="text-lg font-semibold mb-4">{{ editingId ? 'Edit Expense' : 'Add Expense' }}</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -90,12 +90,21 @@
         </div>
       </div>
 
-      <button
-        @click="addExpense"
-        class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        Add Expense
-      </button>
+      <div class="mt-4 flex gap-2">
+        <button
+          @click="addExpense"
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {{ editingId ? 'Update Expense' : 'Add Expense' }}
+        </button>
+        <button
+          v-if="editingId"
+          @click="cancelEdit"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        >
+          Cancel
+        </button>
+      </div>
 
       <!-- Informational Note -->
       <div class="mt-4 p-3 bg-blue-50 rounded-md text-sm text-blue-900">
@@ -141,12 +150,20 @@
             </div>
           </div>
 
-          <button
-            @click="removeExpense(expense.id)"
-            class="ml-4 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
-          >
-            Remove
-          </button>
+          <div class="ml-4 flex gap-2">
+            <button
+              @click="startEdit(expense)"
+              class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-md"
+            >
+              Edit
+            </button>
+            <button
+              @click="removeExpense(expense.id)"
+              class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
+            >
+              Remove
+            </button>
+          </div>
         </div>
       </div>
 
@@ -172,6 +189,8 @@ import type { RetirementExpense, ExpenseCategory } from '@/types'
 const expenseStore = useExpenseStore()
 const retirementStore = useRetirementStore()
 
+const editingId = ref<string | null>(null)
+
 // Check if there are any expense-related validation errors
 const hasExpenseErrors = computed(() => {
   return retirementStore.validation.errors.some(e =>
@@ -196,19 +215,57 @@ const newExpense = ref({
 })
 
 function addExpense() {
-  const expense: RetirementExpense = {
-    id: Date.now().toString(),
-    name: newExpense.value.name,
-    category: newExpense.value.category,
-    monthlyAmount: newExpense.value.monthlyAmount,
-    inflationRate: newExpense.value.inflationRatePercent / 100, // Convert % to decimal
-    startDate: newExpense.value.startDate || undefined,
-    endDate: newExpense.value.endDate || undefined
+  if (editingId.value) {
+    // Update existing expense
+    expenseStore.updateExpense(editingId.value, {
+      name: newExpense.value.name,
+      category: newExpense.value.category,
+      monthlyAmount: newExpense.value.monthlyAmount,
+      inflationRate: newExpense.value.inflationRatePercent / 100,
+      startDate: newExpense.value.startDate || undefined,
+      endDate: newExpense.value.endDate || undefined
+    })
+    editingId.value = null
+  } else {
+    // Add new expense
+    const expense: RetirementExpense = {
+      id: Date.now().toString(),
+      name: newExpense.value.name,
+      category: newExpense.value.category,
+      monthlyAmount: newExpense.value.monthlyAmount,
+      inflationRate: newExpense.value.inflationRatePercent / 100,
+      startDate: newExpense.value.startDate || undefined,
+      endDate: newExpense.value.endDate || undefined
+    }
+
+    expenseStore.addExpense(expense)
   }
 
-  expenseStore.addExpense(expense)
-
   // Reset form
+  newExpense.value = {
+    name: '',
+    category: 'living',
+    monthlyAmount: 0,
+    inflationRatePercent: 3,
+    startDate: '',
+    endDate: ''
+  }
+}
+
+function startEdit(expense: RetirementExpense) {
+  editingId.value = expense.id
+  newExpense.value = {
+    name: expense.name,
+    category: expense.category,
+    monthlyAmount: expense.monthlyAmount,
+    inflationRatePercent: expense.inflationRate * 100,
+    startDate: expense.startDate || '',
+    endDate: expense.endDate || ''
+  }
+}
+
+function cancelEdit() {
+  editingId.value = null
   newExpense.value = {
     name: '',
     category: 'living',

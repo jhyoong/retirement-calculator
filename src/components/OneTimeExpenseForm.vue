@@ -6,7 +6,7 @@
 
     <!-- Add One-Time Expense Form -->
     <div class="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
-      <h3 class="text-lg font-semibold mb-4">Add One-Time Expense</h3>
+      <h3 class="text-lg font-semibold mb-4">{{ editingId ? 'Edit One-Time Expense' : 'Add One-Time Expense' }}</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -67,12 +67,21 @@
         </div>
       </div>
 
-      <button
-        @click="addExpense"
-        class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        Add One-Time Expense
-      </button>
+      <div class="mt-4 flex gap-2">
+        <button
+          @click="addExpense"
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {{ editingId ? 'Update One-Time Expense' : 'Add One-Time Expense' }}
+        </button>
+        <button
+          v-if="editingId"
+          @click="cancelEdit"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        >
+          Cancel
+        </button>
+      </div>
 
       <!-- Informational Note -->
       <div class="mt-4 p-3 bg-blue-50 rounded-md text-sm text-blue-900">
@@ -114,12 +123,20 @@
             </div>
           </div>
 
-          <button
-            @click="removeExpense(expense.id)"
-            class="ml-4 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
-          >
-            Remove
-          </button>
+          <div class="ml-4 flex gap-2">
+            <button
+              @click="startEdit(expense)"
+              class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-md"
+            >
+              Edit
+            </button>
+            <button
+              @click="removeExpense(expense.id)"
+              class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
+            >
+              Remove
+            </button>
+          </div>
         </div>
       </div>
 
@@ -143,6 +160,8 @@ import type { OneTimeExpense, ExpenseCategory } from '@/types'
 
 const expenseStore = useExpenseStore()
 
+const editingId = ref<string | null>(null)
+
 const newExpense = ref({
   name: '',
   amount: 0,
@@ -152,17 +171,52 @@ const newExpense = ref({
 })
 
 function addExpense() {
-  const expense: Omit<OneTimeExpense, 'id'> = {
-    name: newExpense.value.name,
-    amount: newExpense.value.amount,
-    date: newExpense.value.date,
-    category: newExpense.value.category,
-    description: newExpense.value.description || undefined
+  if (editingId.value) {
+    // Update existing expense
+    expenseStore.updateOneTimeExpense(editingId.value, {
+      name: newExpense.value.name,
+      amount: newExpense.value.amount,
+      date: newExpense.value.date,
+      category: newExpense.value.category,
+      description: newExpense.value.description || undefined
+    })
+    editingId.value = null
+  } else {
+    // Add new expense
+    const expense: Omit<OneTimeExpense, 'id'> = {
+      name: newExpense.value.name,
+      amount: newExpense.value.amount,
+      date: newExpense.value.date,
+      category: newExpense.value.category,
+      description: newExpense.value.description || undefined
+    }
+
+    expenseStore.addOneTimeExpense(expense)
   }
 
-  expenseStore.addOneTimeExpense(expense)
-
   // Reset form
+  newExpense.value = {
+    name: '',
+    amount: 0,
+    date: new Date().toISOString().slice(0, 7),
+    category: 'other',
+    description: ''
+  }
+}
+
+function startEdit(expense: OneTimeExpense) {
+  editingId.value = expense.id
+  newExpense.value = {
+    name: expense.name,
+    amount: expense.amount,
+    date: expense.date,
+    category: expense.category,
+    description: expense.description || ''
+  }
+}
+
+function cancelEdit() {
+  editingId.value = null
   newExpense.value = {
     name: '',
     amount: 0,

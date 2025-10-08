@@ -6,7 +6,7 @@
 
     <!-- Add One-off Return Form -->
     <div class="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
-      <h3 class="text-lg font-semibold mb-4">Add One-off Return</h3>
+      <h3 class="text-lg font-semibold mb-4">{{ editingId ? 'Edit One-off Return' : 'Add One-off Return' }}</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
@@ -40,12 +40,21 @@
         </div>
       </div>
 
-      <button
-        @click="addReturn"
-        class="mt-4 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
-      >
-        Add One-off Return
-      </button>
+      <div class="mt-4 flex gap-2">
+        <button
+          @click="addReturn"
+          class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
+        >
+          {{ editingId ? 'Update One-off Return' : 'Add One-off Return' }}
+        </button>
+        <button
+          v-if="editingId"
+          @click="cancelEdit"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
 
     <!-- One-off Returns List -->
@@ -67,12 +76,20 @@
             </div>
           </div>
 
-          <button
-            @click="removeReturn(oneOff.id)"
-            class="ml-4 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
-          >
-            Remove
-          </button>
+          <div class="ml-4 flex gap-2">
+            <button
+              @click="startEdit(oneOff)"
+              class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-md"
+            >
+              Edit
+            </button>
+            <button
+              @click="removeReturn(oneOff.id)"
+              class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
+            >
+              Remove
+            </button>
+          </div>
         </div>
       </div>
 
@@ -96,6 +113,8 @@ import type { OneOffReturn } from '@/types'
 
 const incomeStore = useIncomeStore()
 
+const editingId = ref<string | null>(null)
+
 const newReturn = ref({
   date: new Date().toISOString().slice(0, 7), // YYYY-MM format
   amount: 0,
@@ -111,16 +130,45 @@ const totalReturns = computed(() => {
 })
 
 function addReturn() {
-  const oneOff: OneOffReturn = {
-    id: Date.now().toString(),
-    date: newReturn.value.date,
-    amount: newReturn.value.amount,
-    description: newReturn.value.description
+  if (editingId.value) {
+    // Update existing return
+    incomeStore.updateOneOffReturn(editingId.value, {
+      date: newReturn.value.date,
+      amount: newReturn.value.amount,
+      description: newReturn.value.description
+    })
+    editingId.value = null
+  } else {
+    // Add new return
+    const oneOff: OneOffReturn = {
+      id: Date.now().toString(),
+      date: newReturn.value.date,
+      amount: newReturn.value.amount,
+      description: newReturn.value.description
+    }
+
+    incomeStore.addOneOffReturn(oneOff)
   }
 
-  incomeStore.addOneOffReturn(oneOff)
-
   // Reset form
+  newReturn.value = {
+    date: new Date().toISOString().slice(0, 7),
+    amount: 0,
+    description: ''
+  }
+}
+
+function startEdit(oneOff: OneOffReturn) {
+  editingId.value = oneOff.id
+  newReturn.value = {
+    date: oneOff.date,
+    amount: oneOff.amount,
+    description: oneOff.description
+  }
+}
+
+function cancelEdit() {
+  editingId.value = null
   newReturn.value = {
     date: new Date().toISOString().slice(0, 7),
     amount: 0,
