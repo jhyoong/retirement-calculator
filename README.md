@@ -1,14 +1,18 @@
 # Retirement Calculator
 
-A Vue 3 + TypeScript retirement calculator with import/export functionality.
+A comprehensive retirement planning tool built with Vue 3 and TypeScript, featuring income/expense tracking, loan management, CPF integration, and interactive visualizations.
 
 ## Features
 
-- Calculate future retirement value with compound interest
-- Real-time input validation
-- Inflation-adjusted projections
-- Export/Import data as JSON
-- Mobile-responsive design
+- **Basic Planning**: Set retirement age, current savings, and expected return rates
+- **Income Sources**: Track multiple income streams with varied frequencies (salary, rental, dividends, etc.)
+- **Expense Tracking**: Plan retirement expenses by category with custom inflation rates
+- **Loan Management**: Model loans with amortization schedules and extra payments
+- **CPF Integration**: Singapore CPF account tracking with contribution calculations and CPF Life estimates
+- **Visualizations**: Interactive charts and detailed monthly breakdowns
+- **Sustainability Analysis**: See how long your retirement savings will last
+- **Import/Export**: Save and load your retirement plans as JSON
+- **Mobile-responsive**: Works on desktop and mobile devices
 
 ## Development
 
@@ -48,143 +52,56 @@ npm run type-check
 npm run verify-deployment
 ```
 
-## Deployment
+## Tech Stack
 
-### Cloudflare Pages
-
-1. **Connect Repository**
-   - Go to Cloudflare Pages dashboard
-   - Click "Create a project"
-   - Connect your GitHub repository
-
-2. **Build Configuration**
-   ```yaml
-   Build command: npm run build
-   Build output directory: dist
-   Root directory: (leave empty)
-   Environment variables: NODE_VERSION = 18
-   ```
-
-3. **Build Settings**
-   - Framework preset: Vite
-   - Node version: 18 or higher
-
-### GitHub Actions (Optional CI/CD)
-
-Create `.github/workflows/deploy.yml`:
-
-```yaml
-name: Deploy
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run type-check
-      - run: npm run test:run
-      - run: npm run build
-
-  deploy:
-    needs: test
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run build
-      - name: Deploy to Cloudflare Pages
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=retirement-calculator
-```
-
-**Required GitHub Secrets:**
-- `CLOUDFLARE_API_TOKEN`: Your Cloudflare API token
-- `CLOUDFLARE_ACCOUNT_ID`: Your Cloudflare account ID
-
-### Alternative Deployment Options
-
-**Vercel:**
-```bash
-npm i -g vercel
-vercel
-```
-
-**Netlify:**
-```bash
-npm i -g netlify-cli
-netlify deploy --prod
-```
+- **Vue 3** with Composition API (`<script setup>`)
+- **TypeScript** in strict mode
+- **Pinia** for state management
+- **Chart.js** with vue-chartjs for visualizations
+- **Tailwind CSS** for styling
+- **Vitest** for testing (374 tests across 21 test files)
+- **Vite** for build tooling
 
 ## Project Structure
 
 ```
 src/
 ├── components/          # Vue components
-│   ├── InputField.vue
-│   ├── RetirementForm.vue
-│   ├── ResultsDisplay.vue
-│   └── ImportExport.vue
+│   ├── RetirementForm.vue       # Basic retirement inputs
+│   ├── IncomeTab.vue            # Income sources management
+│   ├── ExpenseTab.vue           # Expenses and loans
+│   ├── CPFForm.vue              # CPF account configuration
+│   ├── ResultsDisplay.vue       # Calculation results
+│   ├── VisualizationsTab.vue    # Charts and tables
+│   ├── ImportExport.vue         # Data import/export
+│   └── ...
 ├── stores/             # Pinia stores
-│   └── retirement.ts
-├── utils/              # Utility functions
-│   ├── calculations.ts
-│   ├── calculations.test.ts
-│   └── importExport.ts
+│   ├── retirement.ts   # Basic retirement data
+│   ├── income.ts       # Income sources
+│   ├── expense.ts      # Expenses and loans
+│   └── cpf.ts          # CPF accounts
+├── utils/              # Calculations and utilities
+│   ├── calculations.ts          # Core retirement calculations
+│   ├── loanCalculations.ts      # Loan amortization
+│   ├── monthlyProjections.ts    # Pre-retirement projections
+│   ├── postRetirementProjections.ts  # Post-retirement analysis
+│   ├── cpfContributions.ts      # CPF contribution calculations
+│   ├── cpfInterest.ts           # CPF interest calculations
+│   ├── cpfTransitions.ts        # CPF age-55 transitions
+│   ├── cpfLife.ts               # CPF Life payout estimates
+│   └── importExport.ts          # Data import/export
 ├── types/              # TypeScript types
 │   └── index.ts
-├── App.vue             # Root component
-├── main.ts             # Entry point
-└── style.css           # Global styles
+├── App.vue             # Root component with tabs
+└── main.ts             # Entry point
 ```
 
 ## Data Format
 
-Export/Import uses this JSON schema:
+Export/Import saves all your data as JSON, including:
+- Basic retirement settings (age, savings, rates)
+- Income sources and one-off returns
+- Expenses, loans, and one-time expenses
+- CPF account balances and settings
 
-```json
-{
-  "version": "1.0.0",
-  "exportDate": "2025-10-01T12:00:00.000Z",
-  "user": {
-    "currentAge": 30,
-    "retirementAge": 65,
-    "currentSavings": 50000,
-    "monthlyContribution": 1000,
-    "expectedReturnRate": 0.07,
-    "inflationRate": 0.03
-  }
-}
-```
-
-## Phase 1 Complete
-
-This is the Phase 1 MVP implementation with:
-- ✅ Basic retirement calculator
-- ✅ 6 input fields with validation
-- ✅ Real-time calculations
-- ✅ Future value projection
-- ✅ Inflation adjustment
-- ✅ Import/Export JSON
-- ✅ Mobile-responsive UI
-- ✅ Comprehensive tests (26 passing)
-
-See `detailed_roadmap.md` for future phases.
+Exports include version information and timestamps for data migration support.

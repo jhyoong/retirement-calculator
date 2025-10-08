@@ -1,34 +1,34 @@
 <template>
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-2xl font-bold text-gray-900 mb-6">
+  <div class="bg-white rounded-lg shadow-md p-4 sm:p-6">
+    <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-4 sm:mb-6">
       CPF Accounts
     </h2>
 
     <!-- Enable CPF Toggle -->
-    <div class="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
+    <div class="mb-4 sm:mb-6 p-3 sm:p-4 border border-gray-200 rounded-md bg-gray-50">
       <label class="flex items-center cursor-pointer">
         <input
           type="checkbox"
           v-model="cpfStore.enabled"
-          class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+          class="h-5 w-5 text-blue-600 focus:ring-blue-500 border-gray-300 rounded flex-shrink-0"
         />
-        <span class="ml-3 text-lg font-medium text-gray-900">
+        <span class="ml-3 text-base sm:text-lg font-medium text-gray-900">
           Enable CPF Integration
         </span>
       </label>
-      <p class="mt-2 text-sm text-gray-600">
+      <p class="mt-2 text-xs sm:text-sm text-gray-600">
         Track your Central Provident Fund accounts and calculate contributions from salary income.
       </p>
     </div>
 
-    <div v-if="cpfStore.enabled" class="space-y-6">
+    <div v-if="cpfStore.enabled" class="space-y-4 sm:space-y-6">
       <!-- Important: Personal vs Government Retirement Ages -->
-      <div class="p-4 bg-amber-50 border border-amber-200 rounded-md">
-        <h3 class="text-sm font-semibold text-amber-900 mb-2">Personal vs Government Retirement Ages</h3>
-        <p class="text-sm text-amber-800 mb-2">
+      <div class="p-3 sm:p-4 bg-amber-50 border border-amber-200 rounded-md">
+        <h3 class="text-xs sm:text-sm font-semibold text-amber-900 mb-2">Personal vs Government Retirement Ages</h3>
+        <p class="text-xs sm:text-sm text-amber-800 mb-2">
           Your <strong>target retirement age</strong> (set in Basic Info tab) is your personal goal for when you want to stop working.
         </p>
-        <p class="text-sm text-amber-800">
+        <p class="text-xs sm:text-sm text-amber-800">
           <strong>CPF milestones</strong> are government-mandated ages: Age 55 (RA creation), Age 65/70 (CPF LIFE payouts). These are separate from your personal retirement goals.
         </p>
       </div>

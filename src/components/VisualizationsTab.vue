@@ -1,19 +1,19 @@
 <template>
   <div class="space-y-6">
-    <div class="bg-white rounded-lg shadow-md p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-bold text-gray-900">
+    <div class="bg-white rounded-lg shadow-md p-4 sm:p-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+        <h2 class="text-xl sm:text-2xl font-bold text-gray-900">
           Visualizations
         </h2>
 
-        <div class="flex items-center space-x-4">
-          <div v-if="store.validation.isValid" class="flex items-center space-x-2">
-            <label class="text-sm font-medium text-gray-700">
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
+          <div v-if="store.validation.isValid" class="flex items-center gap-2">
+            <label class="text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
               Show up to age:
             </label>
             <select
               v-model.number="selectedMaxAge"
-              class="px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm"
+              class="flex-1 sm:flex-initial px-2 sm:px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm"
             >
               <option :value="undefined">Retirement Age ({{ store.userData.retirementAge }})</option>
               <option
@@ -29,7 +29,7 @@
             v-if="needsRecalculation"
             @click="handleRecalculate"
             :disabled="store.isCalculating"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span v-if="store.isCalculating">Calculating...</span>
             <span v-else>Recalculate</span>

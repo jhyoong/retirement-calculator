@@ -1,8 +1,8 @@
 <template>
-  <div class="flex items-center gap-2">
+  <div class="flex flex-row items-center justify-end gap-2">
     <button
       @click="handleExport"
-      class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors"
+      class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-1.5 px-2 sm:py-2 sm:px-4 rounded-md transition-colors"
       title="Export data to JSON file"
     >
       Export
@@ -10,7 +10,7 @@
 
     <button
       @click="triggerFileInput"
-      class="bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors"
+      class="bg-green-600 hover:bg-green-700 text-white text-xs font-medium py-1.5 px-2 sm:py-2 sm:px-4 rounded-md transition-colors"
       title="Import data from JSON file"
     >
       Import
@@ -18,7 +18,7 @@
 
     <button
       @click="handleClear"
-      class="bg-red-600 hover:bg-red-700 text-white text-sm font-medium py-2 px-4 rounded-md transition-colors"
+      class="bg-red-600 hover:bg-red-700 text-white text-xs font-medium py-1.5 px-2 sm:py-2 sm:px-4 rounded-md transition-colors"
       title="Clear all data"
     >
       Clear
@@ -32,7 +32,7 @@
       class="hidden"
     />
 
-    <p v-if="message" class="text-sm ml-2" :class="messageClass">
+    <p v-if="message" class="text-xs sm:text-sm ml-2" :class="messageClass">
       {{ message }}
     </p>
   </div>

@@ -1,16 +1,16 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <div
-      class="container mx-auto px-4 py-8 transition-all duration-300"
+      class="container mx-auto px-2 sm:px-4 py-4 sm:py-8 transition-all duration-300"
       :class="activeTab === 'visualizations' ? 'max-w-[95%]' : 'max-w-4xl'"
     >
-      <header class="mb-8">
-        <div class="flex items-start justify-between">
+      <header class="mb-4 sm:mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">
+            <h1 class="text-2xl sm:text-4xl font-bold text-gray-900 mb-2">
               Retirement Calculator
             </h1>
-            <p class="text-gray-600">
+            <p class="text-sm sm:text-base text-gray-600">
               Plan your financial future and cry
             </p>
           </div>
@@ -20,14 +20,14 @@
 
       <main>
         <!-- Tab Navigation -->
-        <div class="mb-6">
-          <nav class="flex space-x-1 bg-gray-200 p-1 rounded-lg" role="tablist">
+        <div class="mb-4 sm:mb-6">
+          <nav class="flex overflow-x-auto space-x-1 bg-gray-200 p-1 rounded-lg scrollbar-hide" role="tablist">
             <button
               v-for="tab in tabs"
               :key="tab.id"
               @click="activeTab = tab.id"
               :class="[
-                'flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors',
+                'flex-shrink-0 py-2 px-2 sm:px-4 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap',
                 activeTab === tab.id
                   ? 'bg-white text-blue-600 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'

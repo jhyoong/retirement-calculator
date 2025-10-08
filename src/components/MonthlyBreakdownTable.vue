@@ -1,28 +1,28 @@
 <template>
-  <div class="bg-white rounded-lg shadow-md p-6">
-    <div class="flex items-start justify-between mb-4">
-      <h3 class="text-xl font-bold text-gray-900">
+  <div class="bg-white rounded-lg shadow-md p-4 sm:p-6">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+      <h3 class="text-lg sm:text-xl font-bold text-gray-900">
         Monthly Breakdown
       </h3>
 
-      <div class="flex items-center space-x-4">
+      <div class="flex items-center gap-2 sm:gap-4">
         <!-- Compact Mode Toggle -->
         <button
           @click="compactMode = !compactMode"
-          class="px-3 py-1.5 text-sm border rounded-md hover:bg-gray-50 transition-colors"
+          class="flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 text-xs sm:text-sm border rounded-md hover:bg-gray-50 transition-colors"
           :class="compactMode ? 'bg-blue-50 border-blue-300 text-blue-700' : 'bg-white border-gray-300 text-gray-700'"
         >
-          {{ compactMode ? 'Compact' : 'Normal' }} View
+          {{ compactMode ? 'Compact' : 'Normal' }}
         </button>
 
         <!-- Column Visibility Dropdown -->
-        <div class="relative">
+        <div class="relative flex-1 sm:flex-initial">
           <button
             @click="showColumnMenu = !showColumnMenu"
-            class="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors flex items-center space-x-2"
+            class="w-full px-2 sm:px-3 py-1.5 text-xs sm:text-sm border border-gray-300 rounded-md hover:bg-gray-50 transition-colors flex items-center justify-center gap-1 sm:gap-2"
           >
             <span>Columns</span>
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -245,8 +245,16 @@
       </table>
     </div>
 
-    <div class="mt-4 text-sm text-gray-500">
+    <div class="mt-4 text-xs sm:text-sm text-gray-500">
       Showing {{ monthlyData.length }} months
+    </div>
+
+    <!-- Mobile scroll hint -->
+    <div v-if="showRightShadow" class="mt-2 text-xs text-amber-600 sm:hidden flex items-center gap-1">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+      </svg>
+      <span>Scroll right to see more columns</span>
     </div>
   </div>
 </template>
