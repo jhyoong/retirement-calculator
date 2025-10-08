@@ -6,7 +6,7 @@
 
     <!-- Add Income Source Form -->
     <div class="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
-      <h3 class="text-lg font-semibold mb-4">Add Income Source</h3>
+      <h3 class="text-lg font-semibold mb-4">{{ editingId ? 'Edit Income Source' : 'Add Income Source' }}</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -108,12 +108,21 @@
         </p>
       </div>
 
-      <button
-        @click="addSource"
-        class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        Add Income Source
-      </button>
+      <div class="mt-4 flex gap-2">
+        <button
+          @click="addSource"
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {{ editingId ? 'Update Income Source' : 'Add Income Source' }}
+        </button>
+        <button
+          v-if="editingId"
+          @click="cancelEdit"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        >
+          Cancel
+        </button>
+      </div>
     </div>
 
     <!-- Income Sources List -->
@@ -153,12 +162,20 @@
             </div>
           </div>
 
-          <button
-            @click="removeSource(source.id)"
-            class="ml-4 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
-          >
-            Remove
-          </button>
+          <div class="ml-4 flex gap-2">
+            <button
+              @click="startEdit(source)"
+              class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-md"
+            >
+              Edit
+            </button>
+            <button
+              @click="removeSource(source.id)"
+              class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
+            >
+              Remove
+            </button>
+          </div>
         </div>
       </div>
 
@@ -182,6 +199,8 @@ import type { IncomeStream, IncomeType, IncomeFrequency } from '@/types'
 
 const incomeStore = useIncomeStore()
 
+const editingId = ref<string | null>(null)
+
 const newSource = ref({
   name: '',
   type: 'salary' as IncomeType,
@@ -194,21 +213,65 @@ const newSource = ref({
 })
 
 function addSource() {
-  const source: IncomeStream = {
-    id: Date.now().toString(),
-    name: newSource.value.name,
-    type: newSource.value.type,
-    amount: newSource.value.amount,
-    frequency: newSource.value.frequency,
-    customFrequencyDays: newSource.value.customFrequencyDays,
-    startDate: newSource.value.startDate,
-    endDate: newSource.value.endDate || undefined,
-    cpfEligible: newSource.value.cpfEligible
+  if (editingId.value) {
+    // Update existing source
+    incomeStore.updateIncomeSource(editingId.value, {
+      name: newSource.value.name,
+      type: newSource.value.type,
+      amount: newSource.value.amount,
+      frequency: newSource.value.frequency,
+      customFrequencyDays: newSource.value.customFrequencyDays,
+      startDate: newSource.value.startDate,
+      endDate: newSource.value.endDate || undefined,
+      cpfEligible: newSource.value.cpfEligible
+    })
+    editingId.value = null
+  } else {
+    // Add new source
+    const source: IncomeStream = {
+      id: Date.now().toString(),
+      name: newSource.value.name,
+      type: newSource.value.type,
+      amount: newSource.value.amount,
+      frequency: newSource.value.frequency,
+      customFrequencyDays: newSource.value.customFrequencyDays,
+      startDate: newSource.value.startDate,
+      endDate: newSource.value.endDate || undefined,
+      cpfEligible: newSource.value.cpfEligible
+    }
+
+    incomeStore.addIncomeSource(source)
   }
 
-  incomeStore.addIncomeSource(source)
-
   // Reset form
+  newSource.value = {
+    name: '',
+    type: 'salary',
+    amount: 0,
+    frequency: 'monthly',
+    customFrequencyDays: undefined,
+    startDate: new Date().toISOString().slice(0, 7),
+    endDate: undefined,
+    cpfEligible: true
+  }
+}
+
+function startEdit(source: IncomeStream) {
+  editingId.value = source.id
+  newSource.value = {
+    name: source.name,
+    type: source.type,
+    amount: source.amount,
+    frequency: source.frequency,
+    customFrequencyDays: source.customFrequencyDays,
+    startDate: source.startDate,
+    endDate: source.endDate,
+    cpfEligible: source.cpfEligible || false
+  }
+}
+
+function cancelEdit() {
+  editingId.value = null
   newSource.value = {
     name: '',
     type: 'salary',

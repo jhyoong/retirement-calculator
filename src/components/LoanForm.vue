@@ -6,7 +6,7 @@
 
     <!-- Add Loan Form -->
     <div class="mb-6 p-4 border border-gray-200 rounded-md bg-gray-50">
-      <h3 class="text-lg font-semibold mb-4">Add Loan</h3>
+      <h3 class="text-lg font-semibold mb-4">{{ editingId ? 'Edit Loan' : 'Add Loan' }}</h3>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -127,12 +127,21 @@
         </div>
       </div>
 
-      <button
-        @click="addLoan"
-        class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        Add Loan
-      </button>
+      <div class="mt-4 flex gap-2">
+        <button
+          @click="addLoan"
+          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {{ editingId ? 'Update Loan' : 'Add Loan' }}
+        </button>
+        <button
+          v-if="editingId"
+          @click="cancelEdit"
+          class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500"
+        >
+          Cancel
+        </button>
+      </div>
 
       <!-- Informational Note -->
       <div class="mt-4 p-3 bg-blue-50 rounded-md text-sm text-blue-900">
@@ -182,12 +191,20 @@
               </div>
             </div>
 
-            <button
-              @click="removeLoan(loan.id)"
-              class="ml-4 px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
-            >
-              Remove
-            </button>
+            <div class="ml-4 flex gap-2">
+              <button
+                @click="startEdit(loan)"
+                class="px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 rounded-md"
+              >
+                Edit
+              </button>
+              <button
+                @click="removeLoan(loan.id)"
+                class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded-md"
+              >
+                Remove
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -207,6 +224,8 @@ import { calculateMonthlyPayment as calcPayment, calculateTotalInterest as calcI
 
 const expenseStore = useExpenseStore()
 
+const editingId = ref<string | null>(null)
+
 const newLoan = ref({
   name: '',
   category: 'housing' as 'housing' | 'auto' | 'personal' | 'other', // Default to housing (most common)
@@ -219,27 +238,78 @@ const newLoan = ref({
 })
 
 function addLoan() {
-  const loan: Omit<Loan, 'id'> = {
-    name: newLoan.value.name,
-    category: newLoan.value.category,
-    principal: newLoan.value.principal,
-    interestRate: newLoan.value.interestRatePercent / 100, // Convert % to decimal
-    termMonths: newLoan.value.termMonths,
-    startDate: newLoan.value.startDate
-  }
+  if (editingId.value) {
+    // Update existing loan
+    const updates: Partial<Omit<Loan, 'id'>> = {
+      name: newLoan.value.name,
+      category: newLoan.value.category,
+      principal: newLoan.value.principal,
+      interestRate: newLoan.value.interestRatePercent / 100,
+      termMonths: newLoan.value.termMonths,
+      startDate: newLoan.value.startDate
+    }
 
-  // Add CPF fields only if category is housing and useCPF is true
-  if (newLoan.value.category === 'housing' && newLoan.value.useCPF) {
-    loan.useCPF = true
-    loan.cpfPercentage = newLoan.value.cpfPercentage
-  }
+    if (newLoan.value.category === 'housing' && newLoan.value.useCPF) {
+      updates.useCPF = true
+      updates.cpfPercentage = newLoan.value.cpfPercentage
+    } else {
+      updates.useCPF = false
+      updates.cpfPercentage = undefined
+    }
 
-  expenseStore.addLoan(loan)
+    expenseStore.updateLoan(editingId.value, updates)
+    editingId.value = null
+  } else {
+    // Add new loan
+    const loan: Omit<Loan, 'id'> = {
+      name: newLoan.value.name,
+      category: newLoan.value.category,
+      principal: newLoan.value.principal,
+      interestRate: newLoan.value.interestRatePercent / 100,
+      termMonths: newLoan.value.termMonths,
+      startDate: newLoan.value.startDate
+    }
+
+    if (newLoan.value.category === 'housing' && newLoan.value.useCPF) {
+      loan.useCPF = true
+      loan.cpfPercentage = newLoan.value.cpfPercentage
+    }
+
+    expenseStore.addLoan(loan)
+  }
 
   // Reset form
   newLoan.value = {
     name: '',
-    category: 'housing', // Default to housing (most common)
+    category: 'housing',
+    principal: 0,
+    interestRatePercent: 5,
+    termMonths: 360,
+    startDate: new Date().toISOString().slice(0, 7),
+    useCPF: false,
+    cpfPercentage: 100
+  }
+}
+
+function startEdit(loan: Loan) {
+  editingId.value = loan.id
+  newLoan.value = {
+    name: loan.name,
+    category: loan.category,
+    principal: loan.principal,
+    interestRatePercent: loan.interestRate * 100,
+    termMonths: loan.termMonths,
+    startDate: loan.startDate,
+    useCPF: loan.useCPF || false,
+    cpfPercentage: loan.cpfPercentage || 100
+  }
+}
+
+function cancelEdit() {
+  editingId.value = null
+  newLoan.value = {
+    name: '',
+    category: 'housing',
     principal: 0,
     interestRatePercent: 5,
     termMonths: 360,
