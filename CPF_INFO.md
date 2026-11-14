@@ -1,170 +1,160 @@
-I'll help you gather the latest CPF information for personal calculations. Let me search for the most current details on contribution rates, interest rates, account limits, and other key information.
+## **COMPREHENSIVE CPF INFORMATION FOR 2026**
 
-Based on my comprehensive search, I now have detailed CPF information for 2025. Let me compile this information for you in a clear, structured format with all the exact numbers and details you requested.
+Last updated: 14 November 2026. Figures apply to Singapore Citizens and PRs (3rd year onwards) unless stated otherwise.
 
----
+### **1. CPF CONTRIBUTION RATES (Effective 1 January 2026)**
 
-## **COMPREHENSIVE CPF INFORMATION FOR 2025**
+Rates apply to monthly wages above $750. Maximum monthly contribution is based on the $8,000 Ordinary Wage ceiling.
 
-### **1. CPF CONTRIBUTION RATES (Effective 1 January 2025)**
+| Age | Employer | Employee | Total | Max monthly total (employee share) |
+|---|---|---|---|---|
+| 55 and below | 17% | 20% | 37% | $2,960 ($1,600) |
+| Above 55 to 60 | 16% | 18% | 34% | $2,720 ($1,440) |
+| Above 60 to 65 | 12.5% | 12.5% | 25% | $2,000 ($1,000) |
+| Above 65 to 70 | 9% | 7.5% | 16.5% | $1,320 ($600) |
+| Above 70 | 7.5% | 5% | 12.5% | $1,000 ($400) |
 
-For Singapore Citizens and PRs (3rd year onwards), contribution rates vary by age:
+Changes from 2025: above 55 to 60 rose from 32.5% to 34%; above 60 to 65 rose from 23.5% to 25%. Other age groups are unchanged.
 
-**Age 55 and below:**
-- Total contribution rate: 37% of monthly wages
-- Employer contribution: 17%
-- Employee contribution: 20%
-- Maximum monthly contribution on Ordinary Wages: $2,738
+The increase for employees above 55 to 65 is fully allocated to the Retirement Account up to the member's cohort Full Retirement Sum. If the FRS is already set aside, it goes to the Ordinary Account.
 
-**Age above 55 to 60:**
-- Total contribution rate: 32.5%
-- Employer contribution: 15.5%
-- Employee contribution: 17%
-- Maximum monthly contribution: $2,405
+### **2. WAGE CEILINGS (2026)**
 
-**Age above 60 to 65:**
-- Total contribution rate: 23.5%
-- Employer contribution: 12%
-- Employee contribution: 11.5%
-- Maximum monthly contribution: $1,739
+- Ordinary Wage (OW) ceiling: $8,000 per month from 1 January 2026 (up from $7,400 in 2025). This is the last step of the increases that began in September 2023 ($6,300 -> $6,800 -> $7,400 -> $8,000).
+- Annual Salary Ceiling: $102,000 (unchanged). Covers both Ordinary and Additional Wages.
+- Additional Wage (AW) ceiling: $102,000 minus total OW subject to CPF in the year.
+- CPF Annual Limit: $37,740 (unchanged).
 
-**Age above 65 to 70:**
-- Total contribution rate: 16.5%
-- Employer contribution: 9%
-- Employee contribution: 7.5%
-- Maximum monthly contribution: $1,221
+### **3. CPF INTEREST RATES (1 October to 31 December 2026)**
 
-**Age above 70:**
-- Total contribution rate: 12.5%
-- Employer contribution: 7.5%
-- Employee contribution: 5%
-- Maximum monthly contribution: $925
-
-### **2. WAGE CEILINGS (2025)**
-
-The Ordinary Wage ceiling is $7,400 per month (increased from $6,800 in 2024)
-
-The Annual Salary Ceiling remains at $102,000, covering both Ordinary Wages and Additional Wages
-
-The CPF Annual Limit is $37,740
-
-**Scheduled increase:** The OW ceiling will increase to $8,000 on 1 January 2026, which is the final increase in this phase
-
-### **3. CPF INTEREST RATES (Current as of Q4 2025)**
-
-From 1 October to 31 December 2025, the Ordinary Account earns 2.5% per annum
-
-Special Account, MediSave Account, and Retirement Account earn 4.0% per annum from 1 October to 31 December 2025
+- Ordinary Account (OA): 2.5% per annum (floor rate)
+- Special, MediSave and Retirement Accounts (SMRA): 4.0% per annum (floor rate)
 
 **Interest rate calculation methodology:**
-- OA rate is pegged to the three-month average interest rates of major local banks, with a guaranteed minimum floor rate of 2.5% per annum
-- SMRA rate is pegged to the 12-month average yield of 10-year Singapore Government Securities plus 1%, with a floor rate of 4% per annum
-- The government has extended the 4% interest rate floor for SMRA until 31 December 2025
+- OA rate is pegged to the three-month average interest rates of major local banks, with a floor of 2.5% per annum.
+- SMRA rate is pegged to the 12-month average yield of 10-year Singapore Government Securities plus 1%, with a floor of 4% per annum.
+- The government has extended the 4% floor for SMRA until 31 December 2027.
+- Rates are reviewed quarterly. Q1 2027 rates are expected in mid-December 2026.
 
 **Extra Interest:**
-- Members below 55 earn an additional 1% on the first $60,000 of combined CPF balances, capped at $20,000 from OA
-- Members aged 55 and above earn an extra 2% on the first $30,000, and an additional 1% on the next $30,000 of combined CPF balances
+- Members below 55: extra 1% on the first $60,000 of combined CPF balances (OA portion capped at $20,000).
+- Members 55 and above: extra 2% on the first $30,000 and extra 1% on the next $30,000 of combined balances (OA portion capped at $20,000).
+- Extra interest earned on OA balances goes into the SA (below 55) or RA (55 and above).
+- Members 55 and above in CPF LIFE still earn extra interest, including on savings used for CPF LIFE.
 
 **Effective interest rates with extra interest:**
-- Below age 55: Up to 5% per annum
-- Age 55 and above: Up to 6% per annum
+- Below age 55: up to 5% per annum
+- Age 55 and above: up to 6% per annum
 
-**HDB Concessionary Interest Rate:**
-The HDB housing loan interest rate is pegged at 0.1% above the OA interest rate, currently at 2.6% per annum
+**HDB Concessionary Interest Rate:** 0.1% above the OA rate, currently 2.6% per annum.
 
-### **4. CPF ALLOCATION RATES (How contributions are distributed)**
+### **4. CPF ALLOCATION RATES (From 1 January 2026)**
 
-As of January 2025, allocation rates vary by age:
+Ratios are the share of each contribution dollar. % of wage is total rate x ratio. MediSave is calculated first, then SA/RA, and the remainder goes to OA.
 
-**Age 35 and below:**
-- Ordinary Account: 62.17%
-- Special Account: 16.21%
-- MediSave Account: 21.62%
+| Age | OA ratio | SA/RA ratio | MA ratio | OA % wage | SA/RA % wage | MA % wage |
+|---|---|---|---|---|---|---|
+| 35 and below | 0.6217 | 0.1621 (SA) | 0.2162 | 23.00% | 6.00% | 8.00% |
+| Above 35 to 45 | 0.5677 | 0.1891 (SA) | 0.2432 | 21.00% | 7.00% | 9.00% |
+| Above 45 to 50 | 0.5136 | 0.2162 (SA) | 0.2702 | 19.00% | 8.00% | 10.00% |
+| Above 50 to 55 | 0.4055 | 0.3108 (SA) | 0.2837 | 15.00% | 11.50% | 10.50% |
+| Above 55 to 60 | 0.3530 | 0.3382 (RA) | 0.3088 | 12.00% | 11.50% | 10.50% |
+| Above 60 to 65 | 0.1400 | 0.4400 (RA) | 0.4200 | 3.50% | 11.00% | 10.50% |
+| Above 65 to 70 | 0.0607 | 0.3030 (RA) | 0.6363 | 1.00% | 5.00% | 10.50% |
+| Above 70 | 0.0800 | 0.0800 (RA) | 0.8400 | 1.00% | 1.00% | 10.50% |
 
-**Age above 35 to 45:**
-- Ordinary Account: 56.77%
-- Special Account: 18.91%
-- MediSave Account: 24.32%
+Changes from 2025: only the above 55 to 60 and above 60 to 65 bands changed.
 
-**Age above 45 to 50:**
-- Ordinary Account: 51.36%
-- Special Account: 21.62%
-- MediSave Account: 27.02%
+For members 55 and above, the RA share goes to the Retirement Account up to the FRS; any excess goes to the Ordinary Account.
 
-**Age above 50 to 55:**
-- Ordinary Account: 40.55%
-- Special Account: 31.08%
-- MediSave Account: 28.37%
+### **5. RETIREMENT SUMS**
 
-**Age above 55 to 60:**
-- Ordinary Account: 36.94%
-- Retirement Account: 30.76%
-- MediSave Account: 32.30%
+| Cohort turning 55 in | BRS | FRS (2x BRS) | ERS (4x BRS) |
+|---|---|---|---|
+| 2025 | $106,500 | $213,000 | $426,000 |
+| 2026 | $110,200 | $220,400 | $440,800 |
+| 2027 | $114,100 | $228,200 | $456,400 |
 
-**Age above 60 to 65:**
-- Ordinary Account: 14.9%
-- Retirement Account: 40.42%
-- MediSave Account: 44.68%
+- Retirement sums increase by about 3.5% per year from 2023 to 2027. No figures have been announced for cohorts turning 55 in 2028 or later.
+- A member's BRS and FRS are fixed at the amounts for the year they turn 55.
 
-**Age above 65 to 70:**
-- Ordinary Account: 6.07%
-- Retirement Account: 30.3%
-- MediSave Account: 63.63%
+**Estimated CPF LIFE Standard Plan monthly payouts (cohort turning 55 in 2026, estimator as of January 2026):**
 
-**Age above 70:**
-- Ordinary Account: 8%
-- Retirement Account: 8%
-- MediSave Account: 84%
+| Retirement Sum | From age 65 | From age 70 |
+|---|---|---|
+| BRS ($110,200) | $890 - $930 | $1,170 - $1,270 |
+| FRS ($220,400) | $1,640 - $1,750 | $2,190 - $2,370 |
+| ERS ($440,800) | $3,180 - $3,410 | $4,200 - $4,550 |
 
-For members aged 55 and above, contributions are fully allocated to the Retirement Account up to the Full Retirement Sum; excess contributions go to the Ordinary Account
-
-### **5. RETIREMENT SUMS (For those turning 55 in 2025)**
-
-Basic Retirement Sum (BRS): $106,500
-
-Full Retirement Sum (FRS): $213,000 (2 times BRS)
-
-Enhanced Retirement Sum (ERS): $426,000 (4 times BRS, increased from 3 times in 2024)
-
-**Future retirement sums (2026-2027):**
-The retirement sums will increase by 3.5% annually from 2023 to 2027.
-
-**Estimated CPF LIFE monthly payouts (for those turning 55 in 2025):**
-With BRS ($106,500): $860-$930 per month from age 65
-With FRS ($213,000): $1,610-$1,730 per month from age 65
-With ERS ($426,000): $3,100-$3,330 per month from age 65
+Source for payouts: DBS article citing the CPF payout estimator. Not verified directly on cpf.gov.sg.
 
 ### **6. BASIC HEALTHCARE SUM (BHS)**
 
-For members turning 65 in 2025, the BHS is fixed at $75,500 and will not change thereafter
-
-For members below age 65, the BHS is adjusted yearly to keep pace with growth in MediSave use
+- 2026 BHS: $79,000 for members below 65 (up from $75,500 in 2025).
+- Members turning 65 in 2026: BHS fixed at $79,000 for life.
+- Members who turned 65 in 2025: BHS fixed at $75,500.
+- Members below 65 have their BHS adjusted yearly. The 2027 BHS is expected to be announced in December 2026.
+- When MediSave reaches the BHS, excess contributions go to the SA/OA (below 55) or RA/OA (55 and above).
 
 ### **7. WITHDRAWAL RULES AT AGE 55**
 
-When you turn 55, a Retirement Account is created and your Special Account is closed
+- At 55, a Retirement Account (RA) is created and the Special Account is closed.
+- Savings are transferred from the SA, then OA, to the RA up to the FRS.
+- Members can withdraw $5,000 or more from CPF savings at 55.
+- Savings above the FRS remain in the OA and can be withdrawn.
+- Members who own a property with a lease lasting to at least age 95 can pledge it and set aside the BRS in cash (property covers up to half of the FRS).
 
-Savings are transferred from Special Account, then Ordinary Account to the Retirement Account up to the Full Retirement Sum
+**Daily Withdrawal Limit:** Default $2,000, maximum $50,000 (changes need a 12-hour cooling period).
 
-You can withdraw $5,000 or more from your CPF savings once you reach age 55
+### **8. SPECIAL ACCOUNT CLOSURE (January 2025)**
 
-Savings above your FRS remain in your Ordinary Account and are withdrawable
+- The SA was closed in the second half of January 2025 for members aged 55 and above.
+- SA savings were transferred to the RA up to the FRS. Remaining SA savings were transferred to the OA.
 
-If you own property with a lease lasting to at least age 95, you can set aside your FRS with a mixture of property (up to half of FRS) and cash
+### **9. GOVERNMENT SCHEMES AND TOP-UPS (2026)**
 
-**Daily Withdrawal Limit:**
-Default Daily Withdrawal Limit is $2,000, with a maximum of $50,000 (requires a 12-hour cooling period for changes)
+- **Matched Retirement Savings Scheme (MRSS):** Dollar-for-dollar matching of cash top-ups up to $2,000 per year, lifetime cap of $20,000. From 1 January 2026, extended to Singaporeans with disabilities of all ages.
+- **Matched MediSave Scheme (MMSS):** New from January 2026 for five years. Matches cash top-ups to MediSave up to $1,000 per year for Singapore Citizens aged 55 to 70 with lower MediSave balances.
+- **Cash top-up tax relief:** Up to $8,000 per year for top-ups to own accounts and another $8,000 per year for top-ups to family members. Top-ups that receive matching grants do not qualify.
+- **One-time CPF top-up (Budget 2026):** For Singaporeans aged 50 and above in 2026 (born 1976 or earlier), owning not more than one property. Paid in December 2026 into the RA or SA. Example: $1,500 for those with less than $60,000 in CPF retirement savings (as at 31 Dec 2025) and home Annual Value up to $21,000. Other tiers need checking against the official FAQ.
+- **CareShield Life:** Payouts grow 4% per year from 2026 to 2030 (up from 2%). 2026 payout: $689/month.
 
-### **8. SPECIAL ACCOUNT CLOSURE (2025)**
+### **10. ANNOUNCED FUTURE CHANGES**
 
-The CPF Special Account closed in the second half of January 2025 for members aged 55 and above
+**Contribution rates from 1 January 2027** (wages above $750):
 
-SA savings are transferred to the Retirement Account up to the Full Retirement Sum; remaining SA savings are transferred to the Ordinary Account
+| Age | Employer | Employee | Total |
+|---|---|---|---|
+| 55 and below | 17% | 20% | 37% |
+| Above 55 to 60 | 16.5% | 19% | 35.5% |
+| Above 60 to 65 | 13% | 13% | 26% |
+| Above 65 to 70 | 9% | 7.5% | 16.5% |
+| Above 70 | 7.5% | 5% | 12.5% |
 
-### **9. CPF CONTRIBUTION RATE INCREASES (Future changes from 1 January 2026)**
+The increase for above 55 to 65 goes to the RA up to the FRS, then to the OA.
 
-For employees aged above 55 to 60: Employer rate increases by 0.5% to 16%, employee rate increases by 1% to 18%, total of 34%
+**Allocation ratios from 1 January 2027** (only these bands change; source: numbers.sg, not verified on cpf.gov.sg):
 
-For employees aged above 60 to 65: Employer rate increases by 0.5% to 12.5%, employee rate increases by 1% to 12.5%, total of 25%
+| Age | OA | RA | MA |
+|---|---|---|---|
+| Above 55 to 60 | 0.3382 | 0.3661 | 0.2957 |
+| Above 60 to 65 | 0.1347 | 0.4615 | 0.4038 |
 
-The increase in CPF contributions for employees aged above 55 to 65 will be fully allocated to the Retirement Account up to the Full Retirement Sum
+**Other changes:**
+- From 1 January 2027: MediSave withdrawal limits under the Chronic Disease Management Programme rise from $500 to $700 per year (standard) and from $700 to $1,000 per year (complex). The MediSave 500/700 scheme is renamed the MediSave Chronic and Prevent Care scheme.
+- First half of 2028: a voluntary life-cycle investment scheme for CPF savings, with pre-mixed portfolios from 2-3 selected providers and capped fees.
+
+### **Sources**
+
+- [CPF-related changes taking place in 2026](https://www.cpf.gov.sg/member/infohub/news/news-releases/cpf-related-changes-taking-place-in-2026-what-you-need-to-know)
+- [Changes to CPF contribution rates for senior workers from 1 January 2026](https://www.cpf.gov.sg/service/article/what-are-the-changes-to-the-cpf-contribution-rates-for-senior-workers-from-1-january-2026)
+- [Changes to CPF contribution rates for senior workers from 1 January 2027](https://www.cpf.gov.sg/service/article/what-are-the-changes-to-the-cpf-contribution-rates-for-senior-workers-that-will-take-effect-from-1-january-2027)
+- [CPF Allocation Rates from 1 January 2026 (PDF)](https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/CPFAllocationRatesfromJanuary2026.pdf)
+- [CPF Contribution Rate Table from 1 January 2026 (PDF)](https://www.cpf.gov.sg/content/dam/web/employer/employer-obligations/documents/CPFcontributionratesfrom1Jan2026.pdf)
+- [CPF interest rates from 1 Jan to 31 Mar 2026 and BHS for 2026](https://www.cpf.gov.sg/member/infohub/news/news-releases/cpf-interest-rates-from-1-january-to-31-march-2026-and-basic-healthcare-sum-for-2026)
+- [What are the CPF interest rates?](https://www.cpf.gov.sg/service/article/what-are-the-cpf-interest-rates)
+- [4% floor rate extended to 31 December 2027](https://www.cpf.gov.sg/member/infohub/news/news-releases/government-extends-4-per-cent-interest-rate-floor-on-special-medisave-and-retirement-account-monies-until-31-december-2027)
+- [CPF changes announced in Budget 2026](https://www.cpf.gov.sg/member/infohub/educational-resources/cpf-changes-announced-in-budget2026-and-what-it-means-for-you)
+- [DBS: Key CPF changes in 2026](https://www.dbs.com.sg/personal/articles/nav/retirement/cpf-changes-in-2026)
+- [Endowus: CPF retirement sums (2027 figures)](https://endowus.com/insights/cpf-retirement-sum-explained)
+- [numbers.sg: CPF contribution and allocation rates 2026 and 2027](https://numbers.sg/rates/cpf-contribution-rates/)
