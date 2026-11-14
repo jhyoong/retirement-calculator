@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { RetirementExpense, Loan, OneTimeExpense } from '@/types'
+import { generateId } from '@/utils/generateId'
 import { DEFAULT_LIVING_EXPENSES, DEFAULT_INFLATION_RATE } from '@/utils/constants'
 
 export const useExpenseStore = defineStore('expense', () => {
@@ -8,7 +9,7 @@ export const useExpenseStore = defineStore('expense', () => {
   const expenses = ref<RetirementExpense[]>([
     // Default expense
     {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: 'Living Expenses',
       category: 'living',
       monthlyAmount: DEFAULT_LIVING_EXPENSES,
@@ -64,7 +65,7 @@ export const useExpenseStore = defineStore('expense', () => {
   function addExpense(expense: Omit<RetirementExpense, 'id'>): string {
     const newExpense: RetirementExpense = {
       ...expense,
-      id: crypto.randomUUID()
+      id: generateId()
     }
     expenses.value.push(newExpense)
     return newExpense.id
@@ -97,7 +98,7 @@ export const useExpenseStore = defineStore('expense', () => {
   function resetToDefaults() {
     expenses.value = [
       {
-        id: crypto.randomUUID(),
+        id: generateId(),
         name: 'Living Expenses',
         category: 'living',
         monthlyAmount: DEFAULT_LIVING_EXPENSES,
@@ -119,7 +120,7 @@ export const useExpenseStore = defineStore('expense', () => {
   function addLoan(loan: Omit<Loan, 'id'>): string {
     const newLoan: Loan = {
       ...loan,
-      id: crypto.randomUUID()
+      id: generateId()
     }
     loans.value.push(newLoan)
     return newLoan.id
@@ -147,7 +148,7 @@ export const useExpenseStore = defineStore('expense', () => {
   function addOneTimeExpense(expense: Omit<OneTimeExpense, 'id'>): string {
     const newExpense: OneTimeExpense = {
       ...expense,
-      id: crypto.randomUUID()
+      id: generateId()
     }
     oneTimeExpenses.value.push(newExpense)
     return newExpense.id

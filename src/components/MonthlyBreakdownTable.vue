@@ -5,7 +5,7 @@
         Monthly Breakdown
       </h3>
 
-      <div class="flex items-center gap-2 sm:gap-4">
+      <div class="hidden lg:flex items-center gap-4">
         <!-- Compact Mode Toggle -->
         <button
           @click="compactMode = !compactMode"
@@ -152,10 +152,13 @@
       </div>
     </div>
 
+    <!-- Small screens (incl. phones in landscape): one card per year -->
+    <YearlyBreakdownCards class="lg:hidden" :monthly-data="monthlyData" />
+
     <!-- Table Container with Scroll Indicators -->
     <div
       ref="tableContainer"
-      class="relative overflow-x-auto"
+      class="relative overflow-x-auto hidden lg:block"
       @scroll="handleScroll"
     >
       <!-- Left Shadow Indicator -->
@@ -263,14 +266,6 @@
     <div class="mt-4 text-xs sm:text-sm text-gray-500">
       Showing {{ monthlyData.length }} months
     </div>
-
-    <!-- Mobile scroll hint -->
-    <div v-if="showRightShadow" class="mt-2 text-xs text-amber-600 sm:hidden flex items-center gap-1">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-      </svg>
-      <span>Scroll right to see more columns</span>
-    </div>
   </div>
 </template>
 
@@ -278,6 +273,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import type { MonthlyDataPoint } from '@/types'
 import { useCPFStore } from '@/stores/cpf'
+import YearlyBreakdownCards from './YearlyBreakdownCards.vue'
 
 interface Props {
   monthlyData: MonthlyDataPoint[]

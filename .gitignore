@@ -26,3 +26,5 @@ dist-ssr
 # dev
 endgoal.md
 wrangler.toml
+# Brainstorming mockups
+.superpowers/
