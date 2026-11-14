@@ -54,6 +54,22 @@
         />
       </div>
 
+      <label class="mt-4 flex items-start gap-2 text-sm text-gray-700">
+        <input
+          id="taxEnabled"
+          type="checkbox"
+          :checked="store.taxEnabled"
+          @change="store.updateTaxEnabled(($event.target as HTMLInputElement).checked)"
+          class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        >
+        <span>
+          Deduct Singapore income tax (resident rates)
+          <span class="block text-xs text-gray-500">
+            Tax on each year's income is paid over the following year. Covers earned income relief and CPF relief only.
+          </span>
+        </span>
+      </label>
+
       <div class="mt-4 p-3 bg-blue-50 rounded-md text-sm text-blue-900">
         <p>
           <strong>Note:</strong> To add income and contributions, use the "Income Sources" tab.

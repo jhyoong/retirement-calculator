@@ -170,14 +170,18 @@ export const DATE_PADDING_LENGTH = 2;
 /** Default CPF Life plan */
 export const DEFAULT_CPF_PLAN = 'standard' as const;
 
-/** CPF Life Basic Plan payout multiplier (15% higher initial) */
-export const CPF_BASIC_PLAN_MULTIPLIER = 1.15;
-
-/** CPF Life Escalating Plan payout multiplier (15% lower initial) */
-export const CPF_ESCALATING_PLAN_MULTIPLIER = 0.85;
+/**
+ * CPF Life Escalating Plan payout multiplier (initial payout about 20% lower than Standard).
+ * Source: "the initial payout is about 20% lower than the Standard Plan but increases by about 2% p.a."
+ * https://www.cpf.gov.sg/member/infohub/educational-resources/how-to-use-cpf-life-as-the-cornerstone-of-your-retirement-planning
+ */
+export const CPF_ESCALATING_PLAN_MULTIPLIER = 0.8;
 
 /** CPF Life Standard Plan payout multiplier (baseline) */
 export const CPF_STANDARD_PLAN_MULTIPLIER = 1.0;
 
-/** CPF Life Escalating Plan annual increase rate (2% per year) */
+/**
+ * CPF Life Escalating Plan annual increase rate (2% per year).
+ * Source: https://www.cpf.gov.sg/member/retirement-income/monthly-payouts/cpf-life
+ */
 export const CPF_ESCALATION_RATE = 0.02;

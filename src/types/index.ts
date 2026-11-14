@@ -32,6 +32,8 @@ export interface UserData {
   oneTimeExpenses?: OneTimeExpense[];
   // Phase 6 additions
   cpf?: CPFData;
+  /** Deduct Singapore resident income tax (default true when undefined) */
+  taxEnabled?: boolean;
 }
 
 export interface RetirementData {
@@ -49,6 +51,20 @@ export interface CalculationResult {
   yearsUntilDepletion: number | null; // null means sustainable/never depletes
   depletionAge: number | null; // exact age when portfolio depletes, null if sustainable
   sustainabilityWarning: boolean; // true if withdrawal rate is too high (>4-5%)
+  // CPF LIFE payout estimate at the payout age (null if CPF disabled)
+  cpfLife?: CPFLifeEstimate | null;
+}
+
+export interface CPFLifeEstimate {
+  /** Age when payouts start */
+  age: number;
+  /** Chosen payout age (65 or 70) */
+  payoutAge: 65 | 70;
+  /** RA balance at the payout age (used as the CPF LIFE premium) */
+  raBalance: number;
+  /** First-year monthly payout */
+  monthlyPayout: number;
+  plan: 'standard' | 'basic' | 'escalating';
 }
 
 export interface ValidationError {
@@ -97,7 +113,8 @@ export interface MonthlyDataPoint {
   contributions: number; // Total net contributions up to this month (income - expenses)
   portfolioValue: number; // Portfolio value at end of month
   growth: number; // Growth this month (investment returns)
-  cpfLifeIncome?: number; // CPF Life income this month (from age 65, if CPF enabled)
+  incomeTax?: number; // Income tax paid this month (previous year's tax spread over 12 months)
+  cpfLifeIncome?: number; // CPF Life income this month (from the payout age, if CPF enabled)
   cpf?: CPFMonthlySnapshot; // CPF tracking (optional, only if CPF enabled)
 }
 
@@ -113,17 +130,6 @@ export interface RetirementExpense {
   inflationRate: number; // Annual inflation rate as decimal (e.g., 0.03 for 3%)
   startDate?: string; // YYYY-MM format, optional - defaults to current month
   endDate?: string; // YYYY-MM format, optional - defaults to ongoing
-}
-
-export interface PostRetirementDataPoint {
-  monthIndex: number; // 0-based index from retirement
-  year: number;
-  month: number; // 1-12
-  age: number;
-  expenses: number; // Total expenses this month (inflation-adjusted)
-  cpfLifeIncome?: number; // CPF Life income this month (from age 65)
-  portfolioValue: number; // Portfolio value at end of month
-  growth: number; // Investment growth this month
 }
 
 // Phase 5 Type Definitions
@@ -193,6 +199,12 @@ export interface CPFData {
 
   /** CPF Life plan type (affects payout structure) */
   cpfLifePlan: 'standard' | 'basic' | 'escalating';
+
+  /**
+   * Basic plan monthly payout as a % of the Standard plan payout (1-100).
+   * Entered by the user because CPF does not publish a fixed figure. Required when cpfLifePlan is 'basic'.
+   */
+  basicPlanPayoutPercent?: number;
 
   /**
    * Government-mandated age when CPF Life payouts begin (65 or 70).

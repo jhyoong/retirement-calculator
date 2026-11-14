@@ -1,17 +1,11 @@
-import type { UserData, CalculationResult, ValidationResult, ValidationError, IncomeStream, OneOffReturn, CPFAccounts } from '@/types'
-import { getLoanPaymentForMonth } from './loanCalculations'
-import { calculateCPFContribution } from './cpfContributions'
-import { applyMonthlyInterest } from './cpfInterest'
-import { handleAge55Transition, applyPost55Contribution } from './cpfTransitions'
+import type { UserData, CalculationResult, ValidationResult, ValidationError, IncomeStream, OneOffReturn, CPFLifeEstimate } from '@/types'
+import { runProjection, projectCPFLifeStart } from './projectionEngine'
+import { getCPFLifePayoutForYear } from './cpfLife'
 import {
   MONTHS_PER_YEAR,
-  WEEKS_PER_YEAR,
-  AVERAGE_DAYS_PER_MONTH,
-  DAYS_PER_YEAR,
   roundToTwoDecimals,
   MIN_AGE,
   MAX_AGE,
-  CPF_AGE_55,
   MIN_YEAR,
   MAX_YEAR,
   MIN_MONTH,
@@ -427,6 +421,17 @@ export function validateInputs(data: UserData): ValidationResult {
       errors.push({ field: 'cpf.retirementAccount', message: 'RA balance cannot be negative' })
     }
 
+    // Basic plan needs a user-entered payout % (CPF publishes no fixed figure)
+    if (data.cpf.cpfLifePlan === 'basic') {
+      const pct = data.cpf.basicPlanPayoutPercent
+      if (pct === undefined || pct === null || !(pct > 0) || pct > 100) {
+        errors.push({
+          field: 'cpf.basicPlanPayoutPercent',
+          message: 'Enter the Basic plan payout as a % of the Standard plan (1-100).'
+        })
+      }
+    }
+
     // Warn if CPF enabled but no CPF-eligible income
     const hasCPFEligibleIncome = data.incomeSources?.some(source => source.cpfEligible === true) ?? false
     if (!hasCPFEligibleIncome) {
@@ -444,41 +449,8 @@ export function validateInputs(data: UserData): ValidationResult {
 }
 
 /**
- * Helper: Convert frequency to monthly amount
- */
-function convertToMonthly(
-  amount: number,
-  frequency: string,
-  customDays?: number
-): number {
-  switch (frequency) {
-    case 'daily':
-      return amount * AVERAGE_DAYS_PER_MONTH
-    case 'weekly':
-      return amount * WEEKS_PER_YEAR / MONTHS_PER_YEAR
-    case 'monthly':
-      return amount
-    case 'yearly':
-      return amount / MONTHS_PER_YEAR
-    case 'custom':
-      if (!customDays || customDays <= 0) return 0
-      return (amount * DAYS_PER_YEAR) / customDays / MONTHS_PER_YEAR
-    default:
-      return 0
-  }
-}
-
-/**
- * Helper: Parse YYYY-MM date string to month index from start
- */
-function parseMonthDate(dateStr: string, baseYear: number, baseMonth: number): number {
-  const [year, month] = dateStr.split('-').map(Number)
-  return (year - baseYear) * MONTHS_PER_YEAR + (month - baseMonth)
-}
-
-/**
- * Calculate future value with time-based income sources
- * Month-by-month calculation considering variable income streams
+ * Calculate future value with time-based income sources.
+ * Thin wrapper over the shared projection engine (see projectionEngine.ts).
  */
 export function calculateFutureValueWithIncomeSources(
   principal: number,
@@ -490,211 +462,38 @@ export function calculateFutureValueWithIncomeSources(
   expenses?: import('@/types').RetirementExpense[],
   loans?: import('@/types').Loan[],
   oneTimeExpenses?: import('@/types').OneTimeExpense[],
-  cpfData?: import('@/types').CPFData
+  cpfData?: import('@/types').CPFData,
+  taxEnabled: boolean = true
 ): { futureValue: number; totalContributions: number } {
-  const monthlyRate = annualRate / MONTHS_PER_YEAR
-  const months = years * MONTHS_PER_YEAR
-  const currentYear = new Date().getFullYear()
-  const currentMonth = new Date().getMonth() + 1 // Current month (1-12)
-
-  let balance = principal
-  let totalContributions = principal
-
-  // CPF tracking (optional)
-  const cpfEnabled = cpfData?.enabled ?? false
-  let cpfAccounts: CPFAccounts = cpfEnabled && cpfData
-    ? { ...cpfData.currentBalances }
-    : { ordinaryAccount: 0, specialAccount: 0, medisaveAccount: 0, retirementAccount: 0 }
-  let yearToDateCPFContributions = 0
-  let hasCompletedAge55Transition = cpfAccounts.retirementAccount > 0
-  let cumulativeHousingUsage = 0
-
-  // Process month by month
-  for (let month = 0; month < months; month++) {
-    // Calculate current age
-    const age = currentAge + Math.floor(month / MONTHS_PER_YEAR)
-
-    // CPF: Reset year-to-date contributions in January
-    if (cpfEnabled && month > 0) {
-      const monthOffset = month % MONTHS_PER_YEAR
-      const monthNum = currentMonth + monthOffset
-      const adjustedMonth = monthNum > MONTHS_PER_YEAR ? ((monthNum - 1) % MONTHS_PER_YEAR) + 1 : monthNum
-      if (adjustedMonth === 1) {
-        yearToDateCPFContributions = 0
-      }
-    }
-
-    // CPF: Check for age 55 transition (happens once)
-    if (cpfEnabled && age >= CPF_AGE_55 && !hasCompletedAge55Transition) {
-      const transition = handleAge55Transition(cpfAccounts, cpfData!.retirementSumTarget)
-      cpfAccounts = transition.accounts
-      hasCompletedAge55Transition = true
-    }
-
-    // Add returns from income sources active in this month
-    let monthlyContribution = 0
-
-    incomeSources.forEach(source => {
-      const startMonth = parseMonthDate(source.startDate, currentYear, currentMonth)
-      const endMonth = source.endDate
-        ? parseMonthDate(source.endDate, currentYear, currentMonth)
-        : months + 1 // Ongoing
-
-      if (month >= startMonth && month < endMonth) {
-        monthlyContribution += convertToMonthly(
-          source.amount,
-          source.frequency,
-          source.customFrequencyDays
-        )
-      }
-    })
-
-    // Add one-off returns if they occur in this month
-    oneOffReturns.forEach(oneOff => {
-      const returnMonth = parseMonthDate(oneOff.date, currentYear, currentMonth)
-      if (month === returnMonth) {
-        monthlyContribution += oneOff.amount
-      }
-    })
-
-    // CPF: Calculate CPF contribution from CPF-eligible income
-    let cpfContribution = {
-      employee: 0,
-      employer: 0,
-      total: 0,
-      allocation: { toOA: 0, toSA: 0, toMA: 0, toRA: 0 }
-    }
-    if (cpfEnabled) {
-      // Extract CPF-eligible income
-      let cpfEligibleIncome = 0
-      incomeSources.forEach(source => {
-        if (source.cpfEligible) {
-          const startMonth = parseMonthDate(source.startDate, currentYear, currentMonth)
-          const endMonth = source.endDate
-            ? parseMonthDate(source.endDate, currentYear, currentMonth)
-            : months + 1
-          if (month >= startMonth && month < endMonth) {
-            cpfEligibleIncome += convertToMonthly(
-              source.amount,
-              source.frequency,
-              source.customFrequencyDays
-            )
-          }
-        }
-      })
-
-      // Calculate CPF contribution if there's CPF-eligible income
-      if (cpfEligibleIncome > 0) {
-        cpfContribution = calculateCPFContribution(cpfEligibleIncome, age, yearToDateCPFContributions)
-
-        // Employee contribution reduces take-home pay (employer portion doesn't affect cash flow)
-        monthlyContribution -= cpfContribution.employee
-
-        // Track year-to-date contributions
-        yearToDateCPFContributions += cpfContribution.total
-
-        // Add contributions to CPF accounts
-        if (age >= CPF_AGE_55) {
-          cpfAccounts = applyPost55Contribution(cpfAccounts, cpfContribution.allocation)
-        } else {
-          cpfAccounts.ordinaryAccount += cpfContribution.allocation.toOA
-          cpfAccounts.specialAccount += cpfContribution.allocation.toSA
-          cpfAccounts.medisaveAccount += cpfContribution.allocation.toMA
-        }
-      }
-    }
-
-    // Calculate expenses for this month
-    let monthlyExpenses = 0
-    if (expenses && expenses.length > 0) {
-      expenses.forEach(expense => {
-        // Determine if expense is active in this month
-        const startMonth = expense.startDate
-          ? parseMonthDate(expense.startDate, currentYear, currentMonth)
-          : 0 // Start immediately if no start date
-        const endMonth = expense.endDate
-          ? parseMonthDate(expense.endDate, currentYear, currentMonth)
-          : months + 1 // Ongoing if no end date
-
-        if (month >= startMonth && month < endMonth) {
-          // Calculate inflation from expense start
-          const monthsFromExpenseStart = Math.max(0, month - startMonth)
-          const yearsFromExpenseStart = monthsFromExpenseStart / 12
-          const inflatedAmount = expense.monthlyAmount * Math.pow(1 + expense.inflationRate, yearsFromExpenseStart)
-          monthlyExpenses += inflatedAmount
-        }
-      })
-    }
-
-    // Phase 5: Add loan payments for this month
-    let housingLoanPayment = 0
-    if (loans && loans.length > 0) {
-      const yearOffset = Math.floor(month / MONTHS_PER_YEAR)
-      const monthOffset = month % MONTHS_PER_YEAR
-      const year = currentYear + yearOffset
-      const monthNum = currentMonth + monthOffset
-      const adjustedYear = monthNum > MONTHS_PER_YEAR ? year + Math.floor((monthNum - 1) / MONTHS_PER_YEAR) : year
-      const adjustedMonth = monthNum > MONTHS_PER_YEAR ? ((monthNum - 1) % MONTHS_PER_YEAR) + 1 : monthNum
-
-      loans.forEach(loan => {
-        const payment = getLoanPaymentForMonth(loan, adjustedYear, adjustedMonth)
-        if (loan.category === 'housing') {
-          housingLoanPayment += payment
-        }
-        monthlyExpenses += payment
-      })
-    }
-
-    // CPF: Use OA for housing loan payment if available
-    if (cpfEnabled && housingLoanPayment > 0) {
-      const oaUsedForHousing = Math.min(cpfAccounts.ordinaryAccount, housingLoanPayment)
-      if (oaUsedForHousing > 0) {
-        cpfAccounts.ordinaryAccount -= oaUsedForHousing
-        monthlyExpenses -= oaUsedForHousing // Reduce cash expenses by OA usage
-        cumulativeHousingUsage += oaUsedForHousing
-      }
-    }
-
-    // Phase 5: Add one-time expenses if they occur in this month
-    if (oneTimeExpenses && oneTimeExpenses.length > 0) {
-      oneTimeExpenses.forEach(expense => {
-        const expenseMonth = parseMonthDate(expense.date, currentYear, currentMonth)
-        if (month === expenseMonth) {
-          monthlyExpenses += expense.amount
-        }
-      })
-    }
-
-    // Calculate net cash flow
-    const netContribution = monthlyContribution - monthlyExpenses
-
-    // Add net cash flow to balance
-    balance += netContribution
-
-    // Update total contributions
-    // Only add to contributions when net is positive (money flowing IN)
-    // When expenses exceed income, we're withdrawing, not contributing
-    const positiveContribution = Math.max(0, netContribution)
-    totalContributions += positiveContribution
-
-    // Apply interest
-    balance = balance * (1 + monthlyRate)
-
-    // CPF: Apply monthly interest to CPF accounts
-    if (cpfEnabled) {
-      cpfAccounts = applyMonthlyInterest(cpfAccounts, age)
-    }
-  }
+  const run = runProjection(
+    {
+      currentAge,
+      retirementAge: currentAge + years,
+      currentSavings: principal,
+      expectedReturnRate: annualRate,
+      inflationRate: 0,
+      incomeSources,
+      oneOffReturns,
+      expenses,
+      loans,
+      oneTimeExpenses,
+      cpf: cpfData,
+      taxEnabled
+    },
+    years * MONTHS_PER_YEAR
+  )
 
   return {
-    futureValue: roundToTwoDecimals(balance),
-    totalContributions: roundToTwoDecimals(totalContributions)
+    futureValue: roundToTwoDecimals(run.finalBalance),
+    totalContributions: roundToTwoDecimals(run.totalContributions)
   }
 }
 
 /**
  * Phase 4: Calculate post-retirement portfolio sustainability
- * Returns depletion info, or null values if sustainable
+ * Returns depletion info, or null values if sustainable.
+ * If cpfLife is given, CPF LIFE payouts (with Escalating plan growth) are
+ * income from cpfLife.age onwards and reduce the monthly withdrawal.
  */
 export function calculateYearsUntilDepletion(
   startingBalance: number,
@@ -702,7 +501,8 @@ export function calculateYearsUntilDepletion(
   expenses: import('@/types').RetirementExpense[],
   retirementAge: number,
   currentAge: number,
-  maxAge: number = DEFAULT_MAX_AGE
+  maxAge: number = DEFAULT_MAX_AGE,
+  cpfLife: CPFLifeEstimate | null = null
 ): { yearsUntilDepletion: number | null; depletionAge: number | null } {
   const monthlyRate = annualReturnRate / MONTHS_PER_YEAR
   let balance = startingBalance
@@ -751,16 +551,28 @@ export function calculateYearsUntilDepletion(
       }
     })
 
-    // Check if balance can cover expenses
-    if (balance < monthlyExpenses) {
+    // CPF LIFE payouts offset expenses from the payout start age
+    const age = retirementAge + monthIndex / MONTHS_PER_YEAR
+    let cpfLifeIncome = 0
+    if (cpfLife && cpfLife.monthlyPayout > 0 && age >= cpfLife.age) {
+      cpfLifeIncome = getCPFLifePayoutForYear(
+        cpfLife.monthlyPayout,
+        Math.floor(age - cpfLife.age),
+        cpfLife.plan
+      )
+    }
+    const withdrawal = monthlyExpenses - cpfLifeIncome
+
+    // Check if balance can cover the withdrawal
+    if (balance < withdrawal) {
       // Portfolio depleted - calculate exact age
       const yearsFromRetirement = roundToTwoDecimals(monthIndex / MONTHS_PER_YEAR)
       const depletionAge = roundToTwoDecimals(currentAge + ((retirementAge - currentAge) * MONTHS_PER_YEAR + monthIndex) / MONTHS_PER_YEAR)
       return { yearsUntilDepletion: yearsFromRetirement, depletionAge }
     }
 
-    // Withdraw expenses from portfolio
-    balance -= monthlyExpenses
+    // Withdraw expenses (net of CPF LIFE income) from portfolio
+    balance -= withdrawal
 
     // Apply investment returns on remaining balance
     balance = balance * (1 + monthlyRate)
@@ -785,7 +597,8 @@ export function checkSustainabilityWarning(
   portfolioValue: number,
   annualExpenses: number
 ): boolean {
-  if (portfolioValue === 0) return true
+  // An empty or negative portfolio cannot sustain any withdrawals
+  if (portfolioValue <= 0) return true
   const expenseRate = annualExpenses / portfolioValue
   return expenseRate > SUSTAINABLE_WITHDRAWAL_RATE
 }
@@ -833,20 +646,13 @@ export function calculateRetirement(data: UserData): CalculationResult {
   const actualRetirementAge = findActualRetirementAge(data)
   const yearsToActualRetirement = actualRetirementAge - data.currentAge
 
-  const result = calculateFutureValueWithIncomeSources(
-    data.currentSavings,
-    data.expectedReturnRate,
-    yearsToActualRetirement,
-    data.currentAge,
-    data.incomeSources || [],
-    data.oneOffReturns || [],
-    data.expenses,
-    data.loans,
-    data.oneTimeExpenses,
-    data.cpf
-  )
-  const futureValue = result.futureValue
-  const totalContributions = result.totalContributions
+  // Shared engine (same loop as the monthly chart/table)
+  const run = runProjection(data, yearsToActualRetirement * MONTHS_PER_YEAR)
+  const futureValue = roundToTwoDecimals(run.finalBalance)
+  const totalContributions = roundToTwoDecimals(run.totalContributions)
+
+  // CPF LIFE payout at the payout age (CPF is projected past retirement if needed)
+  const cpfLife = run.cpfLifeStart ?? projectCPFLifeStart(data)
 
   const investmentGrowth = futureValue - totalContributions
 
@@ -864,14 +670,14 @@ export function calculateRetirement(data: UserData): CalculationResult {
 
   if (data.expenses && data.expenses.length > 0) {
     // Use actual retirement age (when income truly stops)
-    const actualRetirementAge = findActualRetirementAge(data)
-
     const depletionResult = calculateYearsUntilDepletion(
       futureValue,
       data.expectedReturnRate,
       data.expenses,
       actualRetirementAge,
-      data.currentAge
+      data.currentAge,
+      DEFAULT_MAX_AGE,
+      cpfLife
     )
     yearsUntilDepletion = depletionResult.yearsUntilDepletion
     depletionAge = depletionResult.depletionAge
@@ -905,6 +711,7 @@ export function calculateRetirement(data: UserData): CalculationResult {
     yearsToRetirement,
     yearsUntilDepletion,
     depletionAge,
-    sustainabilityWarning
+    sustainabilityWarning,
+    cpfLife
   }
 }

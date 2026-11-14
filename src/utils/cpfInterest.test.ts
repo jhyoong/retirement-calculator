@@ -3,7 +3,9 @@ import {
   calculateMonthlyInterest,
   calculateExtraInterest,
   applyMonthlyInterest,
-  getEffectiveInterestRate
+  getEffectiveInterestRate,
+  accrueMonthlyInterest,
+  creditInterest
 } from './cpfInterest';
 import type { CPFAccounts } from '@/types';
 
@@ -199,10 +201,10 @@ describe('CPF Interest', () => {
   describe('calculateExtraInterest - Age 55+', () => {
     it('should earn +2% on first $30k', () => {
       const accounts: CPFAccounts = {
-        ordinaryAccount: 30000,
+        ordinaryAccount: 0,
         specialAccount: 0,
         medisaveAccount: 0,
-        retirementAccount: 0
+        retirementAccount: 30000
       };
       const result = calculateExtraInterest(accounts, 55);
 
@@ -212,9 +214,9 @@ describe('CPF Interest', () => {
 
     it('should earn +1% on next $30k', () => {
       const accounts: CPFAccounts = {
-        ordinaryAccount: 30000,
+        ordinaryAccount: 0,
         specialAccount: 0,
-        medisaveAccount: 0,
+        medisaveAccount: 30000,
         retirementAccount: 30000
       };
       const result = calculateExtraInterest(accounts, 55);
@@ -303,10 +305,10 @@ describe('CPF Interest', () => {
       const result = applyMonthlyInterest(accounts, 40);
 
       // Base: OA 62.5, SA 100
-      // Extra: Only 50k eligible (20k OA + 30k SA), 50k * 0.01 / 12 = 41.67
-      // Extra distributed proportionally to eligible: OA gets 40% (16.67), SA gets 60% (25.00)
-      expect(result.ordinaryAccount).toBe(30079.17); // 30000 + 62.5 + 16.67
-      expect(result.specialAccount).toBe(30125.00); // 30000 + 100 + 25.00
+      // Extra: 50k eligible (20k OA + 30k SA), 50k * 0.01 / 12 = 41.67
+      // Extra earned on OA (16.67) goes to SA, not OA
+      expect(result.ordinaryAccount).toBe(30062.5); // 30000 + 62.5
+      expect(result.specialAccount).toBe(30141.67); // 30000 + 100 + 25 + 16.67
     });
 
     it('should update all account balances', () => {
@@ -323,7 +325,7 @@ describe('CPF Interest', () => {
       expect(result.medisaveAccount).toBeGreaterThan(10000);
     });
 
-    it('should distribute extra interest proportionally', () => {
+    it('should route OA extra interest to SA below 55', () => {
       const accounts: CPFAccounts = {
         ordinaryAccount: 20000, // 50% of total
         specialAccount: 20000, // 50% of total
@@ -332,12 +334,11 @@ describe('CPF Interest', () => {
       };
       const result = applyMonthlyInterest(accounts, 40);
 
-      // Extra interest = 40k * 0.01 / 12 = 33.33
-      // Split equally: 16.67 each
-      // OA gets: 20000 + 41.67 (base) + 16.67 (extra) = 20058.34
-      // SA gets: 20000 + 66.67 (base) + 16.67 (extra) = 20083.34
-      expect(result.ordinaryAccount).toBe(20058.34);
-      expect(result.specialAccount).toBe(20083.34);
+      // Extra interest = 40k * 0.01 / 12 = 33.33, all credited to SA
+      // OA gets: 20000 + 41.67 (base) = 20041.67
+      // SA gets: 20000 + 66.67 (base) + 33.33 (extra) = 20100
+      expect(result.ordinaryAccount).toBe(20041.67);
+      expect(result.specialAccount).toBe(20100);
     });
 
     it('should handle accounts with zero balance', () => {
@@ -439,6 +440,102 @@ describe('CPF Interest', () => {
       // Should be close to OA rate (2.5%) plus some extra interest
       expect(result.effective).toBeGreaterThan(0.025);
       expect(result.effective).toBeLessThan(0.035);
+    });
+  });
+
+  describe('extra interest OA cap for 55+', () => {
+    it('caps OA at $20k for age 55+', () => {
+      const accounts: CPFAccounts = {
+        ordinaryAccount: 60000,
+        specialAccount: 0,
+        medisaveAccount: 0,
+        retirementAccount: 0
+      };
+      // Only 20k of OA eligible: 20000 * 0.02 / 12 = 33.33
+      expect(calculateExtraInterest(accounts, 60, 2026)).toBe(33.33);
+    });
+  });
+
+  describe('accrueMonthlyInterest', () => {
+    it('below 55: OA extra goes to SA, SA/MA extra stays', () => {
+      const accounts: CPFAccounts = {
+        ordinaryAccount: 30000,
+        specialAccount: 20000,
+        medisaveAccount: 30000,
+        retirementAccount: 0
+      };
+      const result = accrueMonthlyInterest(accounts, 40, 2026);
+
+      // Base: OA 30000*2.5%/12 = 62.5, SA 20000*4%/12 = 66.67, MA 30000*4%/12 = 100
+      // Extra (1% on 60k, order OA 20k, SA 20k, MA 20k): 16.67 each
+      // OA extra -> SA
+      expect(result.oa).toBe(62.5);
+      expect(result.sa).toBe(100); // 66.67 + 16.67 + 16.67
+      expect(result.ma).toBe(116.67); // 100 + 16.67
+      expect(result.ra).toBe(0);
+      expect(result.extraInterest).toBe(50);
+      expect(result.total).toBe(279.17);
+    });
+
+    it('55+: RA first, OA capped at 20k, OA extra goes to RA', () => {
+      const accounts: CPFAccounts = {
+        ordinaryAccount: 30000,
+        specialAccount: 0,
+        medisaveAccount: 10000,
+        retirementAccount: 25000
+      };
+      const result = accrueMonthlyInterest(accounts, 60, 2026);
+
+      // Extra: RA 25k at 2% = 41.67
+      //        OA 20k: 5k at 2% + 15k at 1% = 20.83 -> RA
+      //        MA 10k (within remaining 15k) at 1% = 8.33
+      // Base: OA 62.5, RA 83.33, MA 33.33
+      expect(result.oa).toBe(62.5);
+      expect(result.ra).toBe(145.83); // 83.33 + 41.67 + 20.83
+      expect(result.ma).toBe(41.67); // 33.33 + 8.33
+      expect(result.sa).toBe(0);
+      expect(result.extraInterest).toBe(70.83);
+    });
+
+    it('no SA base interest at 55+ and no RA base interest below 55', () => {
+      const accounts: CPFAccounts = {
+        ordinaryAccount: 0,
+        specialAccount: 100000,
+        medisaveAccount: 0,
+        retirementAccount: 100000
+      };
+      expect(accrueMonthlyInterest(accounts, 60, 2026).sa).toBe(0);
+      expect(accrueMonthlyInterest(accounts, 40, 2026).ra).toBe(0);
+    });
+  });
+
+  describe('creditInterest', () => {
+    it('credits a year of accrued interest at once', () => {
+      const accounts: CPFAccounts = {
+        ordinaryAccount: 10000,
+        specialAccount: 10000,
+        medisaveAccount: 10000,
+        retirementAccount: 0
+      };
+
+      // Accrue 12 months on the same balances, credit at year end
+      const yearly = { oa: 0, sa: 0, ma: 0, ra: 0 };
+      for (let m = 0; m < 12; m++) {
+        const a = accrueMonthlyInterest(accounts, 40, 2026);
+        yearly.oa += a.oa;
+        yearly.sa += a.sa;
+        yearly.ma += a.ma;
+        yearly.ra += a.ra;
+      }
+      const result = creditInterest(accounts, yearly);
+
+      // OA: 10000 * 2.5% = 250 (OA extra 1% of 10k = 100 goes to SA)
+      // SA: 10000 * 4% + 100 (own extra) + 100 (OA extra) = 600
+      // MA: 10000 * 4% + 100 = 500
+      expect(result.ordinaryAccount).toBeCloseTo(10250, 0);
+      expect(result.specialAccount).toBeCloseTo(10600, 0);
+      expect(result.medisaveAccount).toBeCloseTo(10500, 0);
+      expect(result.retirementAccount).toBe(0);
     });
   });
 });

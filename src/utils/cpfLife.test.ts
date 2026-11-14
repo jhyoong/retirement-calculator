@@ -6,86 +6,104 @@ import {
   calculateRADepletion,
   compareCPFLifeStrategies
 } from './cpfLife'
-import { CPF_CONFIG_2025 } from './cpfConfig'
+import { CPF_ESCALATING_PLAN_MULTIPLIER } from './constants'
 
 describe('CPF Life', () => {
-  describe('estimateCPFLifePayout', () => {
-    test('estimates payout for BRS ($106,500) → ~$900/month', () => {
-      const payout = estimateCPFLifePayout(106500, 'standard')
-      expect(payout).toBeGreaterThan(850)
-      expect(payout).toBeLessThan(950)
+  describe('estimateCPFLifePayout (2026 cohort)', () => {
+    const BRS = 110200
+    const FRS = 220400
+    const ERS = 440800
+
+    test('BRS ($110,200) at 65 → midpoint of $890-$930', () => {
+      expect(estimateCPFLifePayout(BRS, 'standard')).toBe(910)
     })
 
-    test('estimates payout for FRS ($213,000) → ~$1,700/month', () => {
-      const payout = estimateCPFLifePayout(213000, 'standard')
-      expect(payout).toBeGreaterThan(1600)
-      expect(payout).toBeLessThan(1800)
+    test('FRS ($220,400) at 65 → midpoint of $1,640-$1,750', () => {
+      expect(estimateCPFLifePayout(FRS, 'standard')).toBe(1695)
     })
 
-    test('estimates payout for ERS ($426,000) → ~$3,200/month', () => {
-      const payout = estimateCPFLifePayout(426000, 'standard')
-      expect(payout).toBeGreaterThan(3000)
-      expect(payout).toBeLessThan(3400)
+    test('ERS ($440,800) at 65 → midpoint of $3,180-$3,410', () => {
+      expect(estimateCPFLifePayout(ERS, 'standard')).toBe(3295)
     })
 
-    test('handles RA balance below BRS', () => {
-      const payout = estimateCPFLifePayout(50000, 'standard')
-      expect(payout).toBeGreaterThan(0)
-      expect(payout).toBeLessThan(900)
+    test('age 70 uses the age-70 table directly', () => {
+      expect(estimateCPFLifePayout(BRS, 'standard', 70)).toBe(1220)
+      expect(estimateCPFLifePayout(FRS, 'standard', 70)).toBe(2280)
+      expect(estimateCPFLifePayout(ERS, 'standard', 70)).toBe(4375)
     })
 
-    test('handles RA balance above ERS', () => {
-      const payout = estimateCPFLifePayout(500000, 'standard')
-      expect(payout).toBeGreaterThan(3200)
+    test('deferral to 70 increases payout by about 33-35%, not 40%', () => {
+      const ratio = estimateCPFLifePayout(FRS, 'standard', 70) / estimateCPFLifePayout(FRS, 'standard', 65)
+      expect(ratio).toBeGreaterThan(1.3)
+      expect(ratio).toBeLessThan(1.36)
     })
 
-    test('standard plan has baseline multiplier (1.0)', () => {
-      const standardPayout = estimateCPFLifePayout(213000, 'standard')
-      const basicPayout = estimateCPFLifePayout(213000, 'basic')
-      const escalatingPayout = estimateCPFLifePayout(213000, 'escalating')
-
-      // Standard should be between basic (higher) and escalating (lower)
-      expect(standardPayout).toBeLessThan(basicPayout)
-      expect(standardPayout).toBeGreaterThan(escalatingPayout)
+    test('interpolates linearly below BRS from (0,0)', () => {
+      expect(estimateCPFLifePayout(BRS / 2, 'standard')).toBe(455)
     })
 
-    test('basic plan has higher initial payout (1.15x)', () => {
-      const standardPayout = estimateCPFLifePayout(213000, 'standard')
-      const basicPayout = estimateCPFLifePayout(213000, 'basic')
-
-      // Basic should be ~15% higher than standard
-      const ratio = basicPayout / standardPayout
-      expect(ratio).toBeGreaterThan(1.14)
-      expect(ratio).toBeLessThan(1.16)
+    test('interpolates linearly between BRS and FRS', () => {
+      expect(estimateCPFLifePayout((BRS + FRS) / 2, 'standard')).toBe(1302.5)
     })
 
-    test('escalating plan has lower initial payout (0.85x)', () => {
-      const standardPayout = estimateCPFLifePayout(213000, 'standard')
-      const escalatingPayout = estimateCPFLifePayout(213000, 'escalating')
+    test('is continuous around BRS (no drop just above BRS)', () => {
+      const below = estimateCPFLifePayout(BRS - 1, 'standard')
+      const at = estimateCPFLifePayout(BRS, 'standard')
+      const above = estimateCPFLifePayout(BRS + 1, 'standard')
+      expect(at).toBeGreaterThanOrEqual(below)
+      expect(above).toBeGreaterThanOrEqual(at)
+      expect(above - below).toBeLessThan(1)
+    })
 
-      // Escalating should be ~15% lower than standard
-      const ratio = escalatingPayout / standardPayout
-      expect(ratio).toBeGreaterThan(0.84)
-      expect(ratio).toBeLessThan(0.86)
+    test('is continuous around FRS', () => {
+      const below = estimateCPFLifePayout(FRS - 1, 'standard')
+      const at = estimateCPFLifePayout(FRS, 'standard')
+      const above = estimateCPFLifePayout(FRS + 1, 'standard')
+      expect(at).toBeGreaterThanOrEqual(below)
+      expect(above).toBeGreaterThanOrEqual(at)
+      expect(above - below).toBeLessThan(1)
+    })
+
+    test('is non-decreasing across the full range', () => {
+      let prev = 0
+      for (let ra = 0; ra <= ERS; ra += 5000) {
+        const payout = estimateCPFLifePayout(ra, 'standard')
+        expect(payout).toBeGreaterThanOrEqual(prev)
+        prev = payout
+      }
+    })
+
+    test('caps RA at ERS', () => {
+      expect(estimateCPFLifePayout(500000, 'standard')).toBe(3295)
+      expect(estimateCPFLifePayout(1000000, 'standard', 70)).toBe(4375)
+    })
+
+    test('escalating plan starts about 20% lower than standard', () => {
+      const standardPayout = estimateCPFLifePayout(FRS, 'standard')
+      const escalatingPayout = estimateCPFLifePayout(FRS, 'escalating')
+      expect(CPF_ESCALATING_PLAN_MULTIPLIER).toBe(0.8)
+      expect(escalatingPayout).toBeCloseTo(standardPayout * 0.8, 2)
+    })
+
+    test('basic plan applies the user-entered % of Standard', () => {
+      const standardPayout = estimateCPFLifePayout(FRS, 'standard')
+      const basicPayout = estimateCPFLifePayout(FRS, 'basic', 65, 90)
+      expect(basicPayout).toBeCloseTo(standardPayout * 0.9, 2)
+    })
+
+    test('basic plan throws without a valid payout %', () => {
+      expect(() => estimateCPFLifePayout(FRS, 'basic')).toThrow()
+      expect(() => estimateCPFLifePayout(FRS, 'basic', 65, 0)).toThrow()
+      expect(() => estimateCPFLifePayout(FRS, 'basic', 65, 101)).toThrow()
     })
 
     test('handles zero RA balance', () => {
-      const payout = estimateCPFLifePayout(0, 'standard')
-      expect(payout).toBe(0)
-    })
-
-    test('payout scales proportionally with RA balance', () => {
-      const payout1 = estimateCPFLifePayout(100000, 'standard')
-      const payout2 = estimateCPFLifePayout(200000, 'standard')
-
-      // Double the balance should roughly double the payout (within tier)
-      expect(Math.abs(payout2 / payout1 - 2)).toBeLessThan(0.3)
+      expect(estimateCPFLifePayout(0, 'standard')).toBe(0)
     })
 
     test('returns rounded value to 2 decimal places', () => {
-      const payout = estimateCPFLifePayout(213000, 'standard')
-      const rounded = Math.round(payout * 100) / 100
-      expect(payout).toBe(rounded)
+      const payout = estimateCPFLifePayout(123457, 'standard')
+      expect(payout).toBe(Math.round(payout * 100) / 100)
     })
   })
 
@@ -240,7 +258,7 @@ describe('CPF Life', () => {
 
   describe('compareCPFLifeStrategies', () => {
     test('recommends CPF Life when payout meets target', () => {
-      const result = compareCPFLifeStrategies(213000, 1500)
+      const result = compareCPFLifeStrategies(220400, 1500)
 
       expect(result.recommendation).toContain('CPF Life')
       expect(result.cpfLife.monthlyPayout).toBeGreaterThan(1500)
@@ -255,7 +273,7 @@ describe('CPF Life', () => {
     })
 
     test('allows either option when both work', () => {
-      const result = compareCPFLifeStrategies(213000, 1000)
+      const result = compareCPFLifeStrategies(220400, 1000)
 
       // Both should work in this case
       expect(result.cpfLife.monthlyPayout).toBeGreaterThan(1000)
@@ -263,7 +281,7 @@ describe('CPF Life', () => {
     })
 
     test('calculates lifetime payout for 25 years', () => {
-      const result = compareCPFLifeStrategies(213000, 1500)
+      const result = compareCPFLifeStrategies(220400, 1500)
 
       const expectedLifetime = result.cpfLife.monthlyPayout * 25 * 12
       expect(Math.abs(result.cpfLife.totalLifetimePayout - expectedLifetime)).toBeLessThan(1)
@@ -271,13 +289,13 @@ describe('CPF Life', () => {
 
     test('manual withdrawal matches target monthly income', () => {
       const targetIncome = 1800
-      const result = compareCPFLifeStrategies(213000, targetIncome)
+      const result = compareCPFLifeStrategies(220400, targetIncome)
 
       expect(result.manualWithdrawal.monthlyWithdrawal).toBe(targetIncome)
     })
 
     test('includes all required fields in response', () => {
-      const result = compareCPFLifeStrategies(213000, 1500)
+      const result = compareCPFLifeStrategies(220400, 1500)
 
       expect(result.cpfLife).toHaveProperty('monthlyPayout')
       expect(result.cpfLife).toHaveProperty('guaranteed')
@@ -289,7 +307,7 @@ describe('CPF Life', () => {
     })
 
     test('returns rounded values to 2 decimal places', () => {
-      const result = compareCPFLifeStrategies(213000, 1500)
+      const result = compareCPFLifeStrategies(220400, 1500)
 
       const roundedPayout = Math.round(result.cpfLife.monthlyPayout * 100) / 100
       const roundedLifetime = Math.round(result.cpfLife.totalLifetimePayout * 100) / 100
@@ -307,9 +325,13 @@ describe('CPF Life', () => {
       expect(payout).toBeGreaterThanOrEqual(0)
     })
 
-    test('handles very large RA balance', () => {
+    test('handles very large RA balance (capped at ERS payout)', () => {
       const payout = estimateCPFLifePayout(1000000, 'standard')
-      expect(payout).toBeGreaterThan(5000)
+      expect(payout).toBe(3295)
+    })
+
+    test('negative RA balance gives zero payout', () => {
+      expect(estimateCPFLifePayout(-1000, 'standard')).toBe(0)
     })
 
     test('depletion calculation handles zero withdrawal', () => {

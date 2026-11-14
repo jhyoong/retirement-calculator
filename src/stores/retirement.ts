@@ -21,6 +21,7 @@ export const useRetirementStore = defineStore('retirement', () => {
   const currentSavings = ref(DEFAULT_SAVINGS)
   const expectedReturnRate = ref(DEFAULT_RETURN_RATE)
   const inflationRate = ref(DEFAULT_INFLATION_RATE)
+  const taxEnabled = ref(true)
 
   // Computed: get user data object
   const userData = computed((): UserData => {
@@ -34,6 +35,7 @@ export const useRetirementStore = defineStore('retirement', () => {
       currentSavings: currentSavings.value,
       expectedReturnRate: expectedReturnRate.value,
       inflationRate: inflationRate.value,
+      taxEnabled: taxEnabled.value,
       // Phase 2: Include income sources if they exist
       incomeSources: incomeStore.incomeSources.length > 0 ? incomeStore.incomeSources : undefined,
       oneOffReturns: incomeStore.oneOffReturns.length > 0 ? incomeStore.oneOffReturns : undefined,
@@ -105,12 +107,17 @@ export const useRetirementStore = defineStore('retirement', () => {
     inflationRate.value = value
   }
 
+  function updateTaxEnabled(value: boolean) {
+    taxEnabled.value = value
+  }
+
   function loadData(data: UserData) {
     currentAge.value = data.currentAge
     retirementAge.value = data.retirementAge
     currentSavings.value = data.currentSavings
     expectedReturnRate.value = data.expectedReturnRate
     inflationRate.value = data.inflationRate
+    taxEnabled.value = data.taxEnabled ?? true
 
     // Phase 2: Load income sources and one-off returns
     const incomeStore = useIncomeStore()
@@ -158,6 +165,7 @@ export const useRetirementStore = defineStore('retirement', () => {
     currentSavings.value = DEFAULT_SAVINGS
     expectedReturnRate.value = DEFAULT_RETURN_RATE
     inflationRate.value = DEFAULT_INFLATION_RATE
+    taxEnabled.value = true
 
     // Phase 2: Reset income data
     const incomeStore = useIncomeStore()
@@ -183,6 +191,7 @@ export const useRetirementStore = defineStore('retirement', () => {
     currentSavings.value = 0
     expectedReturnRate.value = 0
     inflationRate.value = 0
+    taxEnabled.value = true
 
     // Clear all other stores
     const incomeStore = useIncomeStore()
@@ -207,6 +216,7 @@ export const useRetirementStore = defineStore('retirement', () => {
     currentSavings,
     expectedReturnRate,
     inflationRate,
+    taxEnabled,
     results,
     monthlyProjections,
     isCalculating,
@@ -221,6 +231,7 @@ export const useRetirementStore = defineStore('retirement', () => {
     updateCurrentSavings,
     updateExpectedReturnRate,
     updateInflationRate,
+    updateTaxEnabled,
     loadData,
     resetToDefaults,
     clearAll

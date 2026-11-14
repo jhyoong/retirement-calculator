@@ -135,10 +135,20 @@
           v-model="cpfStore.retirementSumTarget"
           class="w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
         >
-          <option value="basic">Basic Retirement Sum (BRS) - $106,500</option>
-          <option value="full">Full Retirement Sum (FRS) - $213,000</option>
-          <option value="enhanced">Enhanced Retirement Sum (ERS) - $426,000</option>
+          <option value="basic">Basic Retirement Sum (BRS) - {{ formatCurrency(cohortSums.basic) }}</option>
+          <option value="full">Full Retirement Sum (FRS) - {{ formatCurrency(cohortSums.full) }}</option>
+          <option value="enhanced">Enhanced Retirement Sum (ERS) - {{ formatCurrency(cohortSums.enhanced) }}</option>
         </select>
+        <p class="mt-1 text-xs text-gray-500">
+          Sums for your cohort (turning 55 in {{ cohortYear }}).
+        </p>
+        <p v-if="cohortSumsNote" class="mt-1 text-xs text-amber-600">{{ cohortSumsNote }}</p>
+        <p v-if="cpfStore.retirementSumTarget === 'enhanced'" class="mt-1 text-xs text-amber-600">
+          Reaching the ERS needs voluntary transfers from your OA or cash top-ups to your RA.
+        </p>
+        <p v-if="cpfStore.retirementSumTarget === 'basic'" class="mt-1 text-xs text-amber-600">
+          Keeping only the BRS in your RA requires pledging a property.
+        </p>
 
         <div class="mt-3 p-3 bg-gray-50 rounded-md text-sm text-gray-700">
           <p class="font-medium mb-1">About Retirement Sums:</p>
@@ -155,7 +165,7 @@
         <h3 class="text-lg font-semibold mb-4">CPF Life Plan</h3>
 
         <label class="block text-sm font-medium text-gray-700 mb-2">
-          Select your CPF Life plan (for age 65 payouts)
+          Select your CPF Life plan
         </label>
 
         <div class="space-y-3">
@@ -183,9 +193,37 @@
             />
             <div class="ml-3">
               <span class="block text-sm font-semibold text-gray-900">Basic Plan</span>
-              <span class="block text-xs text-gray-600">~15% higher initial payouts, no annual increases</span>
+              <span class="block text-xs text-gray-600">Lower monthly payouts than Standard, no annual increases. Leaves more for your beneficiaries.</span>
             </div>
           </label>
+
+          <div v-if="cpfStore.cpfLifePlan === 'basic'" class="p-3 border border-amber-300 bg-amber-50 rounded-md">
+            <label for="basic-plan-percent" class="block text-sm font-medium text-gray-900">
+              Basic plan payout as % of Standard plan
+            </label>
+            <input
+              id="basic-plan-percent"
+              type="number"
+              min="1"
+              max="100"
+              step="1"
+              v-model.number="cpfStore.basicPlanPayoutPercent"
+              placeholder="e.g. from the CPF LIFE estimator"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm px-3 py-2 border"
+            />
+            <p class="mt-2 text-xs text-gray-700">
+              <strong>About the Basic plan:</strong> part of your retirement savings stays in your
+              Retirement Account and pays your monthly payouts first, until about age 90. Only the rest
+              is used for the CPF LIFE annuity. Because more savings stay in your account, more is left
+              for your beneficiaries, but monthly payouts are lower than the Standard plan. Payouts also
+              go down once your combined CPF balances fall below $60,000.
+            </p>
+            <p class="mt-1 text-xs text-gray-700">
+              CPF does not publish a fixed percentage. Compare the Basic and Standard payouts in the
+              <a href="https://www.cpf.gov.sg/member/tools-and-services/calculators/cpf-life-estimator" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline">CPF LIFE Estimator</a>
+              and enter Basic / Standard x 100.
+            </p>
+          </div>
 
           <label class="flex items-start p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition-colors"
             :class="{ 'border-blue-500 bg-blue-50': cpfStore.cpfLifePlan === 'escalating' }">
@@ -240,13 +278,13 @@
             />
             <div class="ml-3">
               <span class="block text-sm font-semibold text-gray-900">Age 70 (Deferred - Higher Payouts)</span>
-              <span class="block text-xs text-gray-600">~40% higher monthly payouts by deferring 5 years</span>
+              <span class="block text-xs text-gray-600">About 35% higher monthly payouts by deferring 5 years</span>
             </div>
           </label>
         </div>
 
         <div class="mt-3 p-3 bg-blue-50 rounded-md text-xs text-blue-700">
-          <p><strong>Deferment Benefit:</strong> Deferring from age 65 to 70 increases your monthly payout by approximately 7% per year (about 40% total increase). Your RA balance continues earning 4% interest during deferment.</p>
+          <p><strong>Deferment Benefit:</strong> Deferring from age 65 to 70 increases your monthly payout by about 33-35% (2026 cohort estimates). Your RA balance continues earning 4% interest during deferment.</p>
         </div>
       </div>
 
@@ -257,8 +295,9 @@
         </p>
         <ul class="list-disc list-inside text-sm text-blue-800 space-y-1">
           <li>Mark income sources as CPF-eligible in the Income tab to calculate contributions</li>
-          <li>Monthly interest is calculated and applied to all accounts automatically</li>
-          <li>Age 55 transition (SA closes, RA opens) is handled when you reach retirement age</li>
+          <li>Interest is calculated monthly and credited to your accounts each December</li>
+          <li>Age 55 transition (SA closes, RA opens) is handled in the year you turn 55</li>
+          <li>At the payout age, your RA balance is used for CPF LIFE and monthly payouts begin</li>
           <li>OA can be used for housing loan payments automatically</li>
           <li>View your projected CPF balance at retirement in the Results tab</li>
         </ul>
@@ -345,10 +384,16 @@ import { useCPFStore } from '@/stores/cpf'
 import { useRetirementStore } from '@/stores/retirement'
 import { useIncomeStore } from '@/stores/income'
 import { calculateCPFContribution } from '@/utils/cpfContributions'
+import { getCohortYear, getRetirementSums, getCohortSumsNote } from '@/utils/cpfConfig'
 
 const cpfStore = useCPFStore()
 const retirementStore = useRetirementStore()
 const incomeStore = useIncomeStore()
+
+// User's CPF cohort (year they turn 55) and its retirement sums
+const cohortYear = computed(() => getCohortYear(retirementStore.currentAge))
+const cohortSums = computed(() => getRetirementSums(cohortYear.value))
+const cohortSumsNote = computed(() => getCohortSumsNote(cohortYear.value))
 
 const totalCPFBalance = computed(() => {
   const balances = cpfStore.currentBalances

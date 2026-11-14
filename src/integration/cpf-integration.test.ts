@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useRetirementStore } from '../stores/retirement'
 import { useIncomeStore } from '../stores/income'
@@ -6,12 +6,20 @@ import { useExpenseStore } from '../stores/expense'
 import { useCPFStore } from '../stores/cpf'
 import { calculateRetirement } from '../utils/calculations'
 import { generateMonthlyProjections } from '../utils/monthlyProjections'
+import { getRetirementSums } from '../utils/cpfConfig'
 
 describe('CPF Integration Tests', () => {
+  // Pin "today" to March 2026 so cohort years and December interest crediting are fixed
   beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-15T00:00:00'))
     setActivePinia(createPinia())
     const expenseStore = useExpenseStore()
     expenseStore.expenses = []
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   describe('CPF Store Integration', () => {
@@ -312,7 +320,7 @@ describe('CPF Integration Tests', () => {
       retirementStore.retirementAge = 56
 
       cpfStore.updateEnabled(true)
-      cpfStore.updateRetirementSumTarget('full') // FRS = $213,000
+      cpfStore.updateRetirementSumTarget('full') // Cohort 2027 FRS = $228,200
       cpfStore.updateBalances({
         ordinaryAccount: 100000,
         specialAccount: 150000
@@ -322,9 +330,8 @@ describe('CPF Integration Tests', () => {
 
       const afterAge55 = projections[12]
 
-      // RA should have approximately FRS amount (may be slightly more due to contributions and interest during the year)
-      expect(afterAge55.cpf!.accounts.retirementAccount).toBeGreaterThanOrEqual(213000)
-      expect(afterAge55.cpf!.accounts.retirementAccount).toBeLessThan(215000)
+      // Turns 55 in 2027: RA is filled to the 2027 cohort FRS (no contributions, interest credited only in December)
+      expect(afterAge55.cpf!.accounts.retirementAccount).toBe(getRetirementSums(2027).full)
     })
   })
 
@@ -421,10 +428,8 @@ describe('CPF Integration Tests', () => {
       // OA should increase (contributions + interest), not decrease
       expect(finalOA).toBeGreaterThan(initialOA)
 
-      // Verify OA increased by approximately the right amount (contributions + interest)
-      const oaIncrease = finalOA - initialOA
-      const expectedMinIncrease = month1.cpf!.monthlyContribution.allocation.toOA // At minimum, contributions
-      expect(oaIncrease).toBeGreaterThanOrEqual(expectedMinIncrease)
+      // Interest is credited in December, so in March OA only grows by the contribution
+      expect(finalOA).toBeCloseTo(initialOA + month1.cpf!.monthlyContribution.allocation.toOA, 2)
     })
 
     it('should not use OA for housing loans when useCPF is disabled', () => {
@@ -473,10 +478,8 @@ describe('CPF Integration Tests', () => {
       // OA should increase (contributions + interest), not decrease
       expect(finalOA).toBeGreaterThan(initialOA)
 
-      // Verify OA increased by approximately the right amount (contributions + interest)
-      const oaIncrease = finalOA - initialOA
-      const expectedMinIncrease = month1.cpf!.monthlyContribution.allocation.toOA // At minimum, contributions
-      expect(oaIncrease).toBeGreaterThanOrEqual(expectedMinIncrease)
+      // Interest is credited in December, so in March OA only grows by the contribution
+      expect(finalOA).toBeCloseTo(initialOA + month1.cpf!.monthlyContribution.allocation.toOA, 2)
     })
 
     it('should use percentage-based CPF payment for housing loans', () => {
@@ -520,14 +523,13 @@ describe('CPF Integration Tests', () => {
       const month1 = projections[0]
       const initialOA = 50000
 
-      // OA should be reduced, but not by the full loan payment (only 50%)
+      // 50% of the payment comes from OA, the other 50% is the cash expense.
+      // Interest is credited in December, so in March OA only changes by contribution minus loan portion.
       const finalOA = month1.cpf!.accounts.ordinaryAccount
-      const oaChange = finalOA - initialOA
-      const expectedOAIncrease = month1.cpf!.monthlyContribution.allocation.toOA + month1.cpf!.monthlyInterest.oa
-
-      // OA change should be positive (contributions + interest) minus the CPF portion of loan payment
-      expect(oaChange).toBeLessThan(expectedOAIncrease) // Some OA was used for loan
-      expect(finalOA).toBeLessThan(initialOA + expectedOAIncrease) // Net OA is less than initial + contributions
+      const cashPortion = month1.expenses
+      const cpfPortion = cashPortion // 50/50 split
+      expect(cashPortion).toBeGreaterThan(0)
+      expect(finalOA).toBeCloseTo(initialOA + month1.cpf!.monthlyContribution.allocation.toOA - cpfPortion, 1)
     })
   })
 
