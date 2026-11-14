@@ -66,6 +66,15 @@
               <label class="flex items-center space-x-2 text-sm text-gray-700 pl-4">
                 <input
                   type="checkbox"
+                  v-model="visibleColumns.incomeTax"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                >
+                <span>Income Tax</span>
+              </label>
+
+              <label class="flex items-center space-x-2 text-sm text-gray-700 pl-4">
+                <input
+                  type="checkbox"
                   v-model="visibleColumns.contributions"
                   class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 >
@@ -179,6 +188,9 @@
             <th v-if="visibleColumns.expenses" :class="[headerClass, 'text-right']">
               Expenses
             </th>
+            <th v-if="visibleColumns.incomeTax" :class="[headerClass, 'text-right']">
+              Income Tax
+            </th>
             <th v-if="visibleColumns.contributions" :class="[headerClass, 'text-right']">
               Contrib
             </th>
@@ -218,6 +230,9 @@
             </td>
             <td v-if="visibleColumns.expenses" :class="[cellClass, 'text-right', 'text-red-600']">
               {{ formatCurrency(point.expenses) }}
+            </td>
+            <td v-if="visibleColumns.incomeTax" :class="[cellClass, 'text-right', 'text-red-600']">
+              {{ formatCurrency(point.incomeTax ?? 0) }}
             </td>
             <td v-if="visibleColumns.contributions" :class="[cellClass, 'text-right']">
               {{ formatCurrency(point.contributions) }}
@@ -282,6 +297,7 @@ const showRightShadow = ref(false)
 const visibleColumns = ref({
   income: true,
   expenses: true,
+  incomeTax: true,
   contributions: true,
   portfolio: true,
   growth: true,
@@ -295,6 +311,7 @@ const visibleColumns = ref({
 const allBaseColumnsVisible = computed(() => {
   return visibleColumns.value.income &&
     visibleColumns.value.expenses &&
+    visibleColumns.value.incomeTax &&
     visibleColumns.value.contributions &&
     visibleColumns.value.portfolio &&
     visibleColumns.value.growth
@@ -331,6 +348,7 @@ function toggleAllBaseColumns() {
   const newValue = !allBaseColumnsVisible.value
   visibleColumns.value.income = newValue
   visibleColumns.value.expenses = newValue
+  visibleColumns.value.incomeTax = newValue
   visibleColumns.value.contributions = newValue
   visibleColumns.value.portfolio = newValue
   visibleColumns.value.growth = newValue

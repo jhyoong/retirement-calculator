@@ -14,6 +14,7 @@ export const useCPFStore = defineStore('cpf', () => {
   const retirementSumTarget = ref<'basic' | 'full' | 'enhanced'>('full');
   const cpfLifePlan = ref<'standard' | 'basic' | 'escalating'>('standard');
   const cpfLifePayoutAge = ref<65 | 70>(65);
+  const basicPlanPayoutPercent = ref<number | undefined>(undefined);
   const manualOverride = ref(false);
 
   // Computed
@@ -23,6 +24,7 @@ export const useCPFStore = defineStore('cpf', () => {
     retirementSumTarget: retirementSumTarget.value,
     cpfLifePlan: cpfLifePlan.value,
     cpfLifePayoutAge: cpfLifePayoutAge.value,
+    basicPlanPayoutPercent: basicPlanPayoutPercent.value,
     manualOverride: manualOverride.value
   }));
 
@@ -62,6 +64,7 @@ export const useCPFStore = defineStore('cpf', () => {
     retirementSumTarget.value = 'full';
     cpfLifePlan.value = 'standard';
     cpfLifePayoutAge.value = 65;
+    basicPlanPayoutPercent.value = undefined;
     manualOverride.value = false;
   }
 
@@ -76,6 +79,7 @@ export const useCPFStore = defineStore('cpf', () => {
     retirementSumTarget.value = 'full';
     cpfLifePlan.value = 'standard';
     cpfLifePayoutAge.value = 65;
+    basicPlanPayoutPercent.value = undefined;
     manualOverride.value = false;
   }
 
@@ -85,6 +89,7 @@ export const useCPFStore = defineStore('cpf', () => {
     retirementSumTarget.value = data.retirementSumTarget;
     cpfLifePlan.value = data.cpfLifePlan || 'standard';
     cpfLifePayoutAge.value = data.cpfLifePayoutAge || 65;
+    basicPlanPayoutPercent.value = data.basicPlanPayoutPercent;
     manualOverride.value = data.manualOverride || false;
     // Note: Legacy 'housingUsage' field is ignored for backward compatibility
   }
@@ -96,6 +101,7 @@ export const useCPFStore = defineStore('cpf', () => {
     retirementSumTarget,
     cpfLifePlan,
     cpfLifePayoutAge,
+    basicPlanPayoutPercent,
     manualOverride,
     // Computed
     cpfData,

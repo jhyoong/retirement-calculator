@@ -203,6 +203,7 @@
           <div class="mt-3 pt-3 border-t border-purple-200">
             <p class="text-xs text-purple-600 mb-1">Retirement Sum Target:</p>
             <p class="text-sm font-semibold text-purple-900">{{ formatRetirementSumTarget(cpfStore.retirementSumTarget) }}</p>
+            <p v-if="cohortSumsNote" class="text-xs text-purple-600 mt-1">{{ cohortSumsNote }}</p>
           </div>
         </div>
       </div>
@@ -214,7 +215,7 @@
         </h3>
         <div class="space-y-3">
           <div class="flex justify-between items-center">
-            <span class="text-sm text-indigo-700 font-medium">RA Balance at Retirement:</span>
+            <span class="text-sm text-indigo-700 font-medium">RA Balance at Payout Age ({{ cpfLifeEstimates.payoutAge }}):</span>
             <span class="text-xl font-bold text-indigo-900">{{ formatCurrencySGD(cpfLifeEstimates.raBalance) }}</span>
           </div>
 
@@ -237,7 +238,10 @@
           </div>
 
           <div class="mt-2 text-xs text-indigo-600 bg-white rounded p-2">
-            <p>Payouts are for life and guaranteed by the Singapore Government. Estimates based on 2025 CPF Life rates.</p>
+            <p>Payouts are for life and guaranteed by the Singapore Government. Estimates are based on the CPF LIFE payout estimates for the cohort turning 55 in 2026.</p>
+            <p v-if="cpfLifeEstimates.payoutAge > store.retirementAge" class="mt-1">
+              CPF accounts keep earning interest (and receive contributions while CPF-eligible income continues) between your retirement age and the payout age.
+            </p>
           </div>
         </div>
       </div>
@@ -259,7 +263,8 @@ import { useRetirementStore } from '@/stores/retirement'
 import { useExpenseStore } from '@/stores/expense'
 import { useCPFStore } from '@/stores/cpf'
 import SustainabilityDisplay from './SustainabilityDisplay.vue'
-import { estimateCPFLifePayout } from '@/utils/cpfLife'
+import { getCohortYear, getRetirementSums, getCohortSumsNote } from '@/utils/cpfConfig'
+import { MONTHS_PER_YEAR } from '@/utils/constants'
 
 const store = useRetirementStore()
 const expenseStore = useExpenseStore()
@@ -280,73 +285,68 @@ const ageGap = computed(() => {
   return cpfLifeAge - store.retirementAge
 })
 
-// Computed property for CPF Life estimates
+// User's CPF cohort (year they turn 55) and its retirement sums
+const cohortYear = computed(() => getCohortYear(store.currentAge))
+const cohortSums = computed(() => getRetirementSums(cohortYear.value))
+const cohortSumsNote = computed(() => getCohortSumsNote(cohortYear.value))
+
+// CPF LIFE estimate uses the RA at the payout age (computed by the projection engine)
 const cpfLifeEstimates = computed(() => {
-  if (!cpfStore.enabled || !store.validation.isValid || !cpfAtRetirement.value) {
+  if (!cpfStore.enabled || !store.validation.isValid || !store.results?.cpfLife) {
     return null
   }
 
-  const raBalance = cpfAtRetirement.value.accounts.retirementAccount
-  if (raBalance <= 0) {
+  const cpfLife = store.results.cpfLife
+  if (cpfLife.raBalance <= 0) {
     return null
   }
-
-  const cpfLifePlan = cpfStore.cpfLifePlan
-  const payoutAge = cpfStore.cpfLifePayoutAge || 65
-  const monthlyPayout = estimateCPFLifePayout(raBalance, cpfLifePlan, payoutAge)
 
   return {
-    raBalance,
-    monthlyPayout,
-    cpfLifePlan,
-    payoutAge
+    raBalance: cpfLife.raBalance,
+    monthlyPayout: cpfLife.monthlyPayout,
+    cpfLifePlan: cpfLife.plan,
+    payoutAge: cpfLife.payoutAge
   }
 })
 
-// Computed property to get CPF projection at retirement from cached projections
+// CPF projection at the user's retirement age, read from the cached monthly projections
 const cpfAtRetirement = computed(() => {
   if (!cpfStore.enabled || !store.validation.isValid || store.monthlyProjections.length === 0) {
     return null
   }
 
-  try {
-    const projections = store.monthlyProjections
-
-    // Get last projection (at retirement)
-    const lastMonth = projections[projections.length - 1]
-    if (!lastMonth.cpf) {
-      return null
-    }
-
-    // Calculate total contributions and interest
-    let totalContributions = 0
-    let totalInterest = 0
-
-    projections.forEach(p => {
-      if (p.cpf) {
-        totalContributions += p.cpf.monthlyContribution.total
-        totalInterest += p.cpf.monthlyInterest.total
-      }
-    })
-
-    const totalCPF = lastMonth.cpf.accounts.ordinaryAccount +
-                     lastMonth.cpf.accounts.specialAccount +
-                     lastMonth.cpf.accounts.medisaveAccount +
-                     lastMonth.cpf.accounts.retirementAccount
-
-    const age55Completed = lastMonth.cpf.accounts.specialAccount === 0 &&
-                          lastMonth.cpf.accounts.retirementAccount > 0
-
-    return {
-      accounts: lastMonth.cpf.accounts,
-      totalCPF,
-      totalContributions,
-      totalInterest,
-      age55Completed
-    }
-  } catch (error) {
-    console.error('Error reading CPF projections:', error)
+  const projections = store.monthlyProjections
+  const retirementIndex = Math.min(
+    projections.length - 1,
+    Math.max(0, (store.retirementAge - store.currentAge) * MONTHS_PER_YEAR - 1)
+  )
+  const atRetirement = projections[retirementIndex]
+  if (!atRetirement.cpf) {
     return null
+  }
+
+  // Total contributions and interest up to retirement
+  let totalContributions = 0
+  let totalInterest = 0
+  projections.slice(0, retirementIndex + 1).forEach(p => {
+    if (p.cpf) {
+      totalContributions += p.cpf.monthlyContribution.total
+      totalInterest += p.cpf.monthlyInterest.total
+    }
+  })
+
+  const accounts = atRetirement.cpf.accounts
+  const totalCPF = accounts.ordinaryAccount +
+                   accounts.specialAccount +
+                   accounts.medisaveAccount +
+                   accounts.retirementAccount
+
+  return {
+    accounts,
+    totalCPF,
+    totalContributions,
+    totalInterest,
+    age55Completed: atRetirement.cpf.age >= 55
   }
 })
 
@@ -369,12 +369,13 @@ function formatCurrencySGD(value: number): string {
 }
 
 function formatRetirementSumTarget(target: 'basic' | 'full' | 'enhanced'): string {
+  const sums = cohortSums.value
   const targetMap = {
-    basic: 'Basic (BRS) - $106,500',
-    full: 'Full (FRS) - $213,000',
-    enhanced: 'Enhanced (ERS) - $426,000'
+    basic: `Basic (BRS) - ${formatCurrencySGD(sums.basic)}`,
+    full: `Full (FRS) - ${formatCurrencySGD(sums.full)}`,
+    enhanced: `Enhanced (ERS) - ${formatCurrencySGD(sums.enhanced)}`
   }
-  return targetMap[target]
+  return `${targetMap[target]} (cohort turning 55 in ${cohortYear.value})`
 }
 
 function formatCPFLifePlan(plan: 'standard' | 'basic' | 'escalating'): string {

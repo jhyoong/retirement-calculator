@@ -22,6 +22,7 @@ function getStoreData(stores: {
     currentSavings: retirement.currentSavings,
     expectedReturnRate: retirement.expectedReturnRate,
     inflationRate: retirement.inflationRate,
+    taxEnabled: retirement.taxEnabled,
     incomeSources: income.incomeSources.length > 0 ? income.incomeSources : undefined,
     oneOffReturns: income.oneOffReturns.length > 0 ? income.oneOffReturns : undefined,
     expenses: expense.expenses.length > 0 ? expense.expenses : undefined,

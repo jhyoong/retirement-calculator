@@ -50,6 +50,8 @@ export function validateImportedData(data: unknown): data is RetirementData {
   if (typeof user.currentSavings !== 'number') return false
   if (typeof user.expectedReturnRate !== 'number') return false
   if (typeof user.inflationRate !== 'number') return false
+  // taxEnabled is optional (treated as true when missing)
+  if (user.taxEnabled !== undefined && typeof user.taxEnabled !== 'boolean') return false
 
   // Validate income sources if present (optional)
   if (user.incomeSources !== undefined) {

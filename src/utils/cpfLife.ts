@@ -1,4 +1,3 @@
-import { CPF_CONFIG_2025 } from './cpfConfig';
 import {
   roundToTwoDecimals,
   CPF_LIFE_AGE,
@@ -8,69 +7,83 @@ import {
   DEFAULT_CPF_INTEREST_RATE,
   MAX_CALCULATION_MONTHS,
   CPF_STANDARD_PLAN_MULTIPLIER,
-  CPF_BASIC_PLAN_MULTIPLIER,
   CPF_ESCALATING_PLAN_MULTIPLIER,
   CPF_ESCALATION_RATE,
   INCOME_TARGET_THRESHOLD
 } from './constants';
 
 /**
- * Estimate CPF Life monthly payout based on RA balance
- * Uses 2025 payout estimates for age 65, with deferment bonus for age 70
+ * CPF LIFE Standard Plan payout table for the cohort turning 55 in 2026.
+ * Monthly payouts are the midpoint of the estimator ranges in CPF_INFO.md section 5
+ * (DBS article citing the CPF payout estimator, January 2026):
+ *   BRS $110,200: age 65 $890-$930,   age 70 $1,170-$1,270
+ *   FRS $220,400: age 65 $1,640-$1,750, age 70 $2,190-$2,370
+ *   ERS $440,800: age 65 $3,180-$3,410, age 70 $4,200-$4,550
+ */
+export const CPF_LIFE_PAYOUT_TABLE_2026 = [
+  { ra: 0, age65: 0, age70: 0 },
+  { ra: 110200, age65: (890 + 930) / 2, age70: (1170 + 1270) / 2 },
+  { ra: 220400, age65: (1640 + 1750) / 2, age70: (2190 + 2370) / 2 },
+  { ra: 440800, age65: (3180 + 3410) / 2, age70: (4200 + 4550) / 2 }
+] as const;
+
+/**
+ * Estimate CPF Life monthly payout based on RA balance.
+ * Estimates are for the cohort turning 55 in 2026 (see CPF_LIFE_PAYOUT_TABLE_2026).
+ * Uses piecewise linear interpolation through (0,0), BRS, FRS and ERS points.
+ * RA is capped at the ERS, since the RA cannot hold more than the ERS.
  *
  * @param raBalance - Retirement Account balance
  * @param plan - CPF Life plan: 'standard', 'basic', or 'escalating'
  * @param payoutAge - Age when payouts begin (65 or 70, default: 65)
+ * @param basicPlanPayoutPercent - Basic plan payout as a % of the Standard plan, entered by the user.
+ *   Required when plan is 'basic'. CPF does not publish a fixed percentage.
  * @returns Estimated monthly payout from payout age
  */
 export function estimateCPFLifePayout(
   raBalance: number,
   plan: 'standard' | 'basic' | 'escalating' = 'standard',
-  payoutAge: 65 | 70 = 65
+  payoutAge: 65 | 70 = 65,
+  basicPlanPayoutPercent?: number
 ): number {
-  const { cpfLifePayouts, retirementSums } = CPF_CONFIG_2025;
+  const table = CPF_LIFE_PAYOUT_TABLE_2026;
+  const maxRA = table[table.length - 1].ra;
+  const ra = Math.min(Math.max(raBalance, 0), maxRA);
+  const key = payoutAge === 70 ? 'age70' : 'age65';
 
-  // Calculate base payout based on proportion to retirement sums (for age 65)
-  let basePayout: number;
-
-  if (raBalance <= retirementSums.basic) {
-    // Pro-rate based on BRS
-    const proportion = raBalance / retirementSums.basic;
-    basePayout = ((cpfLifePayouts.basic.min + cpfLifePayouts.basic.max) / 2) * proportion;
-  } else if (raBalance <= retirementSums.full) {
-    // Pro-rate based on FRS
-    const proportion = raBalance / retirementSums.full;
-    basePayout = ((cpfLifePayouts.full.min + cpfLifePayouts.full.max) / 2) * proportion;
-  } else {
-    // Pro-rate based on ERS or higher
-    const proportion = raBalance / retirementSums.enhanced;
-    basePayout = ((cpfLifePayouts.enhanced.min + cpfLifePayouts.enhanced.max) / 2) * proportion;
+  let standardPayout = 0;
+  for (let i = 1; i < table.length; i++) {
+    const lo = table[i - 1];
+    const hi = table[i];
+    if (ra <= hi.ra) {
+      const t = (ra - lo.ra) / (hi.ra - lo.ra);
+      standardPayout = lo[key] + t * (hi[key] - lo[key]);
+      break;
+    }
   }
 
-  // Apply deferment bonus if starting at age 70
-  // Deferring from 65 to 70 gives ~7% per year compounded: 1.07^5 ≈ 1.403
-  const defermentMultiplier = payoutAge === 70 ? 1.403 : 1.0;
-  basePayout = basePayout * defermentMultiplier;
-
-  // Adjust based on plan type
-  const planMultiplier = getPlanMultiplier(plan);
-  const estimatedPayout = basePayout * planMultiplier;
-
-  return roundToTwoDecimals(estimatedPayout);
+  return roundToTwoDecimals(standardPayout * getPlanMultiplier(plan, basicPlanPayoutPercent));
 }
 
 /**
  * Get plan multiplier for different CPF Life plans
  * Standard: baseline
- * Basic: higher initial payout, no escalation
- * Escalating: lower initial, increases over time
+ * Basic: user-entered % of Standard (cpf.gov.sg says Basic payouts are lower than Standard,
+ *   but gives no fixed percentage)
+ * Escalating: about 20% lower initial, increases 2% a year
  */
-function getPlanMultiplier(plan: 'standard' | 'basic' | 'escalating'): number {
+function getPlanMultiplier(
+  plan: 'standard' | 'basic' | 'escalating',
+  basicPlanPayoutPercent?: number
+): number {
   switch (plan) {
     case 'standard':
       return CPF_STANDARD_PLAN_MULTIPLIER;
     case 'basic':
-      return CPF_BASIC_PLAN_MULTIPLIER;
+      if (basicPlanPayoutPercent === undefined || !(basicPlanPayoutPercent > 0) || basicPlanPayoutPercent > 100) {
+        throw new Error('Basic plan payout % (1-100) is required for the Basic plan');
+      }
+      return basicPlanPayoutPercent / 100;
     case 'escalating':
       return CPF_ESCALATING_PLAN_MULTIPLIER;
     default:
@@ -82,8 +95,8 @@ function getPlanMultiplier(plan: 'standard' | 'basic' | 'escalating'): number {
  * Calculate monthly CPF Life payout with escalation
  * Escalating plan increases by ~2% annually
  *
- * @param initialPayout - Payout at age 65
- * @param yearsFromAge65 - Years since turning 65
+ * @param initialPayout - First-year monthly payout (at the payout age)
+ * @param yearsFromAge65 - Whole years since payouts started
  * @param plan - CPF Life plan
  * @returns Adjusted monthly payout
  */

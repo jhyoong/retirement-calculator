@@ -1,38 +1,46 @@
-import { CPF_CONFIG_2025 } from './cpfConfig';
+import { getRetirementSums } from './cpfConfig';
 import type { CPFAccounts } from '@/types';
+import { roundToTwoDecimals } from './constants';
+
+export type RetirementSumTarget = 'basic' | 'full' | 'enhanced';
+
+/** Minimum amount a member can withdraw at 55 */
+const AGE_55_MIN_WITHDRAWAL = 5000;
 
 /**
- * Get retirement sum amount based on target
+ * Get retirement sum for a target and cohort (year the member turns 55)
  */
-export function getRetirementSum(target: 'basic' | 'full' | 'enhanced'): number {
-  const { retirementSums } = CPF_CONFIG_2025;
+export function getRetirementSum(target: RetirementSumTarget, cohortYear: number): number {
+  const sums = getRetirementSums(cohortYear);
 
   switch (target) {
     case 'basic':
-      return retirementSums.basic;
-    case 'full':
-      return retirementSums.full;
+      return sums.basic;
     case 'enhanced':
-      return retirementSums.enhanced;
+      return sums.enhanced;
+    case 'full':
     default:
-      return retirementSums.full;
+      return sums.full;
   }
 }
 
 /**
  * Handle age 55 transition
- * - Close Special Account (SA)
- * - Open Retirement Account (RA)
- * - Transfer funds from SA and OA to RA up to retirement sum target
- * - Remaining funds stay in OA
+ * - Close Special Account (SA), open Retirement Account (RA)
+ * - Transfer SA, then OA, to RA up to the target sum for the cohort
+ * - Remaining SA goes to OA
  *
- * @param accounts - Current account balances (before transition)
- * @param retirementSumTarget - User's target: 'basic', 'full', or 'enhanced'
- * @returns Updated accounts after transition
+ * Targets: 'basic' = property pledge case (set aside BRS in cash),
+ * 'full' = default, 'enhanced' = member voluntarily transfers OA up to ERS.
+ *
+ * @param accounts - Balances before the transition
+ * @param retirementSumTarget - 'basic', 'full' or 'enhanced'
+ * @param cohortYear - Year the member turns 55
  */
 export function handleAge55Transition(
   accounts: CPFAccounts,
-  retirementSumTarget: 'basic' | 'full' | 'enhanced' = 'full'
+  retirementSumTarget: RetirementSumTarget = 'full',
+  cohortYear: number
 ): {
   accounts: CPFAccounts;
   transferred: {
@@ -42,63 +50,44 @@ export function handleAge55Transition(
   };
   withdrawable: number;
 } {
-  // Get retirement sum based on target
-  const targetSum = getRetirementSum(retirementSumTarget);
+  const targetSum = getRetirementSum(retirementSumTarget, cohortYear);
+  let amountToTransfer = Math.max(0, targetSum - accounts.retirementAccount);
 
-  // Calculate how much to transfer to RA
-  let amountToTransfer = targetSum;
-  let transferredFromSA = 0;
-  let transferredFromOA = 0;
+  // Step 1: SA first
+  const transferredFromSA = Math.min(Math.max(0, accounts.specialAccount), amountToTransfer);
+  amountToTransfer -= transferredFromSA;
 
-  // Step 1: Transfer SA balance first
-  if (accounts.specialAccount > 0) {
-    transferredFromSA = Math.min(accounts.specialAccount, amountToTransfer);
-    amountToTransfer -= transferredFromSA;
-  }
+  // Step 2: OA if needed
+  const transferredFromOA = Math.min(Math.max(0, accounts.ordinaryAccount), amountToTransfer);
 
-  // Step 2: Transfer from OA if needed to reach target
-  if (amountToTransfer > 0 && accounts.ordinaryAccount > 0) {
-    transferredFromOA = Math.min(accounts.ordinaryAccount, amountToTransfer);
-    amountToTransfer -= transferredFromOA;
-  }
-
-  // Calculate new balances
+  // Remaining SA moves to OA (SA closes)
+  const remainingSA = accounts.specialAccount - transferredFromSA;
+  const newOA = accounts.ordinaryAccount - transferredFromOA + remainingSA;
   const newRA = accounts.retirementAccount + transferredFromSA + transferredFromOA;
-  const newOA = accounts.ordinaryAccount - transferredFromOA;
-  const newSA = 0; // SA is closed
-
-  // Withdrawable amount: $5,000 or everything above FRS, whichever is more
-  const frs = getRetirementSum('full');
-  const totalBeforeTransition = accounts.ordinaryAccount + accounts.specialAccount;
-  const excessAboveFRS = Math.max(0, totalBeforeTransition - frs);
-  const withdrawable = Math.max(5000, excessAboveFRS);
 
   return {
     accounts: {
-      ordinaryAccount: Math.round(newOA * 100) / 100,
-      specialAccount: newSA,
-      medisaveAccount: accounts.medisaveAccount, // Unchanged
-      retirementAccount: Math.round(newRA * 100) / 100
+      ordinaryAccount: roundToTwoDecimals(newOA),
+      specialAccount: 0,
+      medisaveAccount: accounts.medisaveAccount,
+      retirementAccount: roundToTwoDecimals(newRA)
     },
     transferred: {
-      fromSA: Math.round(transferredFromSA * 100) / 100,
-      fromOA: Math.round(transferredFromOA * 100) / 100,
-      total: Math.round((transferredFromSA + transferredFromOA) * 100) / 100
+      fromSA: roundToTwoDecimals(transferredFromSA),
+      fromOA: roundToTwoDecimals(transferredFromOA),
+      total: roundToTwoDecimals(transferredFromSA + transferredFromOA)
     },
-    withdrawable: Math.round(withdrawable * 100) / 100
+    withdrawable: calculateAge55Withdrawal(accounts, cohortYear).withdrawable
   };
 }
 
 /**
  * Calculate progress toward retirement sum
- *
- * @param raBalance - Current RA balance
- * @param target - Target retirement sum
- * @returns Progress information
  */
 export function calculateRetirementSumProgress(
   raBalance: number,
-  target: 'basic' | 'full' | 'enhanced'
+  target: RetirementSumTarget,
+  cohortYear: number
 ): {
   target: number;
   current: number;
@@ -106,87 +95,50 @@ export function calculateRetirementSumProgress(
   percentageComplete: number;
   isMet: boolean;
 } {
-  const targetAmount = getRetirementSum(target);
+  const targetAmount = getRetirementSum(target, cohortYear);
   const shortfall = Math.max(0, targetAmount - raBalance);
   const percentageComplete = Math.min(100, (raBalance / targetAmount) * 100);
 
   return {
     target: targetAmount,
-    current: Math.round(raBalance * 100) / 100,
-    shortfall: Math.round(shortfall * 100) / 100,
-    percentageComplete: Math.round(percentageComplete * 100) / 100,
+    current: roundToTwoDecimals(raBalance),
+    shortfall: roundToTwoDecimals(shortfall),
+    percentageComplete: roundToTwoDecimals(percentageComplete),
     isMet: raBalance >= targetAmount
   };
 }
 
 /**
  * Calculate withdrawable amount at age 55
- * User can withdraw $5,000 or amount above FRS, whichever is higher
+ * Member can withdraw $5,000 or savings above the cohort FRS, whichever is higher,
+ * but never more than their OA + SA + RA savings.
  *
- * @param accounts - Account balances at age 55 (before transition)
- * @param hasProperty - Whether user owns property (affects withdrawal rules)
- * @returns Withdrawable amount
+ * @param accounts - Balances at age 55 (before transition)
+ * @param cohortYear - Year the member turns 55
  */
 export function calculateAge55Withdrawal(
   accounts: CPFAccounts,
-  _hasProperty: boolean = false
+  cohortYear: number
 ): {
-  minimum: number; // $5,000 minimum
-  excessAboveFRS: number; // Amount above FRS
-  withdrawable: number; // Max of the two
+  minimum: number;
+  excessAboveFRS: number;
+  withdrawable: number;
   canWithdraw: boolean;
 } {
-  const frs = getRetirementSum('full');
-  const totalCPF =
-    accounts.ordinaryAccount +
-    accounts.specialAccount +
-    accounts.medisaveAccount +
-    accounts.retirementAccount;
+  const frs = getRetirementSum('full', cohortYear);
+  const retirementSavings =
+    accounts.ordinaryAccount + accounts.specialAccount + accounts.retirementAccount;
 
-  const minimum = 5000;
-  const totalOASA = accounts.ordinaryAccount + accounts.specialAccount;
-  const excessAboveFRS = Math.max(0, totalOASA - frs);
-  const withdrawable = Math.max(minimum, excessAboveFRS);
-  const canWithdraw = totalCPF >= minimum;
+  const excessAboveFRS = Math.max(0, retirementSavings - frs);
+  const withdrawable = Math.min(
+    retirementSavings,
+    Math.max(AGE_55_MIN_WITHDRAWAL, excessAboveFRS)
+  );
 
   return {
-    minimum: Math.round(minimum * 100) / 100,
-    excessAboveFRS: Math.round(excessAboveFRS * 100) / 100,
-    withdrawable: Math.round(withdrawable * 100) / 100,
-    canWithdraw
-  };
-}
-
-/**
- * Handle post-55 monthly contributions
- * After age 55, contributions go to RA up to FRS, then to OA
- *
- * @param accounts - Current account balances
- * @param contribution - Monthly CPF contribution breakdown
- * @returns Updated accounts
- */
-export function applyPost55Contribution(
-  accounts: CPFAccounts,
-  contribution: { toOA: number; toSA: number; toMA: number; toRA: number }
-): CPFAccounts {
-  const frs = getRetirementSum('full');
-
-  // All RA allocation goes to RA up to FRS
-  let amountForRA = contribution.toRA;
-  let amountForOA = contribution.toOA;
-
-  // If RA would exceed FRS, overflow goes to OA
-  const raAfterContribution = accounts.retirementAccount + amountForRA;
-  if (raAfterContribution > frs) {
-    const overflow = raAfterContribution - frs;
-    amountForRA -= overflow;
-    amountForOA += overflow;
-  }
-
-  return {
-    ordinaryAccount: Math.round((accounts.ordinaryAccount + amountForOA) * 100) / 100,
-    specialAccount: accounts.specialAccount, // Always 0 after age 55
-    medisaveAccount: Math.round((accounts.medisaveAccount + contribution.toMA) * 100) / 100,
-    retirementAccount: Math.round((accounts.retirementAccount + amountForRA) * 100) / 100
+    minimum: AGE_55_MIN_WITHDRAWAL,
+    excessAboveFRS: roundToTwoDecimals(excessAboveFRS),
+    withdrawable: roundToTwoDecimals(Math.max(0, withdrawable)),
+    canWithdraw: withdrawable > 0
   };
 }

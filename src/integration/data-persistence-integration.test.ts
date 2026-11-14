@@ -10,6 +10,45 @@ describe('Data Persistence Integration Tests', () => {
     setActivePinia(createPinia())
   })
 
+  describe('Income tax setting', () => {
+    it('exports taxEnabled and restores it on import', () => {
+      const retirementStore = useRetirementStore()
+      expect(retirementStore.taxEnabled).toBe(true)
+
+      retirementStore.updateTaxEnabled(false)
+      const exported = exportData(retirementStore.userData)
+      expect(exported.user.taxEnabled).toBe(false)
+      expect(validateImportedData(exported)).toBe(true)
+
+      retirementStore.resetToDefaults()
+      expect(retirementStore.taxEnabled).toBe(true)
+
+      retirementStore.loadData(exported.user)
+      expect(retirementStore.taxEnabled).toBe(false)
+    })
+
+    it('treats missing taxEnabled as true (older files)', () => {
+      const retirementStore = useRetirementStore()
+      retirementStore.updateTaxEnabled(false)
+      retirementStore.loadData({
+        currentAge: 30,
+        retirementAge: 65,
+        currentSavings: 0,
+        expectedReturnRate: 0.05,
+        inflationRate: 0.02
+      })
+      expect(retirementStore.taxEnabled).toBe(true)
+    })
+
+    it('rejects a non-boolean taxEnabled', () => {
+      const data = {
+        exportDate: new Date().toISOString(),
+        user: { currentAge: 30, retirementAge: 65, currentSavings: 0, expectedReturnRate: 0.05, inflationRate: 0.02, taxEnabled: 'yes' }
+      }
+      expect(validateImportedData(data)).toBe(false)
+    })
+  })
+
   describe('Export functionality', () => {
     it('should export basic retirement data', () => {
       const retirementStore = useRetirementStore()

@@ -83,8 +83,9 @@ src/
 ├── utils/              # Calculations and utilities
 │   ├── calculations.ts          # Core retirement calculations
 │   ├── loanCalculations.ts      # Loan amortization
-│   ├── monthlyProjections.ts    # Pre-retirement projections
-│   ├── postRetirementProjections.ts  # Post-retirement analysis
+│   ├── projectionEngine.ts      # Shared month-by-month projection loop
+│   ├── monthlyProjections.ts    # Monthly projections for chart/table
+│   ├── incomeTax.ts             # Singapore resident income tax
 │   ├── cpfContributions.ts      # CPF contribution calculations
 │   ├── cpfInterest.ts           # CPF interest calculations
 │   ├── cpfTransitions.ts        # CPF age-55 transitions

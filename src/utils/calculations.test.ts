@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   adjustForInflation,
   validateInputs,
@@ -34,6 +34,34 @@ describe('validateInputs', () => {
     expectedReturnRate: 0.07,
     inflationRate: 0.03
   }
+
+  describe('Basic plan payout %', () => {
+    const withPlan = (plan: 'standard' | 'basic', pct?: number): UserData => ({
+      ...validData,
+      incomeSources: [{ id: 's', name: 'Salary', type: 'salary', amount: 5000, frequency: 'monthly', startDate: '2026-01', cpfEligible: true }],
+      cpf: {
+        enabled: true,
+        currentBalances: { ordinaryAccount: 0, specialAccount: 0, medisaveAccount: 0, retirementAccount: 0 },
+        retirementSumTarget: 'full',
+        cpfLifePlan: plan,
+        manualOverride: false,
+        basicPlanPayoutPercent: pct
+      }
+    })
+    const hasError = (d: UserData) =>
+      validateInputs(d).errors.some(e => e.field === 'cpf.basicPlanPayoutPercent')
+
+    it('requires a % when the Basic plan is chosen', () => {
+      expect(hasError(withPlan('basic'))).toBe(true)
+      expect(hasError(withPlan('basic', 0))).toBe(true)
+      expect(hasError(withPlan('basic', 101))).toBe(true)
+      expect(hasError(withPlan('basic', 90))).toBe(false)
+    })
+
+    it('does not require a % for other plans', () => {
+      expect(hasError(withPlan('standard'))).toBe(false)
+    })
+  })
 
   it('accepts valid input', () => {
     const result = validateInputs(validData)
@@ -561,6 +589,15 @@ describe('Phase 4: checkSustainabilityWarning', () => {
 })
 
 describe('Phase 4: calculateRetirement with expenses', () => {
+  // Dates in these tests are written relative to October 2025
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2025-10-15T00:00:00'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('includes sustainability metrics when expenses are provided', () => {
     const expenses: RetirementExpense[] = [
       {
@@ -828,10 +865,20 @@ describe('Pre-retirement expenses', () => {
   })
 
   describe('Calculations', () => {
+    // Dates in these tests are written relative to October 2025
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2025-10-15T00:00:00'))
+    })
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
     it('should reduce portfolio when expenses occur before retirement', () => {
       const dataWithExpenses: UserData = {
         currentAge: 30,
         retirementAge: 35,
+        taxEnabled: false, // cash-flow checks only
         currentSavings: 100000,
           expectedReturnRate: 0.06,
         inflationRate: 0.03,
@@ -872,6 +919,7 @@ describe('Pre-retirement expenses', () => {
       const data: UserData = {
         currentAge: 30,
         retirementAge: 35,
+        taxEnabled: false, // cash-flow checks only
         currentSavings: 100000,
           expectedReturnRate: 0,
         inflationRate: 0,
@@ -909,6 +957,7 @@ describe('Pre-retirement expenses', () => {
       const data: UserData = {
         currentAge: 30,
         retirementAge: 40,
+        taxEnabled: false, // cash-flow checks only
         currentSavings: 100000,
           expectedReturnRate: 0,
         inflationRate: 0,
@@ -942,6 +991,7 @@ describe('Pre-retirement expenses', () => {
       const data: UserData = {
         currentAge: 30,
         retirementAge: 40,
+        taxEnabled: false, // cash-flow checks only
         currentSavings: 100000,
           expectedReturnRate: 0,
         inflationRate: 0,
@@ -976,6 +1026,7 @@ describe('Pre-retirement expenses', () => {
       const data: UserData = {
         currentAge: 30,
         retirementAge: 35,
+        taxEnabled: false, // cash-flow checks only
         currentSavings: 100000,
           expectedReturnRate: 0,
         inflationRate: 0,
@@ -1029,6 +1080,7 @@ describe('Pre-retirement expenses', () => {
       const data: UserData = {
         currentAge: 30,
         retirementAge: 35,
+        taxEnabled: false, // cash-flow checks only
         currentSavings: 10000,
           expectedReturnRate: 0,
         inflationRate: 0,
@@ -1064,6 +1116,7 @@ describe('Pre-retirement expenses', () => {
       const data: UserData = {
         currentAge: 30,
         retirementAge: 35,
+        taxEnabled: false, // cash-flow checks only
         currentSavings: 100000,
           expectedReturnRate: 0,
         inflationRate: 0,

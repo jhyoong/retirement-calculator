@@ -1,8 +1,17 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { calculateRetirement, calculateFutureValueWithIncomeSources } from './calculations'
 import type { UserData, IncomeStream, OneOffReturn } from '@/types'
 
 describe('Income-based Calculations', () => {
+  // Income dates in these tests are written relative to January 2025
+  beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2025-01-15T00:00:00'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   describe('calculateFutureValueWithIncomeSources', () => {
     it('calculates with single monthly income source', () => {
       const incomeSources: IncomeStream[] = [{
@@ -54,7 +63,12 @@ describe('Income-based Calculations', () => {
         5,
         30,
         incomeSources,
-        []
+        [],
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        false // no income tax: this test checks gross contributions
       )
 
       // Total monthly contribution = 4000
